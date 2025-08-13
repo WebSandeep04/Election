@@ -25,14 +25,22 @@ export const login = createAsyncThunk(
   }
 );
 
-const initialState = {
-  user: null,
-  isAuthenticated: false,
-  token: null,
-  loginError: null,
-  registerError: null,
-  loading: false,
+// Initialize state from localStorage if available
+const getInitialState = () => {
+  const token = localStorage.getItem('auth_token');
+  const user = localStorage.getItem('auth_user');
+  
+  return {
+    user: user ? JSON.parse(user) : null,
+    isAuthenticated: !!token,
+    token: token,
+    loginError: null,
+    registerError: null,
+    loading: false,
+  };
 };
+
+const initialState = getInitialState();
 
 const authSlice = createSlice({
   name: 'auth',
@@ -83,6 +91,9 @@ const authSlice = createSlice({
       state.token = null;
       state.loginError = null;
       state.registerError = null;
+      // Clear token and user from localStorage
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
     },
     updateProfile: (state, action) => {
       state.user = { ...state.user, ...action.payload };
@@ -104,6 +115,9 @@ const authSlice = createSlice({
         state.user = action.payload.user;
         state.token = action.payload.token;
         state.loginError = null;
+        // Store token and user in localStorage for persistence
+        localStorage.setItem('auth_token', action.payload.token);
+        localStorage.setItem('auth_user', JSON.stringify(action.payload.user));
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;

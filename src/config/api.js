@@ -11,6 +11,7 @@ export const API_CONFIG = {
     PROFILE: '/api/profile',
     REFRESH_TOKEN: '/api/refresh-token',
     CASTES: '/api/castes',
+    LOK_SABHA: '/api/lok-sabhas',
   },
 
   // Request timeout (in milliseconds)

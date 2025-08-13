@@ -3,6 +3,7 @@ import uiReducer from './slices/uiSlice';
 import authReducer from './slices/authSlice';
 import dataReducer from './slices/dataSlice';
 import casteReducer from './slices/casteSlice';
+import lokSabhaReducer from './slices/lokSabhaSlice';
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     auth: authReducer,
     data: dataReducer,
     caste: casteReducer,
+    lokSabha: lokSabhaReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

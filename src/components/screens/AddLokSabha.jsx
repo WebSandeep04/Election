@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { 
+  fetchLokSabhas, 
+  createLokSabha, 
+  updateLokSabha, 
+  deleteLokSabha,
+  clearError,
+  setCurrentPage
+} from '../../store/slices/lokSabhaSlice';
 import './css/AddLokSabha.css';
 
 // Icons (using simple SVG icons)
@@ -42,56 +50,29 @@ const RefreshIcon = () => (
 );
 
 const AddLokSabha = () => {
-  const [lokSabhas, setLokSabhas] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const dispatch = useDispatch();
+  const { lokSabhas, loading, error, pagination } = useSelector((state) => state.lokSabha);
+  const token = useSelector((state) => state.auth.token);
+  
+  // Debug authentication state
+  console.log('Auth token:', token ? 'Present' : 'Missing');
+  console.log('Auth state:', useSelector((state) => state.auth));
+  
   const [success, setSuccess] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
-    constituency_name: '',
-    state: '',
-    mp_name: '',
-    party: '',
-    total_voters: '',
-    description: ''
+    loksabha_name: '',
+    status: '1'
   });
 
-  // Mock data for demonstration
-  const mockLokSabhas = [
-    {
-      id: 1,
-      constituency_name: 'Mumbai North',
-      state: 'Maharashtra',
-      mp_name: 'Gopal Shetty',
-      party: 'BJP',
-      total_voters: '1500000',
-      description: 'Mumbai North Lok Sabha constituency',
-      created_at: '2024-01-01T00:00:00.000000Z',
-      updated_at: '2024-01-01T00:00:00.000000Z'
-    },
-    {
-      id: 2,
-      constituency_name: 'Delhi South',
-      state: 'Delhi',
-      mp_name: 'Ramesh Bidhuri',
-      party: 'BJP',
-      total_voters: '1200000',
-      description: 'Delhi South Lok Sabha constituency',
-      created_at: '2024-01-02T00:00:00.000000Z',
-      updated_at: '2024-01-02T00:00:00.000000Z'
-    }
-  ];
-
+  // Fetch Lok Sabhas on component mount and token change
   useEffect(() => {
-    // Simulate API call
-    setLoading(true);
-    setTimeout(() => {
-      setLokSabhas(mockLokSabhas);
-      setLoading(false);
-    }, 1000);
-  }, []);
+    if (token) {
+      dispatch(fetchLokSabhas(pagination.current_page));
+    }
+  }, [dispatch, token, pagination.current_page]);
 
   useEffect(() => {
     if (success) {
@@ -104,10 +85,10 @@ const AddLokSabha = () => {
   useEffect(() => {
     if (error) {
       setTimeout(() => {
-        setError(null);
+        dispatch(clearError());
       }, 5000);
     }
-  }, [error]);
+  }, [error, dispatch]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -120,47 +101,32 @@ const AddLokSabha = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.constituency_name.trim()) {
-      setError('Constituency name is required');
+    if (!formData.loksabha_name.trim()) {
       return;
     }
 
-    setLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
+    try {
       if (isEditing) {
-        // Update existing
-        setLokSabhas(prev => prev.map(item => 
-          item.id === editingId ? { ...item, ...formData, updated_at: new Date().toISOString() } : item
-        ));
-        setSuccess('Lok Sabha constituency updated successfully');
+        await dispatch(updateLokSabha({ id: editingId, lokSabhaData: formData })).unwrap();
+        setSuccess('Lok Sabha updated successfully');
       } else {
-        // Create new
-        const newLokSabha = {
-          id: Date.now(),
-          ...formData,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-        setLokSabhas(prev => [...prev, newLokSabha]);
-        setSuccess('Lok Sabha constituency created successfully');
+        await dispatch(createLokSabha(formData)).unwrap();
+        setSuccess('Lok Sabha created successfully');
       }
       
+      // Refresh the current page
+      dispatch(fetchLokSabhas(pagination.current_page));
       resetForm();
       setShowModal(false);
-      setLoading(false);
-    }, 1000);
+    } catch (error) {
+      console.error('Error submitting form:', error);
+    }
   };
 
   const handleEdit = (lokSabha) => {
     setFormData({
-      constituency_name: lokSabha.constituency_name,
-      state: lokSabha.state,
-      mp_name: lokSabha.mp_name,
-      party: lokSabha.party,
-      total_voters: lokSabha.total_voters,
-      description: lokSabha.description
+      loksabha_name: lokSabha.loksabha_name || '',
+      status: lokSabha.status || '1'
     });
     setIsEditing(true);
     setEditingId(lokSabha.id);
@@ -168,13 +134,15 @@ const AddLokSabha = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this Lok Sabha constituency?')) {
-      setLoading(true);
-      setTimeout(() => {
-        setLokSabhas(prev => prev.filter(item => item.id !== id));
-        setSuccess('Lok Sabha constituency deleted successfully');
-        setLoading(false);
-      }, 500);
+    if (window.confirm('Are you sure you want to delete this Lok Sabha?')) {
+      try {
+        await dispatch(deleteLokSabha(id)).unwrap();
+        setSuccess('Lok Sabha deleted successfully');
+        // Refresh the current page
+        dispatch(fetchLokSabhas(pagination.current_page));
+      } catch (error) {
+        console.error('Error deleting Lok Sabha:', error);
+      }
     }
   };
 
@@ -185,15 +153,31 @@ const AddLokSabha = () => {
 
   const resetForm = () => {
     setFormData({
-      constituency_name: '',
-      state: '',
-      mp_name: '',
-      party: '',
-      total_voters: '',
-      description: ''
+      loksabha_name: '',
+      status: '1'
     });
     setIsEditing(false);
     setEditingId(null);
+  };
+
+  // Test API connection
+  const testApiConnection = async () => {
+    try {
+      console.log('Testing API connection...');
+      const response = await fetch('http://localhost:8000/api/lok-sabhas', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      console.log('Test response status:', response.status);
+      console.log('Test response headers:', Object.fromEntries(response.headers.entries()));
+      const data = await response.text();
+      console.log('Test response data:', data);
+    } catch (error) {
+      console.error('Test API error:', error);
+    }
   };
 
   const handleAddNew = () => {
@@ -202,11 +186,40 @@ const AddLokSabha = () => {
   };
 
   const handleRefresh = () => {
-    setLoading(true);
-    setTimeout(() => {
-      setLokSabhas(mockLokSabhas);
-      setLoading(false);
-    }, 1000);
+    dispatch(fetchLokSabhas(pagination.current_page));
+  };
+
+  const handlePageChange = (page) => {
+    dispatch(setCurrentPage(page));
+    dispatch(fetchLokSabhas(page));
+  };
+
+  const handlePreviousPage = () => {
+    if (pagination.current_page > 1) {
+      handlePageChange(pagination.current_page - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (pagination.current_page < pagination.last_page) {
+      handlePageChange(pagination.current_page + 1);
+    }
+  };
+
+  const generatePageNumbers = () => {
+    const pages = [];
+    const maxPages = 5;
+    let startPage = Math.max(1, pagination.current_page - Math.floor(maxPages / 2));
+    let endPage = Math.min(pagination.last_page, startPage + maxPages - 1);
+    
+    if (endPage - startPage + 1 < maxPages) {
+      startPage = Math.max(1, endPage - maxPages + 1);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+    return pages;
   };
 
   if (error && !loading) {
@@ -233,14 +246,23 @@ const AddLokSabha = () => {
           <h1>Lok Sabha Management</h1>
           <p>Manage Lok Sabha constituencies and MP information</p>
         </div>
-        <button 
-          className="btn btn-primary add-btn"
-          onClick={handleAddNew}
-          disabled={loading}
-        >
-          <PlusIcon />
-          Add New Constituency
-        </button>
+        <div className="header-buttons">
+          <button 
+            className="btn btn-secondary test-btn"
+            onClick={testApiConnection}
+            disabled={loading}
+          >
+            Test API
+          </button>
+          <button 
+            className="btn btn-primary add-btn"
+            onClick={handleAddNew}
+            disabled={loading}
+          >
+            <PlusIcon />
+            Add New Constituency
+          </button>
+        </div>
       </div>
 
       {/* Success/Error Messages */}
@@ -262,7 +284,7 @@ const AddLokSabha = () => {
           <div className="list-header-left">
             <h2>Lok Sabha Constituencies</h2>
             <div className="pagination-info">
-              Showing {lokSabhas.length} constituencies
+              Showing {pagination.from || 0} to {pagination.to || 0} of {pagination.total || 0} constituencies
             </div>
           </div>
           <button 
@@ -294,51 +316,90 @@ const AddLokSabha = () => {
             </button>
           </div>
         ) : (
-          <div className="modern-table-container">
-            <table className="modern-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Constituency</th>
-                  <th>State</th>
-                  <th>MP Name</th>
-                  <th>Party</th>
-                  <th>Total Voters</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lokSabhas.map((lokSabha) => (
-                  <tr key={lokSabha.id}>
-                    <td className="id-cell">#{lokSabha.id}</td>
-                    <td className="name-cell">{lokSabha.constituency_name}</td>
-                    <td className="state-cell">{lokSabha.state}</td>
-                    <td className="mp-cell">{lokSabha.mp_name}</td>
-                    <td className="party-cell">{lokSabha.party}</td>
-                    <td className="voters-cell">{lokSabha.total_voters}</td>
-                    <td className="actions-cell">
-                      <button
-                        className="btn-icon btn-edit"
-                        onClick={() => handleEdit(lokSabha)}
-                        disabled={loading}
-                        title="Edit constituency"
-                      >
-                        <EditIcon />
-                      </button>
-                      <button
-                        className="btn-icon btn-delete"
-                        onClick={() => handleDelete(lokSabha.id)}
-                        disabled={loading}
-                        title="Delete constituency"
-                      >
-                        <DeleteIcon />
-                      </button>
-                    </td>
+          <>
+            <div className="modern-table-container">
+              <table className="modern-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Lok Sabha Name</th>
+                    <th>Status</th>
+                    <th>Created At</th>
+                    <th>Updated At</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {Array.isArray(lokSabhas) && lokSabhas.map((lokSabha) => (
+                    <tr key={lokSabha.id}>
+                      <td className="id-cell">#{lokSabha.id}</td>
+                      <td className="name-cell">{lokSabha.loksabha_name}</td>
+                      <td className="status-cell">{lokSabha.status === '1' ? 'Active' : 'Inactive'}</td>
+                      <td className="created-cell">{new Date(lokSabha.created_at).toLocaleDateString()}</td>
+                      <td className="updated-cell">{new Date(lokSabha.updated_at).toLocaleDateString()}</td>
+                      <td className="actions-cell">
+                        <button
+                          className="btn-icon btn-edit"
+                          onClick={() => handleEdit(lokSabha)}
+                          disabled={loading}
+                          title="Edit Lok Sabha"
+                        >
+                          <EditIcon />
+                        </button>
+                        <button
+                          className="btn-icon btn-delete"
+                          onClick={() => handleDelete(lokSabha.id)}
+                          disabled={loading}
+                          title="Delete Lok Sabha"
+                        >
+                          <DeleteIcon />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            {pagination.last_page > 1 && (
+              <div className="pagination-container">
+                <div className="pagination-info-mobile">
+                  Page {pagination.current_page} of {pagination.last_page}
+                </div>
+                <div className="pagination-controls">
+                  <button
+                    className="pagination-btn"
+                    onClick={handlePreviousPage}
+                    disabled={pagination.current_page <= 1 || loading}
+                  >
+                    Previous
+                  </button>
+                  
+                  <div className="page-numbers">
+                    {generatePageNumbers().map((page) => (
+                      <button
+                        key={page}
+                        className={`page-btn ${page === pagination.current_page ? 'active' : ''}`}
+                        onClick={() => handlePageChange(page)}
+                        disabled={loading}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  <button
+                    className="pagination-btn"
+                    onClick={handleNextPage}
+                    disabled={pagination.current_page >= pagination.last_page || loading}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -358,92 +419,33 @@ const AddLokSabha = () => {
             </div>
             
             <form onSubmit={handleSubmit} className="modal-form">
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="constituency_name">Constituency Name</label>
-                  <input
-                    type="text"
-                    id="constituency_name"
-                    name="constituency_name"
-                    value={formData.constituency_name}
-                    onChange={handleInputChange}
-                    placeholder="Enter constituency name"
-                    required
-                    disabled={loading}
-                    autoFocus
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="state">State</label>
-                  <input
-                    type="text"
-                    id="state"
-                    name="state"
-                    value={formData.state}
-                    onChange={handleInputChange}
-                    placeholder="Enter state"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="mp_name">MP Name</label>
-                  <input
-                    type="text"
-                    id="mp_name"
-                    name="mp_name"
-                    value={formData.mp_name}
-                    onChange={handleInputChange}
-                    placeholder="Enter MP name"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="party">Political Party</label>
-                  <input
-                    type="text"
-                    id="party"
-                    name="party"
-                    value={formData.party}
-                    onChange={handleInputChange}
-                    placeholder="Enter political party"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="total_voters">Total Voters</label>
-                  <input
-                    type="number"
-                    id="total_voters"
-                    name="total_voters"
-                    value={formData.total_voters}
-                    onChange={handleInputChange}
-                    placeholder="Enter total voters"
-                    required
-                    disabled={loading}
-                  />
-                </div>
+              <div className="form-group">
+                <label htmlFor="loksabha_name">Lok Sabha Name</label>
+                <input
+                  type="text"
+                  id="loksabha_name"
+                  name="loksabha_name"
+                  value={formData.loksabha_name}
+                  onChange={handleInputChange}
+                  placeholder="Enter Lok Sabha name"
+                  required
+                  disabled={loading}
+                  autoFocus
+                />
               </div>
               
               <div className="form-group">
-                <label htmlFor="description">Description</label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
+                <label htmlFor="status">Status</label>
+                <select
+                  id="status"
+                  name="status"
+                  value={formData.status}
                   onChange={handleInputChange}
-                  placeholder="Enter constituency description"
-                  rows="3"
                   disabled={loading}
-                />
+                >
+                  <option value="1">Active</option>
+                  <option value="0">Inactive</option>
+                </select>
               </div>
               
               <div className="modal-actions">
@@ -458,9 +460,9 @@ const AddLokSabha = () => {
                 <button 
                   type="submit" 
                   className="btn btn-primary"
-                  disabled={loading || !formData.constituency_name.trim()}
+                  disabled={loading || !formData.loksabha_name.trim()}
                 >
-                  {loading ? 'Processing...' : (isEditing ? 'Update Constituency' : 'Create Constituency')}
+                  {loading ? 'Processing...' : (isEditing ? 'Update Lok Sabha' : 'Create Lok Sabha')}
                 </button>
               </div>
             </form>
@@ -472,11 +474,16 @@ const AddLokSabha = () => {
       <div className="api-info">
         <h3>API Endpoints Used:</h3>
         <ul>
-          <li><strong>GET</strong> /api/lok-sabha - Fetch Lok Sabha constituencies</li>
-          <li><strong>POST</strong> /api/lok-sabha - Create new constituency</li>
-          <li><strong>PUT</strong> /api/lok-sabha/:id - Update constituency</li>
-          <li><strong>DELETE</strong> /api/lok-sabha/:id - Delete constituency</li>
+          <li><strong>GET</strong> /api/lok-sabhas?page={pagination.current_page} - Fetch Lok Sabha constituencies (paginated)</li>
+          <li><strong>POST</strong> /api/lok-sabhas - Create new Lok Sabha</li>
+          <li><strong>PUT</strong> /api/lok-sabhas/:id - Update Lok Sabha</li>
+          <li><strong>DELETE</strong> /api/lok-sabhas/:id - Delete Lok Sabha</li>
         </ul>
+        <p><strong>Current Page:</strong> {pagination.current_page} of {pagination.last_page}</p>
+        <p><strong>Total Records:</strong> {pagination.total}</p>
+        <p><strong>API Base URL:</strong> {import.meta.env.VITE_API_URL || 'http://localhost:8000'}</p>
+        <p><strong>Authentication:</strong> {token ? '✅ Token Present' : '❌ Token Missing'}</p>
+        <p><strong>Token Preview:</strong> {token ? `${token.substring(0, 20)}...` : 'None'}</p>
       </div>
     </div>
   );
