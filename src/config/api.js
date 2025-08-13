@@ -12,6 +12,8 @@ export const API_CONFIG = {
     REFRESH_TOKEN: '/api/refresh-token',
     CASTES: '/api/castes',
     LOK_SABHA: '/api/lok-sabhas',
+    VIDHAN_SABHA: '/api/vidhan-sabhas',
+    BLOCK: '/api/blocks',
   },
 
   // Request timeout (in milliseconds)

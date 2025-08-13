@@ -1,99 +1,82 @@
 import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import './css/AddVidhanSabha.css';
+import { 
+  fetchVidhanSabhas, 
+  createVidhanSabha, 
+  updateVidhanSabha, 
+  deleteVidhanSabha,
+  clearError,
+  setCurrentPage
+} from '../../store/slices/vidhanSabhaSlice';
+import { fetchLokSabhas } from '../../store/slices/lokSabhaSlice';
 
-// Icons (using simple SVG icons)
+// SVG Icons
+const PlusIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <line x1="12" y1="5" x2="12" y2="19"></line>
+    <line x1="5" y1="12" x2="19" y2="12"></line>
+  </svg>
+);
+
 const EditIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-    <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+    <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
   </svg>
 );
 
 const DeleteIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="3,6 5,6 21,6"/>
-    <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
-    <line x1="10" y1="11" x2="10" y2="17"/>
-    <line x1="14" y1="11" x2="14" y2="17"/>
-  </svg>
-);
-
-const PlusIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="12" y1="5" x2="12" y2="19"/>
-    <line x1="5" y1="12" x2="19" y2="12"/>
-  </svg>
-);
-
-const CloseIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="18" y1="6" x2="6" y2="18"/>
-    <line x1="6" y1="6" x2="18" y2="18"/>
+    <polyline points="3,6 5,6 21,6"></polyline>
+    <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+    <line x1="10" y1="11" x2="10" y2="17"></line>
+    <line x1="14" y1="11" x2="14" y2="17"></line>
   </svg>
 );
 
 const RefreshIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="23,4 23,10 17,10"/>
-    <polyline points="1,20 1,14 7,14"/>
-    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>
+    <polyline points="23,4 23,10 17,10"></polyline>
+    <polyline points="1,20 1,14 7,14"></polyline>
+    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <line x1="18" y1="6" x2="6" y2="18"></line>
+    <line x1="6" y1="6" x2="18" y2="18"></line>
   </svg>
 );
 
 const AddVidhanSabha = () => {
-  const [vidhanSabhas, setVidhanSabhas] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const dispatch = useDispatch();
+  const { vidhanSabhas, loading, error, pagination } = useSelector((state) => state.vidhanSabha);
+  const { lokSabhas } = useSelector((state) => state.lokSabha);
+  const token = useSelector((state) => state.auth.token);
+  
+  // Debug authentication state
+  console.log('Auth token:', token ? 'Present' : 'Missing');
+  console.log('Auth state:', useSelector((state) => state.auth));
+  
   const [success, setSuccess] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
-    constituency_name: '',
-    state: '',
-    mla_name: '',
-    party: '',
-    district: '',
-    total_voters: '',
-    description: ''
+    loksabha_id: '',
+    vidhansabha_name: '',
+    vidhan_status: '1'
   });
 
-  // Mock data for demonstration
-  const mockVidhanSabhas = [
-    {
-      id: 1,
-      constituency_name: 'Andheri East',
-      state: 'Maharashtra',
-      mla_name: 'Ramesh Latke',
-      party: 'Shiv Sena',
-      district: 'Mumbai',
-      total_voters: '250000',
-      description: 'Andheri East Vidhan Sabha constituency',
-      created_at: '2024-01-01T00:00:00.000000Z',
-      updated_at: '2024-01-01T00:00:00.000000Z'
-    },
-    {
-      id: 2,
-      constituency_name: 'Malabar Hill',
-      state: 'Maharashtra',
-      mla_name: 'Mangal Prabhat Lodha',
-      party: 'BJP',
-      district: 'Mumbai',
-      total_voters: '180000',
-      description: 'Malabar Hill Vidhan Sabha constituency',
-      created_at: '2024-01-02T00:00:00.000000Z',
-      updated_at: '2024-01-02T00:00:00.000000Z'
-    }
-  ];
-
+  // Fetch Vidhan Sabhas and Lok Sabhas on component mount and token change
   useEffect(() => {
-    // Simulate API call
-    setLoading(true);
-    setTimeout(() => {
-      setVidhanSabhas(mockVidhanSabhas);
-      setLoading(false);
-    }, 1000);
-  }, []);
+    if (token) {
+      dispatch(fetchVidhanSabhas(pagination.current_page));
+      dispatch(fetchLokSabhas(1)); // Fetch all Lok Sabhas for dropdown
+    }
+  }, [dispatch, token, pagination.current_page]);
 
   useEffect(() => {
     if (success) {
@@ -106,10 +89,10 @@ const AddVidhanSabha = () => {
   useEffect(() => {
     if (error) {
       setTimeout(() => {
-        setError(null);
+        dispatch(clearError());
       }, 5000);
     }
-  }, [error]);
+  }, [error, dispatch]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -122,48 +105,33 @@ const AddVidhanSabha = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.constituency_name.trim()) {
-      setError('Constituency name is required');
+    if (!formData.vidhansabha_name.trim() || !formData.loksabha_id) {
       return;
     }
 
-    setLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
+    try {
       if (isEditing) {
-        // Update existing
-        setVidhanSabhas(prev => prev.map(item => 
-          item.id === editingId ? { ...item, ...formData, updated_at: new Date().toISOString() } : item
-        ));
-        setSuccess('Vidhan Sabha constituency updated successfully');
+        await dispatch(updateVidhanSabha({ id: editingId, vidhanSabhaData: formData })).unwrap();
+        setSuccess('Vidhan Sabha updated successfully');
       } else {
-        // Create new
-        const newVidhanSabha = {
-          id: Date.now(),
-          ...formData,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-        setVidhanSabhas(prev => [...prev, newVidhanSabha]);
-        setSuccess('Vidhan Sabha constituency created successfully');
+        await dispatch(createVidhanSabha(formData)).unwrap();
+        setSuccess('Vidhan Sabha created successfully');
       }
       
+      // Refresh the current page
+      dispatch(fetchVidhanSabhas(pagination.current_page));
       resetForm();
       setShowModal(false);
-      setLoading(false);
-    }, 1000);
+    } catch (error) {
+      console.error('Error submitting form:', error);
+    }
   };
 
   const handleEdit = (vidhanSabha) => {
     setFormData({
-      constituency_name: vidhanSabha.constituency_name,
-      state: vidhanSabha.state,
-      mla_name: vidhanSabha.mla_name,
-      party: vidhanSabha.party,
-      district: vidhanSabha.district,
-      total_voters: vidhanSabha.total_voters,
-      description: vidhanSabha.description
+      loksabha_id: vidhanSabha.loksabha_id || '',
+      vidhansabha_name: vidhanSabha.vidhansabha_name || '',
+      vidhan_status: vidhanSabha.vidhan_status || '1'
     });
     setIsEditing(true);
     setEditingId(vidhanSabha.id);
@@ -171,13 +139,15 @@ const AddVidhanSabha = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this Vidhan Sabha constituency?')) {
-      setLoading(true);
-      setTimeout(() => {
-        setVidhanSabhas(prev => prev.filter(item => item.id !== id));
-        setSuccess('Vidhan Sabha constituency deleted successfully');
-        setLoading(false);
-      }, 500);
+    if (window.confirm('Are you sure you want to delete this Vidhan Sabha?')) {
+      try {
+        await dispatch(deleteVidhanSabha(id)).unwrap();
+        setSuccess('Vidhan Sabha deleted successfully');
+        // Refresh the current page
+        dispatch(fetchVidhanSabhas(pagination.current_page));
+      } catch (error) {
+        console.error('Error deleting Vidhan Sabha:', error);
+      }
     }
   };
 
@@ -188,16 +158,32 @@ const AddVidhanSabha = () => {
 
   const resetForm = () => {
     setFormData({
-      constituency_name: '',
-      state: '',
-      mla_name: '',
-      party: '',
-      district: '',
-      total_voters: '',
-      description: ''
+      loksabha_id: '',
+      vidhansabha_name: '',
+      vidhan_status: '1'
     });
     setIsEditing(false);
     setEditingId(null);
+  };
+
+  // Test API connection
+  const testApiConnection = async () => {
+    try {
+      console.log('Testing Vidhan Sabha API connection...');
+      const response = await fetch('http://localhost:8000/api/vidhan-sabhas', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      console.log('Test response status:', response.status);
+      console.log('Test response headers:', Object.fromEntries(response.headers.entries()));
+      const data = await response.text();
+      console.log('Test response data:', data);
+    } catch (error) {
+      console.error('Test API error:', error);
+    }
   };
 
   const handleAddNew = () => {
@@ -206,11 +192,40 @@ const AddVidhanSabha = () => {
   };
 
   const handleRefresh = () => {
-    setLoading(true);
-    setTimeout(() => {
-      setVidhanSabhas(mockVidhanSabhas);
-      setLoading(false);
-    }, 1000);
+    dispatch(fetchVidhanSabhas(pagination.current_page));
+  };
+
+  const handlePageChange = (page) => {
+    dispatch(setCurrentPage(page));
+    dispatch(fetchVidhanSabhas(page));
+  };
+
+  const handlePreviousPage = () => {
+    if (pagination.current_page > 1) {
+      handlePageChange(pagination.current_page - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (pagination.current_page < pagination.last_page) {
+      handlePageChange(pagination.current_page + 1);
+    }
+  };
+
+  const generatePageNumbers = () => {
+    const pages = [];
+    const maxPages = 5;
+    let startPage = Math.max(1, pagination.current_page - Math.floor(maxPages / 2));
+    let endPage = Math.min(pagination.last_page, startPage + maxPages - 1);
+    
+    if (endPage - startPage + 1 < maxPages) {
+      startPage = Math.max(1, endPage - maxPages + 1);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+    return pages;
   };
 
   if (error && !loading) {
@@ -235,16 +250,25 @@ const AddVidhanSabha = () => {
       <div className="vidhan-sabha-header">
         <div className="header-content">
           <h1>Vidhan Sabha Management</h1>
-          <p>Manage state legislative assembly constituencies and MLA information</p>
+          <p>Manage Vidhan Sabha constituencies and MLA information</p>
         </div>
-        <button 
-          className="btn btn-primary add-btn"
-          onClick={handleAddNew}
-          disabled={loading}
-        >
-          <PlusIcon />
-          Add New Constituency
-        </button>
+        <div className="header-buttons">
+          <button 
+            className="btn btn-secondary test-btn"
+            onClick={testApiConnection}
+            disabled={loading}
+          >
+            Test API
+          </button>
+          <button 
+            className="btn btn-primary add-btn"
+            onClick={handleAddNew}
+            disabled={loading}
+          >
+            <PlusIcon />
+            Add New Constituency
+          </button>
+        </div>
       </div>
 
       {/* Success/Error Messages */}
@@ -266,7 +290,7 @@ const AddVidhanSabha = () => {
           <div className="list-header-left">
             <h2>Vidhan Sabha Constituencies</h2>
             <div className="pagination-info">
-              Showing {vidhanSabhas.length} constituencies
+              Showing {pagination.from || 0} to {pagination.to || 0} of {pagination.total || 0} constituencies
             </div>
           </div>
           <button 
@@ -286,7 +310,7 @@ const AddVidhanSabha = () => {
           </div>
         ) : vidhanSabhas.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">🏢</div>
+            <div className="empty-icon">🏛️</div>
             <h3>No Vidhan Sabha constituencies found</h3>
             <p>Add your first Vidhan Sabha constituency to get started.</p>
             <button 
@@ -298,53 +322,94 @@ const AddVidhanSabha = () => {
             </button>
           </div>
         ) : (
-          <div className="modern-table-container">
-            <table className="modern-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Constituency</th>
-                  <th>State</th>
-                  <th>District</th>
-                  <th>MLA Name</th>
-                  <th>Party</th>
-                  <th>Total Voters</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {vidhanSabhas.map((vidhanSabha) => (
-                  <tr key={vidhanSabha.id}>
-                    <td className="id-cell">#{vidhanSabha.id}</td>
-                    <td className="name-cell">{vidhanSabha.constituency_name}</td>
-                    <td className="state-cell">{vidhanSabha.state}</td>
-                    <td className="district-cell">{vidhanSabha.district}</td>
-                    <td className="mla-cell">{vidhanSabha.mla_name}</td>
-                    <td className="party-cell">{vidhanSabha.party}</td>
-                    <td className="voters-cell">{vidhanSabha.total_voters}</td>
-                    <td className="actions-cell">
-                      <button
-                        className="btn-icon btn-edit"
-                        onClick={() => handleEdit(vidhanSabha)}
-                        disabled={loading}
-                        title="Edit constituency"
-                      >
-                        <EditIcon />
-                      </button>
-                      <button
-                        className="btn-icon btn-delete"
-                        onClick={() => handleDelete(vidhanSabha.id)}
-                        disabled={loading}
-                        title="Delete constituency"
-                      >
-                        <DeleteIcon />
-                      </button>
-                    </td>
+          <>
+            <div className="modern-table-container">
+              <table className="modern-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Lok Sabha</th>
+                    <th>Vidhan Sabha Name</th>
+                    <th>Status</th>
+                    <th>Created At</th>
+                    <th>Updated At</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {Array.isArray(vidhanSabhas) && vidhanSabhas.map((vidhanSabha) => (
+                    <tr key={vidhanSabha.id}>
+                      <td className="id-cell">#{vidhanSabha.id}</td>
+                      <td className="loksabha-cell">
+                        {vidhanSabha.lok_sabha?.loksabha_name || `Lok Sabha ${vidhanSabha.loksabha_id}`}
+                      </td>
+                      <td className="name-cell">{vidhanSabha.vidhansabha_name}</td>
+                      <td className="status-cell">{vidhanSabha.vidhan_status === '1' ? 'Active' : 'Inactive'}</td>
+                      <td className="created-cell">{new Date(vidhanSabha.created_at).toLocaleDateString()}</td>
+                      <td className="updated-cell">{new Date(vidhanSabha.updated_at).toLocaleDateString()}</td>
+                      <td className="actions-cell">
+                        <button
+                          className="btn-icon btn-edit"
+                          onClick={() => handleEdit(vidhanSabha)}
+                          disabled={loading}
+                          title="Edit Vidhan Sabha"
+                        >
+                          <EditIcon />
+                        </button>
+                        <button
+                          className="btn-icon btn-delete"
+                          onClick={() => handleDelete(vidhanSabha.id)}
+                          disabled={loading}
+                          title="Delete Vidhan Sabha"
+                        >
+                          <DeleteIcon />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {pagination.last_page > 1 && (
+              <div className="pagination-container">
+                <div className="pagination-info">
+                  Page {pagination.current_page} of {pagination.last_page} ({pagination.total} total)
+                </div>
+                <div className="pagination-controls">
+                  <button
+                    className="btn btn-secondary"
+                    onClick={handlePreviousPage}
+                    disabled={pagination.current_page <= 1 || loading}
+                  >
+                    Previous
+                  </button>
+                  
+                  <div className="page-numbers">
+                    {generatePageNumbers().map(page => (
+                      <button
+                        key={page}
+                        className={`btn ${page === pagination.current_page ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => handlePageChange(page)}
+                        disabled={loading}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  <button
+                    className="btn btn-secondary"
+                    onClick={handleNextPage}
+                    disabled={pagination.current_page >= pagination.last_page || loading}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -364,105 +429,52 @@ const AddVidhanSabha = () => {
             </div>
             
             <form onSubmit={handleSubmit} className="modal-form">
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="constituency_name">Constituency Name</label>
-                  <input
-                    type="text"
-                    id="constituency_name"
-                    name="constituency_name"
-                    value={formData.constituency_name}
-                    onChange={handleInputChange}
-                    placeholder="Enter constituency name"
-                    required
-                    disabled={loading}
-                    autoFocus
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="state">State</label>
-                  <input
-                    type="text"
-                    id="state"
-                    name="state"
-                    value={formData.state}
-                    onChange={handleInputChange}
-                    placeholder="Enter state"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="district">District</label>
-                  <input
-                    type="text"
-                    id="district"
-                    name="district"
-                    value={formData.district}
-                    onChange={handleInputChange}
-                    placeholder="Enter district"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="mla_name">MLA Name</label>
-                  <input
-                    type="text"
-                    id="mla_name"
-                    name="mla_name"
-                    value={formData.mla_name}
-                    onChange={handleInputChange}
-                    placeholder="Enter MLA name"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="party">Political Party</label>
-                  <input
-                    type="text"
-                    id="party"
-                    name="party"
-                    value={formData.party}
-                    onChange={handleInputChange}
-                    placeholder="Enter political party"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="total_voters">Total Voters</label>
-                  <input
-                    type="number"
-                    id="total_voters"
-                    name="total_voters"
-                    value={formData.total_voters}
-                    onChange={handleInputChange}
-                    placeholder="Enter total voters"
-                    required
-                    disabled={loading}
-                  />
-                </div>
+              <div className="form-group">
+                <label htmlFor="loksabha_id">Lok Sabha *</label>
+                <select
+                  id="loksabha_id"
+                  name="loksabha_id"
+                  value={formData.loksabha_id}
+                  onChange={handleInputChange}
+                  required
+                  disabled={loading}
+                >
+                  <option value="">Select Lok Sabha</option>
+                  {Array.isArray(lokSabhas) && lokSabhas.map((lokSabha) => (
+                    <option key={lokSabha.id} value={lokSabha.id}>
+                      {lokSabha.loksabha_name}
+                    </option>
+                  ))}
+                </select>
               </div>
               
               <div className="form-group">
-                <label htmlFor="description">Description</label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
+                <label htmlFor="vidhansabha_name">Vidhan Sabha Name *</label>
+                <input
+                  type="text"
+                  id="vidhansabha_name"
+                  name="vidhansabha_name"
+                  value={formData.vidhansabha_name}
                   onChange={handleInputChange}
-                  placeholder="Enter constituency description"
-                  rows="3"
+                  placeholder="Enter Vidhan Sabha name"
+                  required
                   disabled={loading}
+                  autoFocus
                 />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="vidhan_status">Status</label>
+                <select
+                  id="vidhan_status"
+                  name="vidhan_status"
+                  value={formData.vidhan_status}
+                  onChange={handleInputChange}
+                  disabled={loading}
+                >
+                  <option value="1">Active</option>
+                  <option value="0">Inactive</option>
+                </select>
               </div>
               
               <div className="modal-actions">
@@ -477,9 +489,9 @@ const AddVidhanSabha = () => {
                 <button 
                   type="submit" 
                   className="btn btn-primary"
-                  disabled={loading || !formData.constituency_name.trim()}
+                  disabled={loading || !formData.vidhansabha_name.trim() || !formData.loksabha_id}
                 >
-                  {loading ? 'Processing...' : (isEditing ? 'Update Constituency' : 'Create Constituency')}
+                  {loading ? 'Processing...' : (isEditing ? 'Update Vidhan Sabha' : 'Create Vidhan Sabha')}
                 </button>
               </div>
             </form>
@@ -491,11 +503,18 @@ const AddVidhanSabha = () => {
       <div className="api-info">
         <h3>API Endpoints Used:</h3>
         <ul>
-          <li><strong>GET</strong> /api/vidhan-sabha - Fetch Vidhan Sabha constituencies</li>
-          <li><strong>POST</strong> /api/vidhan-sabha - Create new constituency</li>
-          <li><strong>PUT</strong> /api/vidhan-sabha/:id - Update constituency</li>
-          <li><strong>DELETE</strong> /api/vidhan-sabha/:id - Delete constituency</li>
+          <li><strong>GET</strong> /api/vidhan-sabhas?page={pagination.current_page} - Fetch Vidhan Sabha constituencies (paginated)</li>
+          <li><strong>GET</strong> /api/vidhan-sabhas/{'{id}'} - Get specific Vidhan Sabha</li>
+          <li><strong>GET</strong> /api/vidhan-sabhas/lok-sabha/{'{loksabhaId}'} - Get Vidhan Sabhas by Lok Sabha ID</li>
+          <li><strong>POST</strong> /api/vidhan-sabhas - Create new Vidhan Sabha</li>
+          <li><strong>PUT</strong> /api/vidhan-sabhas/{'{id}'} - Update Vidhan Sabha</li>
+          <li><strong>DELETE</strong> /api/vidhan-sabhas/{'{id}'} - Delete Vidhan Sabha</li>
         </ul>
+        <p><strong>Current Page:</strong> {pagination.current_page} of {pagination.last_page}</p>
+        <p><strong>Total Records:</strong> {pagination.total}</p>
+        <p><strong>API Base URL:</strong> {import.meta.env.VITE_API_URL || 'http://localhost:8000'}</p>
+        <p><strong>Authentication:</strong> {token ? '✅ Token Present' : '❌ Token Missing'}</p>
+        <p><strong>Token Preview:</strong> {token ? `${token.substring(0, 20)}...` : 'None'}</p>
       </div>
     </div>
   );
