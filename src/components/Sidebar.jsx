@@ -1,11 +1,28 @@
-import React, { useState } from "react";
+import React from "react";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { 
+  setSidebarCollapsed, 
+  setActiveScreen, 
+  toggleCategory 
+} from "../store/slices/uiSlice";
 import "./css/Sidebar.css";
 
-const Sidebar = ({ activeScreen, onScreenChange }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [expandedCategories, setExpandedCategories] = useState(['master-data']);
+const Sidebar = () => {
+  const dispatch = useAppDispatch();
+  const { 
+    sidebarCollapsed, 
+    activeScreen, 
+    expandedCategories 
+  } = useAppSelector((state) => state.ui);
 
   const menuItems = [
+    {
+      id: 'dashboard',  
+      label: 'Dashboard',
+      icon: '📋',
+      description: 'Your Dashboard',
+      subItems: []
+    },
     {
       id: 'master-data',
       label: 'Master Data',
@@ -46,26 +63,26 @@ const Sidebar = ({ activeScreen, onScreenChange }) => {
     }
   ];
 
-  const toggleCategory = (categoryId) => {
-    setExpandedCategories(prev => 
-      prev.includes(categoryId) 
-        ? prev.filter(id => id !== categoryId)
-        : [...prev, categoryId]
-    );
+  const handleToggleSidebar = () => {
+    dispatch(setSidebarCollapsed(!sidebarCollapsed));
+  };
+
+  const handleCategoryToggle = (categoryId) => {
+    dispatch(toggleCategory(categoryId));
   };
 
   const handleItemClick = (itemId) => {
-    onScreenChange(itemId);
+    dispatch(setActiveScreen(itemId));
   };
 
   return (
-    <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+    <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
         <button 
           className="collapse-btn"
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={handleToggleSidebar}
         >
-          {isCollapsed ? '→' : '←'}
+          {sidebarCollapsed ? '→' : '←'}
         </button>
       </div>
       
@@ -75,23 +92,25 @@ const Sidebar = ({ activeScreen, onScreenChange }) => {
             <li key={category.id} className="nav-category">
               <button
                 className="category-header"
-                onClick={() => toggleCategory(category.id)}
+                onClick={() => handleCategoryToggle(category.id)}
               >
                 <span className="category-icon">{category.icon}</span>
-                {!isCollapsed && (
+                {!sidebarCollapsed && (
                   <>
                     <div className="category-info">
                       <span className="category-label">{category.label}</span>
                       <span className="category-description">{category.description}</span>
                     </div>
                     <span className="expand-icon">
-                      {expandedCategories.includes(category.id) ? '▼' : '▶'}
+                      {category.id === 'dashboard'
+                        ? null
+                        : expandedCategories.includes(category.id) ? '▼' : '▶'}
                     </span>
                   </>
                 )}
               </button>
               
-              {expandedCategories.includes(category.id) && !isCollapsed && (
+              {expandedCategories.includes(category.id) && !sidebarCollapsed && (
                 <ul className="sub-menu">
                   {category.subItems.map((item) => (
                     <li key={item.id} className="sub-item">
@@ -113,7 +132,7 @@ const Sidebar = ({ activeScreen, onScreenChange }) => {
       
       <div className="sidebar-footer">
         <div className="sidebar-info">
-          {!isCollapsed && (
+          {!sidebarCollapsed && (
             <>
               <div className="version">v1.0.0</div>
               <div className="status">Online</div>

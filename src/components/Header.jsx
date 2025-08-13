@@ -1,7 +1,36 @@
 import React from "react";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { addNotification, clearNotifications } from "../store/slices/uiSlice";
+import { logout } from "../store/slices/authSlice";
 import "./css/Header.css";
 
 const Header = () => {
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector((state) => state.auth);
+  const { notifications } = useAppSelector((state) => state.ui);
+
+  const handleNotificationClick = () => {
+    // Add a sample notification
+    dispatch(addNotification({
+      type: 'info',
+      message: 'This is a sample notification!',
+      title: 'System Update'
+    }));
+  };
+
+  const handleClearNotifications = () => {
+    dispatch(clearNotifications());
+  };
+
+  const handleLogout = () => {
+    dispatch(logout());
+    dispatch(addNotification({
+      type: 'success',
+      message: 'You have been logged out successfully!',
+      title: 'Logout'
+    }));
+  };
+
   return (
     <header className="header">
       <div className="header-left">
@@ -13,19 +42,24 @@ const Header = () => {
       
       <div className="header-right">
         <div className="header-actions">
-          <button className="notification-btn">
+          <button className="notification-btn" onClick={handleNotificationClick}>
             <span className="notification-icon">🔔</span>
-            <span className="notification-badge">3</span>
+            {notifications.length > 0 && (
+              <span className="notification-badge">{notifications.length}</span>
+            )}
           </button>
           
           <div className="user-profile">
             <div className="user-avatar">
-              <span>👤</span>
+              <span>{user?.avatar || '👤'}</span>
             </div>
             <div className="user-info">
-              <span className="user-name">John Doe</span>
-              <span className="user-role">Admin</span>
+              <span className="user-name">{user?.name || 'User'}</span>
+              <span className="user-role">{user?.role || 'Guest'}</span>
             </div>
+            <button className="logout-btn" onClick={handleLogout} title="Logout">
+              <span>🚪</span>
+            </button>
           </div>
         </div>
       </div>

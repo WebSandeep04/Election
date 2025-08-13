@@ -17,6 +17,11 @@
   width: 70px;
 }
 
+.sidebar.collapsed ~ .main-content {
+  margin-left: 80px;
+}
+
+
 .sidebar-header {
   padding: 20px;
   border-bottom: 1px solid #374151;

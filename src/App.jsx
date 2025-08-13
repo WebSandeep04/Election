@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useAppSelector } from './store/hooks';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
+import NotificationToast from './components/NotificationToast';
+import ReduxDebugger from './components/ReduxDebugger';
+import Login from './components/Login';
 import Dashboard from './components/screens/Dashboard';
 import Analytics from './components/screens/Analytics';
 import Users from './components/screens/Users';
@@ -30,7 +34,18 @@ import './App.css';
 import './components/css/Components.css';
 
 function App() {
-  const [activeScreen, setActiveScreen] = useState('employee-management');
+  const { activeScreen } = useAppSelector((state) => state.ui);
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
+
+  // Show login screen if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <>
+        <Login />
+        <NotificationToast />
+      </>
+    );
+  }
 
   const renderContent = () => {
     switch (activeScreen) {
@@ -79,19 +94,21 @@ function App() {
         return <CacheClear />;
       
       default:
-        return <EmployeeManagement />;
+        return <Dashboard />;
     }
   };
 
   return (
     <div className="app">
-      <Sidebar activeScreen={activeScreen} onScreenChange={setActiveScreen} />
+      <Sidebar />
       <div className="main-content">
         <Header />
         <main className="content-area">
           {renderContent()}
         </main>
       </div>
+      <NotificationToast />
+      {/* <ReduxDebugger /> */}
     </div>
   );
 }
