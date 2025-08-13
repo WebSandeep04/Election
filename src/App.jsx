@@ -19,6 +19,14 @@ import AddEducations from './components/screens/AddEducations';
 import AddParliament from './components/screens/AddParliament';
 import Category from './components/screens/Category';
 
+// Parliament Components
+import AddLokSabha from './components/screens/AddLokSabha';
+import AddVidhanSabha from './components/screens/AddVidhanSabha';
+import AddBlock from './components/screens/AddBlock';
+import AddPanchayat from './components/screens/AddPanchayat';
+import AddVillage from './components/screens/AddVillage';
+import AddBooth from './components/screens/AddBooth';
+
 // Data Collection Components
 import FormBuilder from './components/screens/FormBuilder';
 import FormList from './components/screens/FormList';
@@ -70,10 +78,24 @@ function App() {
         return <VillageDescription />;
       case 'add-educations':
         return <AddEducations />;
-      case 'add-parliament':
-        return <AddParliament />;
       case 'category':
         return <Category />;
+      
+      // Parliament Components
+      case 'add-parliament':
+        return <AddParliament />;
+      case 'add-lok-sabha':
+        return <AddLokSabha />;
+      case 'add-vidhan-sabha':
+        return <AddVidhanSabha />;
+      case 'add-block':
+        return <AddBlock />;
+      case 'add-panchayat':
+        return <AddPanchayat />;
+      case 'add-village':
+        return <AddVillage />;
+      case 'add-booth':
+        return <AddBooth />;
       
       // Data Collection Components
       case 'form-builder':

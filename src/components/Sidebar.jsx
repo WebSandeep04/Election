@@ -34,8 +34,22 @@ const Sidebar = () => {
         { id: 'caste-ratio', label: 'Caste Ratio', icon: '📊' },
         { id: 'village-description', label: 'Village Description', icon: '🏘️' },
         { id: 'add-educations', label: 'Add Educations', icon: '🎓' },
-        { id: 'add-parliament', label: 'Add Parliament', icon: '🏛️' },
         { id: 'category', label: 'Category', icon: '📂' }
+      ]
+    },
+    {
+      id: 'parliament',
+      label: 'Parliament',
+      icon: '🏛️',
+      description: 'Parliamentary Management',
+      subItems: [
+        { id: 'add-parliament', label: 'Add Parliament', icon: '🏛️' },
+        { id: 'add-lok-sabha', label: 'Add Lok Sabha', icon: '🏠' },
+        { id: 'add-vidhan-sabha', label: 'Add Vidhan Sabha', icon: '🏢' },
+        { id: 'add-block', label: 'Add Block', icon: '🏛️' },
+        { id: 'add-panchayat', label: 'Add Panchayat', icon: '👥' },
+        { id: 'add-village', label: 'Add Village', icon: '🏘️' },
+        { id: 'add-booth', label: 'Add Booth', icon: '📊' }
       ]
     },
     {

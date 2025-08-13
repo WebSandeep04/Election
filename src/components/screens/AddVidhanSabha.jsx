@@ -1,0 +1,504 @@
+import React, { useState, useEffect } from 'react';
+import './css/AddVidhanSabha.css';
+
+// Icons (using simple SVG icons)
+const EditIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+    <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+  </svg>
+);
+
+const DeleteIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <polyline points="3,6 5,6 21,6"/>
+    <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
+    <line x1="10" y1="11" x2="10" y2="17"/>
+    <line x1="14" y1="11" x2="14" y2="17"/>
+  </svg>
+);
+
+const PlusIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <line x1="12" y1="5" x2="12" y2="19"/>
+    <line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <line x1="18" y1="6" x2="6" y2="18"/>
+    <line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>
+);
+
+const RefreshIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <polyline points="23,4 23,10 17,10"/>
+    <polyline points="1,20 1,14 7,14"/>
+    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>
+  </svg>
+);
+
+const AddVidhanSabha = () => {
+  const [vidhanSabhas, setVidhanSabhas] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [formData, setFormData] = useState({
+    constituency_name: '',
+    state: '',
+    mla_name: '',
+    party: '',
+    district: '',
+    total_voters: '',
+    description: ''
+  });
+
+  // Mock data for demonstration
+  const mockVidhanSabhas = [
+    {
+      id: 1,
+      constituency_name: 'Andheri East',
+      state: 'Maharashtra',
+      mla_name: 'Ramesh Latke',
+      party: 'Shiv Sena',
+      district: 'Mumbai',
+      total_voters: '250000',
+      description: 'Andheri East Vidhan Sabha constituency',
+      created_at: '2024-01-01T00:00:00.000000Z',
+      updated_at: '2024-01-01T00:00:00.000000Z'
+    },
+    {
+      id: 2,
+      constituency_name: 'Malabar Hill',
+      state: 'Maharashtra',
+      mla_name: 'Mangal Prabhat Lodha',
+      party: 'BJP',
+      district: 'Mumbai',
+      total_voters: '180000',
+      description: 'Malabar Hill Vidhan Sabha constituency',
+      created_at: '2024-01-02T00:00:00.000000Z',
+      updated_at: '2024-01-02T00:00:00.000000Z'
+    }
+  ];
+
+  useEffect(() => {
+    // Simulate API call
+    setLoading(true);
+    setTimeout(() => {
+      setVidhanSabhas(mockVidhanSabhas);
+      setLoading(false);
+    }, 1000);
+  }, []);
+
+  useEffect(() => {
+    if (success) {
+      setTimeout(() => {
+        setSuccess(null);
+      }, 3000);
+    }
+  }, [success]);
+
+  useEffect(() => {
+    if (error) {
+      setTimeout(() => {
+        setError(null);
+      }, 5000);
+    }
+  }, [error]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.constituency_name.trim()) {
+      setError('Constituency name is required');
+      return;
+    }
+
+    setLoading(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      if (isEditing) {
+        // Update existing
+        setVidhanSabhas(prev => prev.map(item => 
+          item.id === editingId ? { ...item, ...formData, updated_at: new Date().toISOString() } : item
+        ));
+        setSuccess('Vidhan Sabha constituency updated successfully');
+      } else {
+        // Create new
+        const newVidhanSabha = {
+          id: Date.now(),
+          ...formData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        setVidhanSabhas(prev => [...prev, newVidhanSabha]);
+        setSuccess('Vidhan Sabha constituency created successfully');
+      }
+      
+      resetForm();
+      setShowModal(false);
+      setLoading(false);
+    }, 1000);
+  };
+
+  const handleEdit = (vidhanSabha) => {
+    setFormData({
+      constituency_name: vidhanSabha.constituency_name,
+      state: vidhanSabha.state,
+      mla_name: vidhanSabha.mla_name,
+      party: vidhanSabha.party,
+      district: vidhanSabha.district,
+      total_voters: vidhanSabha.total_voters,
+      description: vidhanSabha.description
+    });
+    setIsEditing(true);
+    setEditingId(vidhanSabha.id);
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this Vidhan Sabha constituency?')) {
+      setLoading(true);
+      setTimeout(() => {
+        setVidhanSabhas(prev => prev.filter(item => item.id !== id));
+        setSuccess('Vidhan Sabha constituency deleted successfully');
+        setLoading(false);
+      }, 500);
+    }
+  };
+
+  const handleCancel = () => {
+    resetForm();
+    setShowModal(false);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      constituency_name: '',
+      state: '',
+      mla_name: '',
+      party: '',
+      district: '',
+      total_voters: '',
+      description: ''
+    });
+    setIsEditing(false);
+    setEditingId(null);
+  };
+
+  const handleAddNew = () => {
+    resetForm();
+    setShowModal(true);
+  };
+
+  const handleRefresh = () => {
+    setLoading(true);
+    setTimeout(() => {
+      setVidhanSabhas(mockVidhanSabhas);
+      setLoading(false);
+    }, 1000);
+  };
+
+  if (error && !loading) {
+    return (
+      <div className="vidhan-sabha-management">
+        <div className="error-state">
+          <h2>Error Loading Vidhan Sabha Data</h2>
+          <p>{error}</p>
+          <button 
+            className="btn btn-primary"
+            onClick={handleRefresh}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="vidhan-sabha-management">
+      <div className="vidhan-sabha-header">
+        <div className="header-content">
+          <h1>Vidhan Sabha Management</h1>
+          <p>Manage state legislative assembly constituencies and MLA information</p>
+        </div>
+        <button 
+          className="btn btn-primary add-btn"
+          onClick={handleAddNew}
+          disabled={loading}
+        >
+          <PlusIcon />
+          Add New Constituency
+        </button>
+      </div>
+
+      {/* Success/Error Messages */}
+      {success && (
+        <div className="alert alert-success">
+          {success}
+        </div>
+      )}
+      
+      {error && (
+        <div className="alert alert-error">
+          {error}
+        </div>
+      )}
+
+      {/* Vidhan Sabha List Section */}
+      <div className="vidhan-sabha-list-section">
+        <div className="list-header">
+          <div className="list-header-left">
+            <h2>Vidhan Sabha Constituencies</h2>
+            <div className="pagination-info">
+              Showing {vidhanSabhas.length} constituencies
+            </div>
+          </div>
+          <button 
+            className="btn btn-secondary refresh-btn"
+            onClick={handleRefresh}
+            disabled={loading}
+          >
+            <RefreshIcon />
+            {loading ? 'Loading...' : 'Refresh'}
+          </button>
+        </div>
+
+        {loading && vidhanSabhas.length === 0 ? (
+          <div className="loading-state">
+            <div className="spinner"></div>
+            <p>Loading Vidhan Sabha constituencies...</p>
+          </div>
+        ) : vidhanSabhas.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">🏢</div>
+            <h3>No Vidhan Sabha constituencies found</h3>
+            <p>Add your first Vidhan Sabha constituency to get started.</p>
+            <button 
+              className="btn btn-primary"
+              onClick={handleAddNew}
+            >
+              <PlusIcon />
+              Add First Constituency
+            </button>
+          </div>
+        ) : (
+          <div className="modern-table-container">
+            <table className="modern-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Constituency</th>
+                  <th>State</th>
+                  <th>District</th>
+                  <th>MLA Name</th>
+                  <th>Party</th>
+                  <th>Total Voters</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {vidhanSabhas.map((vidhanSabha) => (
+                  <tr key={vidhanSabha.id}>
+                    <td className="id-cell">#{vidhanSabha.id}</td>
+                    <td className="name-cell">{vidhanSabha.constituency_name}</td>
+                    <td className="state-cell">{vidhanSabha.state}</td>
+                    <td className="district-cell">{vidhanSabha.district}</td>
+                    <td className="mla-cell">{vidhanSabha.mla_name}</td>
+                    <td className="party-cell">{vidhanSabha.party}</td>
+                    <td className="voters-cell">{vidhanSabha.total_voters}</td>
+                    <td className="actions-cell">
+                      <button
+                        className="btn-icon btn-edit"
+                        onClick={() => handleEdit(vidhanSabha)}
+                        disabled={loading}
+                        title="Edit constituency"
+                      >
+                        <EditIcon />
+                      </button>
+                      <button
+                        className="btn-icon btn-delete"
+                        onClick={() => handleDelete(vidhanSabha.id)}
+                        disabled={loading}
+                        title="Delete constituency"
+                      >
+                        <DeleteIcon />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="modal-overlay" onClick={handleCancel}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{isEditing ? 'Edit Vidhan Sabha Constituency' : 'Add New Vidhan Sabha Constituency'}</h2>
+              <button 
+                className="btn-icon btn-close"
+                onClick={handleCancel}
+                title="Close modal"
+              >
+                <CloseIcon />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="modal-form">
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="constituency_name">Constituency Name</label>
+                  <input
+                    type="text"
+                    id="constituency_name"
+                    name="constituency_name"
+                    value={formData.constituency_name}
+                    onChange={handleInputChange}
+                    placeholder="Enter constituency name"
+                    required
+                    disabled={loading}
+                    autoFocus
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="state">State</label>
+                  <input
+                    type="text"
+                    id="state"
+                    name="state"
+                    value={formData.state}
+                    onChange={handleInputChange}
+                    placeholder="Enter state"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="district">District</label>
+                  <input
+                    type="text"
+                    id="district"
+                    name="district"
+                    value={formData.district}
+                    onChange={handleInputChange}
+                    placeholder="Enter district"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="mla_name">MLA Name</label>
+                  <input
+                    type="text"
+                    id="mla_name"
+                    name="mla_name"
+                    value={formData.mla_name}
+                    onChange={handleInputChange}
+                    placeholder="Enter MLA name"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="party">Political Party</label>
+                  <input
+                    type="text"
+                    id="party"
+                    name="party"
+                    value={formData.party}
+                    onChange={handleInputChange}
+                    placeholder="Enter political party"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="total_voters">Total Voters</label>
+                  <input
+                    type="number"
+                    id="total_voters"
+                    name="total_voters"
+                    value={formData.total_voters}
+                    onChange={handleInputChange}
+                    placeholder="Enter total voters"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="description">Description</label>
+                <textarea
+                  id="description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  placeholder="Enter constituency description"
+                  rows="3"
+                  disabled={loading}
+                />
+              </div>
+              
+              <div className="modal-actions">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary"
+                  onClick={handleCancel}
+                  disabled={loading}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary"
+                  disabled={loading || !formData.constituency_name.trim()}
+                >
+                  {loading ? 'Processing...' : (isEditing ? 'Update Constituency' : 'Create Constituency')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* API Information */}
+      <div className="api-info">
+        <h3>API Endpoints Used:</h3>
+        <ul>
+          <li><strong>GET</strong> /api/vidhan-sabha - Fetch Vidhan Sabha constituencies</li>
+          <li><strong>POST</strong> /api/vidhan-sabha - Create new constituency</li>
+          <li><strong>PUT</strong> /api/vidhan-sabha/:id - Update constituency</li>
+          <li><strong>DELETE</strong> /api/vidhan-sabha/:id - Delete constituency</li>
+        </ul>
+      </div>
+    </div>
+  );
+};
+
+export default AddVidhanSabha;
