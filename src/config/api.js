@@ -14,6 +14,7 @@ export const API_CONFIG = {
     LOK_SABHA: '/api/lok-sabhas',
     VIDHAN_SABHA: '/api/vidhan-sabhas',
     BLOCK: '/api/blocks',
+    PANCHAYAT: '/api/panchayats',
   },
 
   // Request timeout (in milliseconds)

@@ -1,105 +1,91 @@
 import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import './css/AddPanchayat.css';
+import { 
+  fetchPanchayats, 
+  createPanchayat, 
+  updatePanchayat, 
+  deletePanchayat,
+  clearError,
+  setCurrentPage
+} from '../../store/slices/panchayatSlice';
+import { fetchLokSabhas } from '../../store/slices/lokSabhaSlice';
+import { fetchVidhanSabhas } from '../../store/slices/vidhanSabhaSlice';
+import { fetchBlocks } from '../../store/slices/blockSlice';
 
-// Icons (using simple SVG icons)
+// SVG Icons
+const PlusIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <line x1="12" y1="5" x2="12" y2="19"></line>
+    <line x1="5" y1="12" x2="19" y2="12"></line>
+  </svg>
+);
+
 const EditIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-    <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+    <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
   </svg>
 );
 
 const DeleteIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="3,6 5,6 21,6"/>
-    <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
-    <line x1="10" y1="11" x2="10" y2="17"/>
-    <line x1="14" y1="11" x2="14" y2="17"/>
-  </svg>
-);
-
-const PlusIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="12" y1="5" x2="12" y2="19"/>
-    <line x1="5" y1="12" x2="19" y2="12"/>
-  </svg>
-);
-
-const CloseIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="18" y1="6" x2="6" y2="18"/>
-    <line x1="6" y1="6" x2="18" y2="18"/>
+    <polyline points="3,6 5,6 21,6"></polyline>
+    <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+    <line x1="10" y1="11" x2="10" y2="17"></line>
+    <line x1="14" y1="11" x2="14" y2="17"></line>
   </svg>
 );
 
 const RefreshIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="23,4 23,10 17,10"/>
-    <polyline points="1,20 1,14 7,14"/>
-    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>
+    <polyline points="23,4 23,10 17,10"></polyline>
+    <polyline points="1,20 1,14 7,14"></polyline>
+    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <line x1="18" y1="6" x2="6" y2="18"></line>
+    <line x1="6" y1="6" x2="18" y2="18"></line>
   </svg>
 );
 
 const AddPanchayat = () => {
-  const [panchayats, setPanchayats] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const dispatch = useDispatch();
+  const { panchayats, loading, error, pagination } = useSelector((state) => state.panchayat);
+  const { lokSabhas } = useSelector((state) => state.lokSabha);
+  const { vidhanSabhas } = useSelector((state) => state.vidhanSabha);
+  const { blocks } = useSelector((state) => state.block);
+  const token = useSelector((state) => state.auth.token);
+  
+  // Debug authentication state
+  console.log('Auth token:', token ? 'Present' : 'Missing');
+  console.log('Auth state:', useSelector((state) => state.auth));
+  
   const [success, setSuccess] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
+    loksabha_id: '',
+    vidhansabha_id: '',
+    block_id: '',
+    panchayat_choosing: '1',
     panchayat_name: '',
-    village: '',
-    block: '',
-    district: '',
-    state: '',
-    sarpanch_name: '',
-    total_households: '',
-    population: '',
-    description: ''
+    panchayat_status: '1'
   });
 
-  // Mock data for demonstration
-  const mockPanchayats = [
-    {
-      id: 1,
-      panchayat_name: 'Andheri Gram Panchayat',
-      village: 'Andheri Village',
-      block: 'Andheri Block',
-      district: 'Mumbai',
-      state: 'Maharashtra',
-      sarpanch_name: 'Ramesh Patel',
-      total_households: '5000',
-      population: '25000',
-      description: 'Andheri village panchayat',
-      created_at: '2024-01-01T00:00:00.000000Z',
-      updated_at: '2024-01-01T00:00:00.000000Z'
-    },
-    {
-      id: 2,
-      panchayat_name: 'Borivali Gram Panchayat',
-      village: 'Borivali Village',
-      block: 'Borivali Block',
-      district: 'Mumbai',
-      state: 'Maharashtra',
-      sarpanch_name: 'Sunita Desai',
-      total_households: '3500',
-      population: '18000',
-      description: 'Borivali village panchayat',
-      created_at: '2024-01-02T00:00:00.000000Z',
-      updated_at: '2024-01-02T00:00:00.000000Z'
-    }
-  ];
-
+  // Fetch Panchayats, Lok Sabhas, Vidhan Sabhas, and Blocks on component mount and token change
   useEffect(() => {
-    // Simulate API call
-    setLoading(true);
-    setTimeout(() => {
-      setPanchayats(mockPanchayats);
-      setLoading(false);
-    }, 1000);
-  }, []);
+    if (token) {
+      dispatch(fetchPanchayats(pagination.current_page));
+      dispatch(fetchLokSabhas(1)); // Fetch all Lok Sabhas for dropdown
+      dispatch(fetchVidhanSabhas(1)); // Fetch all Vidhan Sabhas for dropdown
+      dispatch(fetchBlocks(1)); // Fetch all Blocks for dropdown
+    }
+  }, [dispatch, token, pagination.current_page]);
 
   useEffect(() => {
     if (success) {
@@ -112,10 +98,10 @@ const AddPanchayat = () => {
   useEffect(() => {
     if (error) {
       setTimeout(() => {
-        setError(null);
+        dispatch(clearError());
       }, 5000);
     }
-  }, [error]);
+  }, [error, dispatch]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -128,50 +114,36 @@ const AddPanchayat = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.panchayat_name.trim()) {
-      setError('Panchayat name is required');
+    if (!formData.panchayat_name.trim() || !formData.loksabha_id || !formData.vidhansabha_id || !formData.block_id) {
       return;
     }
 
-    setLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
+    try {
       if (isEditing) {
-        // Update existing
-        setPanchayats(prev => prev.map(item => 
-          item.id === editingId ? { ...item, ...formData, updated_at: new Date().toISOString() } : item
-        ));
+        await dispatch(updatePanchayat({ id: editingId, panchayatData: formData })).unwrap();
         setSuccess('Panchayat updated successfully');
       } else {
-        // Create new
-        const newPanchayat = {
-          id: Date.now(),
-          ...formData,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-        setPanchayats(prev => [...prev, newPanchayat]);
+        await dispatch(createPanchayat(formData)).unwrap();
         setSuccess('Panchayat created successfully');
       }
       
+      // Refresh the current page
+      dispatch(fetchPanchayats(pagination.current_page));
       resetForm();
       setShowModal(false);
-      setLoading(false);
-    }, 1000);
+    } catch (error) {
+      console.error('Error submitting form:', error);
+    }
   };
 
   const handleEdit = (panchayat) => {
     setFormData({
-      panchayat_name: panchayat.panchayat_name,
-      village: panchayat.village,
-      block: panchayat.block,
-      district: panchayat.district,
-      state: panchayat.state,
-      sarpanch_name: panchayat.sarpanch_name,
-      total_households: panchayat.total_households,
-      population: panchayat.population,
-      description: panchayat.description
+      loksabha_id: panchayat.loksabha_id || '',
+      vidhansabha_id: panchayat.vidhansabha_id || '',
+      block_id: panchayat.block_id || '',
+      panchayat_choosing: panchayat.panchayat_choosing || '1',
+      panchayat_name: panchayat.panchayat_name || '',
+      panchayat_status: panchayat.panchayat_status || '1'
     });
     setIsEditing(true);
     setEditingId(panchayat.id);
@@ -179,13 +151,15 @@ const AddPanchayat = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this panchayat?')) {
-      setLoading(true);
-      setTimeout(() => {
-        setPanchayats(prev => prev.filter(item => item.id !== id));
+    if (window.confirm('Are you sure you want to delete this Panchayat?')) {
+      try {
+        await dispatch(deletePanchayat(id)).unwrap();
         setSuccess('Panchayat deleted successfully');
-        setLoading(false);
-      }, 500);
+        // Refresh the current page
+        dispatch(fetchPanchayats(pagination.current_page));
+      } catch (error) {
+        console.error('Error deleting Panchayat:', error);
+      }
     }
   };
 
@@ -196,18 +170,35 @@ const AddPanchayat = () => {
 
   const resetForm = () => {
     setFormData({
+      loksabha_id: '',
+      vidhansabha_id: '',
+      block_id: '',
+      panchayat_choosing: '1',
       panchayat_name: '',
-      village: '',
-      block: '',
-      district: '',
-      state: '',
-      sarpanch_name: '',
-      total_households: '',
-      population: '',
-      description: ''
+      panchayat_status: '1'
     });
     setIsEditing(false);
     setEditingId(null);
+  };
+
+  // Test API connection
+  const testApiConnection = async () => {
+    try {
+      console.log('Testing Panchayat API connection...');
+      const response = await fetch('http://localhost:8000/api/panchayats', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      console.log('Test response status:', response.status);
+      console.log('Test response headers:', Object.fromEntries(response.headers.entries()));
+      const data = await response.text();
+      console.log('Test response data:', data);
+    } catch (error) {
+      console.error('Test API error:', error);
+    }
   };
 
   const handleAddNew = () => {
@@ -216,11 +207,40 @@ const AddPanchayat = () => {
   };
 
   const handleRefresh = () => {
-    setLoading(true);
-    setTimeout(() => {
-      setPanchayats(mockPanchayats);
-      setLoading(false);
-    }, 1000);
+    dispatch(fetchPanchayats(pagination.current_page));
+  };
+
+  const handlePageChange = (page) => {
+    dispatch(setCurrentPage(page));
+    dispatch(fetchPanchayats(page));
+  };
+
+  const handlePreviousPage = () => {
+    if (pagination.current_page > 1) {
+      handlePageChange(pagination.current_page - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (pagination.current_page < pagination.last_page) {
+      handlePageChange(pagination.current_page + 1);
+    }
+  };
+
+  const generatePageNumbers = () => {
+    const pages = [];
+    const maxPages = 5;
+    let startPage = Math.max(1, pagination.current_page - Math.floor(maxPages / 2));
+    let endPage = Math.min(pagination.last_page, startPage + maxPages - 1);
+    
+    if (endPage - startPage + 1 < maxPages) {
+      startPage = Math.max(1, endPage - maxPages + 1);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+    return pages;
   };
 
   if (error && !loading) {
@@ -245,16 +265,25 @@ const AddPanchayat = () => {
       <div className="panchayat-header">
         <div className="header-content">
           <h1>Panchayat Management</h1>
-          <p>Manage village panchayats and local governance information</p>
+          <p>Manage local panchayats and their administrative structure</p>
         </div>
-        <button 
-          className="btn btn-primary add-btn"
-          onClick={handleAddNew}
-          disabled={loading}
-        >
-          <PlusIcon />
-          Add New Panchayat
-        </button>
+        <div className="header-buttons">
+          <button 
+            className="btn btn-secondary test-btn"
+            onClick={testApiConnection}
+            disabled={loading}
+          >
+            Test API
+          </button>
+          <button 
+            className="btn btn-primary add-btn"
+            onClick={handleAddNew}
+            disabled={loading}
+          >
+            <PlusIcon />
+            Add New Panchayat
+          </button>
+        </div>
       </div>
 
       {/* Success/Error Messages */}
@@ -274,9 +303,9 @@ const AddPanchayat = () => {
       <div className="panchayat-list-section">
         <div className="list-header">
           <div className="list-header-left">
-            <h2>Village Panchayats</h2>
+            <h2>Local Panchayats</h2>
             <div className="pagination-info">
-              Showing {panchayats.length} panchayats
+              Showing {pagination.from || 0} to {pagination.to || 0} of {pagination.total || 0} panchayats
             </div>
           </div>
           <button 
@@ -296,9 +325,9 @@ const AddPanchayat = () => {
           </div>
         ) : panchayats.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">👥</div>
+            <div className="empty-icon">🏘️</div>
             <h3>No panchayats found</h3>
-            <p>Add your first village panchayat to get started.</p>
+            <p>Add your first local panchayat to get started.</p>
             <button 
               className="btn btn-primary"
               onClick={handleAddNew}
@@ -308,55 +337,108 @@ const AddPanchayat = () => {
             </button>
           </div>
         ) : (
-          <div className="modern-table-container">
-            <table className="modern-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Panchayat Name</th>
-                  <th>Village</th>
-                  <th>Block</th>
-                  <th>District</th>
-                  <th>Sarpanch</th>
-                  <th>Households</th>
-                  <th>Population</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {panchayats.map((panchayat) => (
-                  <tr key={panchayat.id}>
-                    <td className="id-cell">#{panchayat.id}</td>
-                    <td className="name-cell">{panchayat.panchayat_name}</td>
-                    <td className="village-cell">{panchayat.village}</td>
-                    <td className="block-cell">{panchayat.block}</td>
-                    <td className="district-cell">{panchayat.district}</td>
-                    <td className="sarpanch-cell">{panchayat.sarpanch_name}</td>
-                    <td className="households-cell">{panchayat.total_households}</td>
-                    <td className="population-cell">{panchayat.population}</td>
-                    <td className="actions-cell">
-                      <button
-                        className="btn-icon btn-edit"
-                        onClick={() => handleEdit(panchayat)}
-                        disabled={loading}
-                        title="Edit panchayat"
-                      >
-                        <EditIcon />
-                      </button>
-                      <button
-                        className="btn-icon btn-delete"
-                        onClick={() => handleDelete(panchayat.id)}
-                        disabled={loading}
-                        title="Delete panchayat"
-                      >
-                        <DeleteIcon />
-                      </button>
-                    </td>
+          <>
+            <div className="modern-table-container">
+              <table className="modern-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Lok Sabha</th>
+                    <th>Vidhan Sabha</th>
+                    <th>Block</th>
+                    <th>Panchayat Name</th>
+                    <th>Panchayat Type</th>
+                    <th>Status</th>
+                    <th>Created At</th>
+                    <th>Updated At</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {Array.isArray(panchayats) && panchayats.map((panchayat) => (
+                    <tr key={panchayat.id}>
+                      <td className="id-cell">#{panchayat.id}</td>
+                      <td className="loksabha-cell">
+                        {panchayat.lok_sabha?.loksabha_name || `Lok Sabha ${panchayat.loksabha_id}`}
+                      </td>
+                      <td className="vidhansabha-cell">
+                        {panchayat.vidhan_sabha?.vidhansabha_name || `Vidhan Sabha ${panchayat.vidhansabha_id}`}
+                      </td>
+                      <td className="block-cell">
+                        {panchayat.block?.block_name || `Block ${panchayat.block_id}`}
+                      </td>
+                      <td className="name-cell">{panchayat.panchayat_name}</td>
+                      <td className="choosing-cell">
+                        {panchayat.panchayat_choosing === '1' ? 'Mahanagar Pallika' : 
+                         panchayat.panchayat_choosing === '2' ? 'Gram Panchayat' : 
+                         panchayat.panchayat_choosing}
+                      </td>
+                      <td className="status-cell">{panchayat.panchayat_status === '1' ? 'Active' : 'Inactive'}</td>
+                      <td className="created-cell">{new Date(panchayat.created_at).toLocaleDateString()}</td>
+                      <td className="updated-cell">{new Date(panchayat.updated_at).toLocaleDateString()}</td>
+                      <td className="actions-cell">
+                        <button
+                          className="btn-icon btn-edit"
+                          onClick={() => handleEdit(panchayat)}
+                          disabled={loading}
+                          title="Edit Panchayat"
+                        >
+                          <EditIcon />
+                        </button>
+                        <button
+                          className="btn-icon btn-delete"
+                          onClick={() => handleDelete(panchayat.id)}
+                          disabled={loading}
+                          title="Delete Panchayat"
+                        >
+                          <DeleteIcon />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {pagination.last_page > 1 && (
+              <div className="pagination-container">
+                <div className="pagination-info">
+                  Page {pagination.current_page} of {pagination.last_page} ({pagination.total} total)
+                </div>
+                <div className="pagination-controls">
+                  <button
+                    className="btn btn-secondary"
+                    onClick={handlePreviousPage}
+                    disabled={pagination.current_page <= 1 || loading}
+                  >
+                    Previous
+                  </button>
+                  
+                  <div className="page-numbers">
+                    {generatePageNumbers().map(page => (
+                      <button
+                        key={page}
+                        className={`btn ${page === pagination.current_page ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => handlePageChange(page)}
+                        disabled={loading}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  <button
+                    className="btn btn-secondary"
+                    onClick={handleNextPage}
+                    disabled={pagination.current_page >= pagination.last_page || loading}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -376,134 +458,104 @@ const AddPanchayat = () => {
             </div>
             
             <form onSubmit={handleSubmit} className="modal-form">
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="panchayat_name">Panchayat Name</label>
-                  <input
-                    type="text"
-                    id="panchayat_name"
-                    name="panchayat_name"
-                    value={formData.panchayat_name}
-                    onChange={handleInputChange}
-                    placeholder="Enter panchayat name"
-                    required
-                    disabled={loading}
-                    autoFocus
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="village">Village</label>
-                  <input
-                    type="text"
-                    id="village"
-                    name="village"
-                    value={formData.village}
-                    onChange={handleInputChange}
-                    placeholder="Enter village name"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="block">Block</label>
-                  <input
-                    type="text"
-                    id="block"
-                    name="block"
-                    value={formData.block}
-                    onChange={handleInputChange}
-                    placeholder="Enter block name"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="district">District</label>
-                  <input
-                    type="text"
-                    id="district"
-                    name="district"
-                    value={formData.district}
-                    onChange={handleInputChange}
-                    placeholder="Enter district"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="state">State</label>
-                  <input
-                    type="text"
-                    id="state"
-                    name="state"
-                    value={formData.state}
-                    onChange={handleInputChange}
-                    placeholder="Enter state"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="sarpanch_name">Sarpanch Name</label>
-                  <input
-                    type="text"
-                    id="sarpanch_name"
-                    name="sarpanch_name"
-                    value={formData.sarpanch_name}
-                    onChange={handleInputChange}
-                    placeholder="Enter sarpanch name"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="total_households">Total Households</label>
-                  <input
-                    type="number"
-                    id="total_households"
-                    name="total_households"
-                    value={formData.total_households}
-                    onChange={handleInputChange}
-                    placeholder="Enter total households"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="population">Population</label>
-                  <input
-                    type="number"
-                    id="population"
-                    name="population"
-                    value={formData.population}
-                    onChange={handleInputChange}
-                    placeholder="Enter population"
-                    required
-                    disabled={loading}
-                  />
-                </div>
+              <div className="form-group">
+                <label htmlFor="loksabha_id">Lok Sabha *</label>
+                <select
+                  id="loksabha_id"
+                  name="loksabha_id"
+                  value={formData.loksabha_id}
+                  onChange={handleInputChange}
+                  required
+                  disabled={loading}
+                >
+                  <option value="">Select Lok Sabha</option>
+                  {Array.isArray(lokSabhas) && lokSabhas.map((lokSabha) => (
+                    <option key={lokSabha.id} value={lokSabha.id}>
+                      {lokSabha.loksabha_name}
+                    </option>
+                  ))}
+                </select>
               </div>
               
               <div className="form-group">
-                <label htmlFor="description">Description</label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
+                <label htmlFor="vidhansabha_id">Vidhan Sabha *</label>
+                <select
+                  id="vidhansabha_id"
+                  name="vidhansabha_id"
+                  value={formData.vidhansabha_id}
                   onChange={handleInputChange}
-                  placeholder="Enter panchayat description"
-                  rows="3"
+                  required
                   disabled={loading}
+                >
+                  <option value="">Select Vidhan Sabha</option>
+                  {Array.isArray(vidhanSabhas) && vidhanSabhas.map((vidhanSabha) => (
+                    <option key={vidhanSabha.id} value={vidhanSabha.id}>
+                      {vidhanSabha.vidhansabha_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="block_id">Block *</label>
+                <select
+                  id="block_id"
+                  name="block_id"
+                  value={formData.block_id}
+                  onChange={handleInputChange}
+                  required
+                  disabled={loading}
+                >
+                  <option value="">Select Block</option>
+                  {Array.isArray(blocks) && blocks.map((block) => (
+                    <option key={block.id} value={block.id}>
+                      {block.block_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="panchayat_name">Panchayat Name *</label>
+                <input
+                  type="text"
+                  id="panchayat_name"
+                  name="panchayat_name"
+                  value={formData.panchayat_name}
+                  onChange={handleInputChange}
+                  placeholder="Enter panchayat name"
+                  required
+                  disabled={loading}
+                  autoFocus
                 />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="panchayat_choosing">Panchayat Type</label>
+                <select
+                  id="panchayat_choosing"
+                  name="panchayat_choosing"
+                  value={formData.panchayat_choosing}
+                  onChange={handleInputChange}
+                  disabled={loading}
+                >
+                  <option value="1">Mahanagar Pallika</option>
+                  <option value="2">Gram Panchayat</option>
+                </select>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="panchayat_status">Status</label>
+                <select
+                  id="panchayat_status"
+                  name="panchayat_status"
+                  value={formData.panchayat_status}
+                  onChange={handleInputChange}
+                  disabled={loading}
+                >
+                  <option value="1">Active</option>
+                  <option value="0">Inactive</option>
+                </select>
               </div>
               
               <div className="modal-actions">
@@ -518,7 +570,7 @@ const AddPanchayat = () => {
                 <button 
                   type="submit" 
                   className="btn btn-primary"
-                  disabled={loading || !formData.panchayat_name.trim()}
+                  disabled={loading || !formData.panchayat_name.trim() || !formData.loksabha_id || !formData.vidhansabha_id || !formData.block_id}
                 >
                   {loading ? 'Processing...' : (isEditing ? 'Update Panchayat' : 'Create Panchayat')}
                 </button>
@@ -532,11 +584,20 @@ const AddPanchayat = () => {
       <div className="api-info">
         <h3>API Endpoints Used:</h3>
         <ul>
-          <li><strong>GET</strong> /api/panchayats - Fetch village panchayats</li>
+          <li><strong>GET</strong> /api/panchayats?page={pagination.current_page} - Fetch panchayats (paginated)</li>
+          <li><strong>GET</strong> /api/panchayats/{'{id}'} - Get specific panchayat</li>
+          <li><strong>GET</strong> /api/panchayats/lok-sabha/{'{loksabhaId}'} - Get panchayats by Lok Sabha ID</li>
+          <li><strong>GET</strong> /api/panchayats/vidhan-sabha/{'{vidhansabhaId}'} - Get panchayats by Vidhan Sabha ID</li>
+          <li><strong>GET</strong> /api/panchayats/block/{'{blockId}'} - Get panchayats by Block ID</li>
           <li><strong>POST</strong> /api/panchayats - Create new panchayat</li>
-          <li><strong>PUT</strong> /api/panchayats/:id - Update panchayat</li>
-          <li><strong>DELETE</strong> /api/panchayats/:id - Delete panchayat</li>
+          <li><strong>PUT</strong> /api/panchayats/{'{id}'} - Update panchayat</li>
+          <li><strong>DELETE</strong> /api/panchayats/{'{id}'} - Delete panchayat</li>
         </ul>
+        <p><strong>Current Page:</strong> {pagination.current_page} of {pagination.last_page}</p>
+        <p><strong>Total Records:</strong> {pagination.total}</p>
+        <p><strong>API Base URL:</strong> {import.meta.env.VITE_API_URL || 'http://localhost:8000'}</p>
+        <p><strong>Authentication:</strong> {token ? '✅ Token Present' : '❌ Token Missing'}</p>
+        <p><strong>Token Preview:</strong> {token ? `${token.substring(0, 20)}...` : 'None'}</p>
       </div>
     </div>
   );

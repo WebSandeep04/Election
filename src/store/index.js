@@ -6,6 +6,7 @@ import casteReducer from './slices/casteSlice';
 import lokSabhaReducer from './slices/lokSabhaSlice';
 import vidhanSabhaReducer from './slices/vidhanSabhaSlice';
 import blockReducer from './slices/blockSlice';
+import panchayatReducer from './slices/panchayatSlice';
 
 export const store = configureStore({
   reducer: {
@@ -16,6 +17,7 @@ export const store = configureStore({
     lokSabha: lokSabhaReducer,
     vidhanSabha: vidhanSabhaReducer,
     block: blockReducer,
+    panchayat: panchayatReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
