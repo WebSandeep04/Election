@@ -2,6 +2,8 @@
 export const API_CONFIG = {
   // Base URL for your API (loaded from Vite's environment variables)
   BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  // Whether to use cookie-based auth (e.g., Laravel Sanctum). If true, fetch will send credentials
+  USE_COOKIE_AUTH: String(import.meta.env.VITE_USE_COOKIE_AUTH || 'false') === 'true',
 
   // API Endpoints
   ENDPOINTS: {
@@ -15,6 +17,9 @@ export const API_CONFIG = {
     VIDHAN_SABHA: '/api/vidhan-sabhas',
     BLOCK: '/api/blocks',
     PANCHAYAT: '/api/panchayats',
+    VILLAGE: '/api/villages', // Added for Village
+    BOOTH: '/api/booths', // Added for Booth
+    FORMS: '/api/forms', // Added for Forms
   },
 
   // Request timeout (in milliseconds)
@@ -23,6 +28,7 @@ export const API_CONFIG = {
   // Default headers
   DEFAULT_HEADERS: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
 };
 

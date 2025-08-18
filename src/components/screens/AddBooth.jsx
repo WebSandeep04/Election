@@ -1,128 +1,259 @@
 import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import './css/AddBooth.css';
+import {
+  fetchBooths, createBooth, updateBooth, deleteBooth,
+  clearError, setCurrentPage
+} from '../../store/slices/boothSlice';
+import { fetchLokSabhas } from '../../store/slices/lokSabhaSlice';
+import { fetchVidhanSabhas, fetchVidhanSabhasByLokSabha } from '../../store/slices/vidhanSabhaSlice';
+import { fetchBlocks, fetchBlocksByVidhanSabha } from '../../store/slices/blockSlice';
+import { fetchPanchayats, fetchPanchayatsByBlock } from '../../store/slices/panchayatSlice';
+import { fetchVillages, fetchVillagesByPanchayat } from '../../store/slices/villageSlice';
+import { API_CONFIG, getApiUrl } from '../../config/api';
 
-// Icons (using simple SVG icons)
+// SVG Icons
+const PlusIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <line x1="12" y1="5" x2="12" y2="19"></line>
+    <line x1="5" y1="12" x2="19" y2="12"></line>
+  </svg>
+);
+
 const EditIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-    <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+    <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
   </svg>
 );
 
 const DeleteIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="3,6 5,6 21,6"/>
-    <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
-    <line x1="10" y1="11" x2="10" y2="17"/>
-    <line x1="14" y1="11" x2="14" y2="17"/>
-  </svg>
-);
-
-const PlusIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="12" y1="5" x2="12" y2="19"/>
-    <line x1="5" y1="12" x2="19" y2="12"/>
-  </svg>
-);
-
-const CloseIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="18" y1="6" x2="6" y2="18"/>
-    <line x1="6" y1="6" x2="18" y2="18"/>
+    <polyline points="3,6 5,6 21,6"></polyline>
+    <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+    <line x1="10" y1="11" x2="10" y2="17"></line>
+    <line x1="14" y1="11" x2="14" y2="17"></line>
   </svg>
 );
 
 const RefreshIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="23,4 23,10 17,10"/>
-    <polyline points="1,20 1,14 7,14"/>
-    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>
+    <polyline points="23,4 23,10 17,10"></polyline>
+    <polyline points="1,20 1,14 7,14"></polyline>
+    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <line x1="18" y1="6" x2="6" y2="18"></line>
+    <line x1="6" y1="6" x2="18" y2="18"></line>
   </svg>
 );
 
 const AddBooth = () => {
-  const [booths, setBooths] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const dispatch = useDispatch();
+  const { booths, loading, error, pagination } = useSelector((state) => state.booth);
+  const { lokSabhas } = useSelector((state) => state.lokSabha);
+  const { vidhanSabhas } = useSelector((state) => state.vidhanSabha);
+  const { blocks } = useSelector((state) => state.block);
+  const { panchayats } = useSelector((state) => state.panchayat);
+  const { villages } = useSelector((state) => state.village);
+  const token = useSelector((state) => state.auth.token);
+  
+  // Debug authentication state
+  console.log('Auth token:', token ? 'Present' : 'Missing');
+  console.log('Auth state:', useSelector((state) => state.auth));
+  
   const [success, setSuccess] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [filteredVidhanSabhas, setFilteredVidhanSabhas] = useState([]);
+  const [filteredBlocks, setFilteredBlocks] = useState([]);
+  const [filteredPanchayats, setFilteredPanchayats] = useState([]);
+  const [filteredVillages, setFilteredVillages] = useState([]);
   const [formData, setFormData] = useState({
-    booth_number: '',
+    loksabha_id: '',
+    vidhansabha_id: '',
+    block_id: '',
+    panchayat_id: '',
+    village_id: '',
+    village_choosing: '2',
     booth_name: '',
-    village: '',
-    panchayat: '',
-    constituency: '',
-    total_voters: '',
-    male_voters: '',
-    female_voters: '',
-    other_voters: '',
-    location: '',
-    description: ''
+    booth_status: '1',
+    created_at: '',
+    updated_at: ''
   });
 
-  // Mock data for demonstration
-  const mockBooths = [
-    {
-      id: 1,
-      booth_number: '001',
-      booth_name: 'Andheri Primary School',
-      village: 'Andheri Village',
-      panchayat: 'Andheri Gram Panchayat',
-      constituency: 'Mumbai North',
-      total_voters: '1200',
-      male_voters: '580',
-      female_voters: '620',
-      other_voters: '0',
-      location: 'Andheri Primary School, Andheri Village',
-      description: 'Polling booth at Andheri Primary School',
-      created_at: '2024-01-01T00:00:00.000000Z',
-      updated_at: '2024-01-01T00:00:00.000000Z'
-    },
-    {
-      id: 2,
-      booth_number: '002',
-      booth_name: 'Borivali Community Hall',
-      village: 'Borivali Village',
-      panchayat: 'Borivali Gram Panchayat',
-      constituency: 'Mumbai North',
-      total_voters: '950',
-      male_voters: '460',
-      female_voters: '490',
-      other_voters: '0',
-      location: 'Borivali Community Hall, Borivali Village',
-      description: 'Polling booth at Borivali Community Hall',
-      created_at: '2024-01-02T00:00:00.000000Z',
-      updated_at: '2024-01-02T00:00:00.000000Z'
-    }
-  ];
-
+  // Fetch data on component mount
   useEffect(() => {
-    // Simulate API call
-    setLoading(true);
-    setTimeout(() => {
-      setBooths(mockBooths);
-      setLoading(false);
-    }, 1000);
-  }, []);
+    if (token) {
+      dispatch(fetchBooths(pagination.current_page));
+      dispatch(fetchLokSabhas(1)); // Fetch all Lok Sabhas for dropdown
+      dispatch(fetchVidhanSabhas(1)); // Fetch all Vidhan Sabhas for dropdown
+      dispatch(fetchBlocks(1)); // Fetch all Blocks for dropdown
+      dispatch(fetchPanchayats(1)); // Fetch all Panchayats for dropdown
+      dispatch(fetchVillages(1)); // Fetch all Villages for dropdown
+    }
+  }, [dispatch, token, pagination.current_page]);
+
+  // Handle Lok Sabha selection and fetch related Vidhan Sabhas
+  const handleLokSabhaChange = async (e) => {
+    const loksabhaId = e.target.value;
+    console.log('Lok Sabha selected:', loksabhaId);
+    
+    setFormData(prev => ({
+      ...prev,
+      loksabha_id: loksabhaId,
+      vidhansabha_id: '', // Reset Vidhan Sabha selection
+      block_id: '', // Reset Block selection
+      panchayat_id: '', // Reset Panchayat selection
+      village_id: '' // Reset Village selection
+    }));
+
+    if (loksabhaId) {
+      try {
+        console.log('Fetching Vidhan Sabhas for Lok Sabha ID:', loksabhaId);
+        const result = await dispatch(fetchVidhanSabhasByLokSabha(loksabhaId));
+        console.log('Vidhan Sabhas fetch result:', result);
+        
+        if (result.payload) {
+          setFilteredVidhanSabhas(result.payload);
+          console.log('Filtered Vidhan Sabhas set:', result.payload);
+        }
+      } catch (error) {
+        console.error('Error fetching Vidhan Sabhas by Lok Sabha:', error);
+        setFilteredVidhanSabhas([]);
+      }
+    } else {
+      setFilteredVidhanSabhas([]);
+      setFilteredBlocks([]);
+      setFilteredPanchayats([]);
+      setFilteredVillages([]);
+      console.log('No Lok Sabha selected, cleared all filtered data');
+    }
+  };
+
+  // Handle Vidhan Sabha selection and fetch related Blocks
+  const handleVidhanSabhaChange = async (e) => {
+    const vidhansabhaId = e.target.value;
+    console.log('Vidhan Sabha selected:', vidhansabhaId);
+    
+    setFormData(prev => ({
+      ...prev,
+      vidhansabha_id: vidhansabhaId,
+      block_id: '', // Reset Block selection
+      panchayat_id: '', // Reset Panchayat selection
+      village_id: '' // Reset Village selection
+    }));
+
+    if (vidhansabhaId) {
+      try {
+        console.log('Fetching Blocks for Vidhan Sabha ID:', vidhansabhaId);
+        const result = await dispatch(fetchBlocksByVidhanSabha(vidhansabhaId));
+        console.log('Blocks fetch result:', result);
+        
+        if (result.payload) {
+          setFilteredBlocks(result.payload);
+          console.log('Filtered Blocks set:', result.payload);
+        }
+      } catch (error) {
+        console.error('Error fetching Blocks by Vidhan Sabha:', error);
+        setFilteredBlocks([]);
+      }
+    } else {
+      setFilteredBlocks([]);
+      setFilteredPanchayats([]);
+      setFilteredVillages([]);
+      console.log('No Vidhan Sabha selected, cleared filtered Blocks, Panchayats and Villages');
+    }
+  };
+
+  // Handle Block selection and fetch related Panchayats
+  const handleBlockChange = async (e) => {
+    const blockId = e.target.value;
+    console.log('Block selected:', blockId);
+    
+    setFormData(prev => ({
+      ...prev,
+      block_id: blockId,
+      panchayat_id: '', // Reset Panchayat selection
+      village_id: '' // Reset Village selection
+    }));
+
+    if (blockId) {
+      try {
+        console.log('Fetching Panchayats for Block ID:', blockId);
+        const result = await dispatch(fetchPanchayatsByBlock(blockId));
+        console.log('Panchayats fetch result:', result);
+        
+        if (result.payload) {
+          setFilteredPanchayats(result.payload);
+          console.log('Filtered Panchayats set:', result.payload);
+        }
+      } catch (error) {
+        console.error('Error fetching Panchayats by Block:', error);
+        setFilteredPanchayats([]);
+      }
+    } else {
+      setFilteredPanchayats([]);
+      setFilteredVillages([]);
+      console.log('No Block selected, cleared filtered Panchayats and Villages');
+    }
+  };
+
+  // Handle Panchayat selection and fetch related Villages
+  const handlePanchayatChange = async (e) => {
+    const panchayatId = e.target.value;
+    console.log('Panchayat selected:', panchayatId);
+    
+    setFormData(prev => ({
+      ...prev,
+      panchayat_id: panchayatId,
+      village_id: '' // Reset Village selection
+    }));
+
+    if (panchayatId) {
+      try {
+        console.log('Fetching Villages for Panchayat ID:', panchayatId);
+        const result = await dispatch(fetchVillagesByPanchayat(panchayatId));
+        console.log('Villages fetch result:', result);
+        
+        if (result.payload) {
+          setFilteredVillages(result.payload);
+          console.log('Filtered Villages set:', result.payload);
+        }
+      } catch (error) {
+        console.error('Error fetching Villages by Panchayat:', error);
+        setFilteredVillages([]);
+      }
+    } else {
+      setFilteredVillages([]);
+      console.log('No Panchayat selected, cleared filtered Villages');
+    }
+  };
 
   useEffect(() => {
     if (success) {
+      // Refresh the list when success message appears
+      dispatch(fetchBooths(pagination.current_page));
+      
       setTimeout(() => {
         setSuccess(null);
       }, 3000);
     }
-  }, [success]);
+  }, [success, dispatch, pagination.current_page]);
 
   useEffect(() => {
     if (error) {
       setTimeout(() => {
-        setError(null);
+        dispatch(clearError());
       }, 5000);
     }
-  }, [error]);
+  }, [error, dispatch]);
 
+  // Form handlers
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -134,137 +265,202 @@ const AddBooth = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.booth_number.trim()) {
-      setError('Booth number is required');
-      return;
-    }
-
-    setLoading(true);
+    // Set timestamps
+    const now = new Date().toISOString();
+    const submitData = {
+      ...formData,
+      created_at: isEditing ? formData.created_at : now,
+      updated_at: now
+    };
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
       if (isEditing) {
-        // Update existing
-        setBooths(prev => prev.map(item => 
-          item.id === editingId ? { ...item, ...formData, updated_at: new Date().toISOString() } : item
-        ));
-        setSuccess('Polling booth updated successfully');
+        await dispatch(updateBooth({ id: editingId, boothData: submitData }));
       } else {
-        // Create new
-        const newBooth = {
-          id: Date.now(),
-          ...formData,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-        setBooths(prev => [...prev, newBooth]);
-        setSuccess('Polling booth created successfully');
+        await dispatch(createBooth(submitData));
       }
       
-      resetForm();
+      setSuccess(isEditing ? 'Booth updated successfully!' : 'Booth created successfully!');
       setShowModal(false);
-      setLoading(false);
-    }, 1000);
+      resetForm();
+    } catch (error) {
+      console.error('Error submitting form:', error);
+    }
   };
 
   const handleEdit = (booth) => {
     setFormData({
-      booth_number: booth.booth_number,
-      booth_name: booth.booth_name,
-      village: booth.village,
-      panchayat: booth.panchayat,
-      constituency: booth.constituency,
-      total_voters: booth.total_voters,
-      male_voters: booth.male_voters,
-      female_voters: booth.female_voters,
-      other_voters: booth.other_voters,
-      location: booth.location,
-      description: booth.description
+      loksabha_id: booth.loksabha_id || '',
+      vidhansabha_id: booth.vidhansabha_id || '',
+      block_id: booth.block_id || '',
+      panchayat_id: booth.panchayat_id || '',
+      village_id: booth.village_id || '',
+      village_choosing: booth.village_choosing || '2',
+      booth_name: booth.booth_name || '',
+      booth_status: booth.booth_status || '1',
+      created_at: booth.created_at || '',
+      updated_at: booth.updated_at || ''
     });
+    
+    // If editing, fetch related Vidhan Sabhas for the selected Lok Sabha
+    if (booth.loksabha_id) {
+      dispatch(fetchVidhanSabhasByLokSabha(booth.loksabha_id))
+        .then(result => {
+          if (result.payload) {
+            setFilteredVidhanSabhas(result.payload);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching Vidhan Sabhas for edit:', error);
+          setFilteredVidhanSabhas([]);
+        });
+    }
+    
+    // If editing, fetch related Blocks for the selected Vidhan Sabha
+    if (booth.vidhansabha_id) {
+      dispatch(fetchBlocksByVidhanSabha(booth.vidhansabha_id))
+        .then(result => {
+          if (result.payload) {
+            setFilteredBlocks(result.payload);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching Blocks for edit:', error);
+          setFilteredBlocks([]);
+        });
+    }
+    
+    // If editing, fetch related Panchayats for the selected Block
+    if (booth.block_id) {
+      dispatch(fetchPanchayatsByBlock(booth.block_id))
+        .then(result => {
+          if (result.payload) {
+            setFilteredPanchayats(result.payload);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching Panchayats for edit:', error);
+          setFilteredPanchayats([]);
+        });
+    }
+    
+    // If editing, fetch related Villages for the selected Panchayat
+    if (booth.panchayat_id) {
+      dispatch(fetchVillagesByPanchayat(booth.panchayat_id))
+        .then(result => {
+          if (result.payload) {
+            setFilteredVillages(result.payload);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching Villages for edit:', error);
+          setFilteredVillages([]);
+        });
+    }
+    
     setIsEditing(true);
     setEditingId(booth.id);
     setShowModal(true);
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this polling booth?')) {
-      setLoading(true);
-      setTimeout(() => {
-        setBooths(prev => prev.filter(item => item.id !== id));
-        setSuccess('Polling booth deleted successfully');
-        setLoading(false);
-      }, 500);
+    if (window.confirm('Are you sure you want to delete this booth?')) {
+      try {
+        await dispatch(deleteBooth(id));
+        setSuccess('Booth deleted successfully!');
+      } catch (error) {
+        console.error('Error deleting booth:', error);
+      }
     }
-  };
-
-  const handleCancel = () => {
-    resetForm();
-    setShowModal(false);
   };
 
   const resetForm = () => {
     setFormData({
-      booth_number: '',
+      loksabha_id: '',
+      vidhansabha_id: '',
+      block_id: '',
+      panchayat_id: '',
+      village_id: '',
+      village_choosing: '2',
       booth_name: '',
-      village: '',
-      panchayat: '',
-      constituency: '',
-      total_voters: '',
-      male_voters: '',
-      female_voters: '',
-      other_voters: '',
-      location: '',
-      description: ''
+      booth_status: '1',
+      created_at: '',
+      updated_at: ''
     });
+    setFilteredVidhanSabhas([]);
+    setFilteredBlocks([]);
+    setFilteredPanchayats([]);
+    setFilteredVillages([]);
     setIsEditing(false);
     setEditingId(null);
   };
 
-  const handleAddNew = () => {
-    resetForm();
-    setShowModal(true);
+  const handlePageChange = (page) => {
+    dispatch(setCurrentPage(page));
+    dispatch(fetchBooths(page));
   };
 
-  const handleRefresh = () => {
-    setLoading(true);
-    setTimeout(() => {
-      setBooths(mockBooths);
-      setLoading(false);
-    }, 1000);
+  const handleTestAPI = async () => {
+    console.log('=== TESTING BOOTH API ===');
+    console.log('Auth token:', token ? 'Present' : 'Missing');
+    console.log('Auth state:', useSelector((state) => state.auth));
+    
+    try {
+      const response = await fetch(`${getApiUrl(API_CONFIG.ENDPOINTS.BOOTH)}?page=1`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      console.log('Test API Response Status:', response.status);
+      console.log('Test API Response Headers:', response.headers);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Test API Response Data:', data);
+        alert('✅ API Test Successful! Check console for details.');
+      } else {
+        const errorText = await response.text();
+        console.error('Test API Error Response:', errorText);
+        alert(`❌ API Test Failed! Status: ${response.status}. Check console for details.`);
+      }
+    } catch (error) {
+      console.error('Test API Error:', error);
+      alert(`❌ API Test Error: ${error.message}`);
+    }
   };
-
-  if (error && !loading) {
-    return (
-      <div className="booth-management">
-        <div className="error-state">
-          <h2>Error Loading Booth Data</h2>
-          <p>{error}</p>
-          <button 
-            className="btn btn-primary"
-            onClick={handleRefresh}
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="booth-management">
+      {/* Header */}
       <div className="booth-header">
         <div className="header-content">
-          <h1>Polling Booth Management</h1>
-          <p>Manage polling booths and electoral information</p>
+          <h1>Booth Management</h1>
+          <p>Manage booths and booth-level information</p>
         </div>
-        <button 
-          className="btn btn-primary add-btn"
-          onClick={handleAddNew}
-          disabled={loading}
-        >
-          <PlusIcon />
-          Add New Booth
-        </button>
+        <div className="header-actions">
+          <button 
+            className="btn btn-secondary test-api-btn"
+            onClick={handleTestAPI}
+            disabled={loading}
+          >
+            <RefreshIcon />
+            Test API
+          </button>
+          <button 
+            className="btn btn-primary add-btn"
+            onClick={() => {
+              resetForm();
+              setShowModal(true);
+            }}
+            disabled={loading}
+          >
+            <PlusIcon />
+            Add New Booth
+          </button>
+        </div>
       </div>
 
       {/* Success/Error Messages */}
@@ -284,14 +480,14 @@ const AddBooth = () => {
       <div className="booth-list-section">
         <div className="list-header">
           <div className="list-header-left">
-            <h2>Polling Booths</h2>
+            <h2>Booths</h2>
             <div className="pagination-info">
               Showing {booths.length} booths
             </div>
           </div>
           <button 
             className="btn btn-secondary refresh-btn"
-            onClick={handleRefresh}
+            onClick={() => dispatch(fetchBooths(pagination.current_page))}
             disabled={loading}
           >
             <RefreshIcon />
@@ -302,16 +498,19 @@ const AddBooth = () => {
         {loading && booths.length === 0 ? (
           <div className="loading-state">
             <div className="spinner"></div>
-            <p>Loading polling booths...</p>
+            <p>Loading booths...</p>
           </div>
         ) : booths.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">📊</div>
-            <h3>No polling booths found</h3>
-            <p>Add your first polling booth to get started.</p>
+            <div className="empty-icon">🏛️</div>
+            <h3>No booths found</h3>
+            <p>Add your first booth to get started.</p>
             <button 
               className="btn btn-primary"
-              onClick={handleAddNew}
+              onClick={() => {
+                resetForm();
+                setShowModal(true);
+              }}
             >
               <PlusIcon />
               Add First Booth
@@ -323,14 +522,16 @@ const AddBooth = () => {
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>Booth No.</th>
-                  <th>Booth Name</th>
+                  <th>Lok Sabha</th>
+                  <th>Vidhan Sabha</th>
+                  <th>Block</th>
+                  <th>Panchayat</th>
                   <th>Village</th>
-                  <th>Constituency</th>
-                  <th>Total Voters</th>
-                  <th>Male</th>
-                  <th>Female</th>
-                  <th>Other</th>
+                  <th>Type</th>
+                  <th>Booth Name</th>
+                  <th>Status</th>
+                  <th>Created At</th>
+                  <th>Updated At</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -338,14 +539,36 @@ const AddBooth = () => {
                 {booths.map((booth) => (
                   <tr key={booth.id}>
                     <td className="id-cell">#{booth.id}</td>
-                    <td className="booth-number-cell">{booth.booth_number}</td>
-                    <td className="booth-name-cell">{booth.booth_name}</td>
-                    <td className="village-cell">{booth.village}</td>
-                    <td className="constituency-cell">{booth.constituency}</td>
-                    <td className="total-voters-cell">{booth.total_voters}</td>
-                    <td className="male-voters-cell">{booth.male_voters}</td>
-                    <td className="female-voters-cell">{booth.female_voters}</td>
-                    <td className="other-voters-cell">{booth.other_voters}</td>
+                    <td className="loksabha-cell">
+                      {booth.lok_sabha?.loksabha_name || 'N/A'}
+                    </td>
+                    <td className="vidhansabha-cell">
+                      {booth.vidhan_sabha?.vidhansabha_name || 'N/A'}
+                    </td>
+                    <td className="block-cell">
+                      {booth.block?.block_name || 'N/A'}
+                    </td>
+                    <td className="panchayat-cell">
+                      {booth.panchayat?.panchayat_name || 'N/A'}
+                    </td>
+                                         <td className="village-cell">
+                       {booth.village?.village_name || 'N/A'}
+                     </td>
+                     <td className="type-cell">
+                       {booth.village_choosing === '1' ? 'Ward' : 
+                        booth.village_choosing === '2' ? 'Village' : 
+                        booth.village_choosing}
+                     </td>
+                     <td className="name-cell">{booth.booth_name}</td>
+                    <td className="status-cell">
+                      {booth.booth_status === '1' ? 'Active' : 'Inactive'}
+                    </td>
+                    <td className="created-cell">
+                      {new Date(booth.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="updated-cell">
+                      {new Date(booth.updated_at).toLocaleDateString()}
+                    </td>
                     <td className="actions-cell">
                       <button
                         className="btn-icon btn-edit"
@@ -372,15 +595,43 @@ const AddBooth = () => {
         )}
       </div>
 
+      {/* Pagination */}
+      {pagination.last_page > 1 && (
+        <div className="pagination">
+          <button
+            className="pagination-btn"
+            onClick={() => handlePageChange(pagination.current_page - 1)}
+            disabled={pagination.current_page === 1 || loading}
+          >
+            Previous
+          </button>
+          
+          <div className="page-info">
+            Page {pagination.current_page} of {pagination.last_page}
+            <span className="total-info">
+              ({pagination.total} total booths)
+            </span>
+          </div>
+          
+          <button
+            className="pagination-btn"
+            onClick={() => handlePageChange(pagination.current_page + 1)}
+            disabled={pagination.current_page === pagination.last_page || loading}
+          >
+            Next
+          </button>
+        </div>
+      )}
+
       {/* Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={handleCancel}>
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>{isEditing ? 'Edit Polling Booth' : 'Add New Polling Booth'}</h2>
+              <h2>{isEditing ? 'Edit Booth' : 'Add New Booth'}</h2>
               <button 
                 className="btn-icon btn-close"
-                onClick={handleCancel}
+                onClick={() => setShowModal(false)}
                 title="Close modal"
               >
                 <CloseIcon />
@@ -390,168 +641,199 @@ const AddBooth = () => {
             <form onSubmit={handleSubmit} className="modal-form">
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="booth_number">Booth Number</label>
-                  <input
-                    type="text"
-                    id="booth_number"
-                    name="booth_number"
-                    value={formData.booth_number}
-                    onChange={handleInputChange}
-                    placeholder="Enter booth number"
+                  <label htmlFor="loksabha_id">Lok Sabha *</label>
+                  <select
+                    id="loksabha_id"
+                    name="loksabha_id"
+                    value={formData.loksabha_id}
+                    onChange={handleLokSabhaChange}
                     required
                     disabled={loading}
-                    autoFocus
-                  />
+                  >
+                    <option value="">Select Lok Sabha</option>
+                    {Array.isArray(lokSabhas) && lokSabhas.map((lokSabha) => (
+                      <option key={lokSabha.id} value={lokSabha.id}>
+                        {lokSabha.loksabha_name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="form-group">
-                  <label htmlFor="booth_name">Booth Name</label>
-                  <input
-                    type="text"
-                    id="booth_name"
-                    name="booth_name"
-                    value={formData.booth_name}
-                    onChange={handleInputChange}
-                    placeholder="Enter booth name"
+                  <label htmlFor="vidhansabha_id">Vidhan Sabha *</label>
+                  <select
+                    id="vidhansabha_id"
+                    name="vidhansabha_id"
+                    value={formData.vidhansabha_id}
+                    onChange={handleVidhanSabhaChange}
                     required
-                    disabled={loading}
-                  />
+                    disabled={loading || !formData.loksabha_id}
+                  >
+                    <option value="">
+                      {!formData.loksabha_id ? 'Select Lok Sabha first' : 
+                       loading ? 'Loading Vidhan Sabhas...' : 
+                       filteredVidhanSabhas.length === 0 ? 'No Vidhan Sabhas found' : 
+                       'Select Vidhan Sabha'}
+                    </option>
+                    {Array.isArray(filteredVidhanSabhas) && filteredVidhanSabhas.map((vidhanSabha) => (
+                      <option key={vidhanSabha.id} value={vidhanSabha.id}>
+                        {vidhanSabha.vidhansabha_name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
-              
+
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="village">Village</label>
-                  <input
-                    type="text"
-                    id="village"
-                    name="village"
-                    value={formData.village}
-                    onChange={handleInputChange}
-                    placeholder="Enter village name"
+                  <label htmlFor="block_id">Block *</label>
+                  <select
+                    id="block_id"
+                    name="block_id"
+                    value={formData.block_id}
+                    onChange={handleBlockChange}
                     required
-                    disabled={loading}
-                  />
+                    disabled={loading || !formData.vidhansabha_id}
+                  >
+                    <option value="">
+                      {!formData.vidhansabha_id ? 'Select Vidhan Sabha first' : 
+                       loading ? 'Loading Blocks...' : 
+                       filteredBlocks.length === 0 ? 'No Blocks found' : 
+                       'Select Block'}
+                    </option>
+                    {Array.isArray(filteredBlocks) && filteredBlocks.map((block) => (
+                      <option key={block.id} value={block.id}>
+                        {block.block_name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="form-group">
-                  <label htmlFor="panchayat">Panchayat</label>
-                  <input
-                    type="text"
-                    id="panchayat"
-                    name="panchayat"
-                    value={formData.panchayat}
-                    onChange={handleInputChange}
-                    placeholder="Enter panchayat name"
+                  <label htmlFor="panchayat_id">Panchayat *</label>
+                  <select
+                    id="panchayat_id"
+                    name="panchayat_id"
+                    value={formData.panchayat_id}
+                    onChange={handlePanchayatChange}
                     required
-                    disabled={loading}
-                  />
+                    disabled={loading || !formData.block_id}
+                  >
+                    <option value="">
+                      {!formData.block_id ? 'Select Block first' : 
+                       loading ? 'Loading Panchayats...' : 
+                       filteredPanchayats.length === 0 ? 'No Panchayats found' : 
+                       'Select Panchayat'}
+                    </option>
+                    {Array.isArray(filteredPanchayats) && filteredPanchayats.map((panchayat) => (
+                      <option key={panchayat.id} value={panchayat.id}>
+                        {panchayat.panchayat_name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="constituency">Constituency</label>
-                  <input
-                    type="text"
-                    id="constituency"
-                    name="constituency"
-                    value={formData.constituency}
-                    onChange={handleInputChange}
-                    placeholder="Enter constituency"
-                    required
-                    disabled={loading}
-                  />
+
+                             <div className="form-row">
+                 <div className="form-group">
+                   <label htmlFor="village_id">Village *</label>
+                   <select
+                     id="village_id"
+                     name="village_id"
+                     value={formData.village_id}
+                     onChange={handleInputChange}
+                     required
+                     disabled={loading || !formData.panchayat_id}
+                   >
+                     <option value="">
+                       {!formData.panchayat_id ? 'Select Panchayat first' : 
+                        loading ? 'Loading Villages...' : 
+                        filteredVillages.length === 0 ? 'No Villages found' : 
+                        'Select Village'}
+                     </option>
+                     {Array.isArray(filteredVillages) && filteredVillages.map((village) => (
+                       <option key={village.id} value={village.id}>
+                         {village.village_name}
+                       </option>
+                     ))}
+                   </select>
+                 </div>
+                 <div className="form-group">
+                   <label htmlFor="village_choosing">Type *</label>
+                   <select
+                     id="village_choosing"
+                     name="village_choosing"
+                     value={formData.village_choosing}
+                     onChange={handleInputChange}
+                     required
+                     disabled={loading}
+                   >
+                     <option value="1">Ward</option>
+                     <option value="2">Village</option>
+                   </select>
+                 </div>
+               </div>
+
+               <div className="form-row">
+                 <div className="form-group">
+                   <label htmlFor="booth_name">Booth Name *</label>
+                   <input
+                     type="text"
+                     id="booth_name"
+                     name="booth_name"
+                     value={formData.booth_name}
+                     onChange={handleInputChange}
+                     placeholder="Enter booth name"
+                     required
+                     disabled={loading}
+                     autoFocus
+                   />
+                 </div>
+                 <div className="form-group">
+                   <label htmlFor="booth_status">Status</label>
+                   <select
+                     id="booth_status"
+                     name="booth_status"
+                     value={formData.booth_status}
+                     onChange={handleInputChange}
+                     disabled={loading}
+                   >
+                     <option value="1">Active</option>
+                     <option value="0">Inactive</option>
+                   </select>
+                 </div>
+               </div>
+
+                               <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="created_at">Created At</label>
+                    <input
+                      type="text"
+                      id="created_at"
+                      name="created_at"
+                      value={formData.created_at ? new Date(formData.created_at).toLocaleString() : ''}
+                      onChange={handleInputChange}
+                      disabled
+                      placeholder="Auto-generated on creation"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="updated_at">Updated At</label>
+                    <input
+                      type="text"
+                      id="updated_at"
+                      name="updated_at"
+                      value={formData.updated_at ? new Date(formData.updated_at).toLocaleString() : ''}
+                      onChange={handleInputChange}
+                      disabled
+                      placeholder="Auto-updated on save"
+                    />
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label htmlFor="total_voters">Total Voters</label>
-                  <input
-                    type="number"
-                    id="total_voters"
-                    name="total_voters"
-                    value={formData.total_voters}
-                    onChange={handleInputChange}
-                    placeholder="Enter total voters"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="male_voters">Male Voters</label>
-                  <input
-                    type="number"
-                    id="male_voters"
-                    name="male_voters"
-                    value={formData.male_voters}
-                    onChange={handleInputChange}
-                    placeholder="Enter male voters"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="female_voters">Female Voters</label>
-                  <input
-                    type="number"
-                    id="female_voters"
-                    name="female_voters"
-                    value={formData.female_voters}
-                    onChange={handleInputChange}
-                    placeholder="Enter female voters"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="other_voters">Other Voters</label>
-                  <input
-                    type="number"
-                    id="other_voters"
-                    name="other_voters"
-                    value={formData.other_voters}
-                    onChange={handleInputChange}
-                    placeholder="Enter other voters"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="location">Location</label>
-                  <input
-                    type="text"
-                    id="location"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleInputChange}
-                    placeholder="Enter booth location"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="description">Description</label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  placeholder="Enter booth description"
-                  rows="3"
-                  disabled={loading}
-                />
-              </div>
-              
+
               <div className="modal-actions">
                 <button 
                   type="button" 
                   className="btn btn-secondary"
-                  onClick={handleCancel}
+                  onClick={() => setShowModal(false)}
                   disabled={loading}
                 >
                   Cancel
@@ -559,7 +841,7 @@ const AddBooth = () => {
                 <button 
                   type="submit" 
                   className="btn btn-primary"
-                  disabled={loading || !formData.booth_number.trim()}
+                  disabled={loading || !formData.booth_name.trim() || !formData.loksabha_id || !formData.vidhansabha_id || !formData.block_id || !formData.panchayat_id || !formData.village_id}
                 >
                   {loading ? 'Processing...' : (isEditing ? 'Update Booth' : 'Create Booth')}
                 </button>
@@ -573,11 +855,26 @@ const AddBooth = () => {
       <div className="api-info">
         <h3>API Endpoints Used:</h3>
         <ul>
-          <li><strong>GET</strong> /api/booths - Fetch polling booths</li>
-          <li><strong>POST</strong> /api/booths - Create new booth</li>
-          <li><strong>PUT</strong> /api/booths/:id - Update booth</li>
-          <li><strong>DELETE</strong> /api/booths/:id - Delete booth</li>
+          <li><strong>GET</strong> {getApiUrl(API_CONFIG.ENDPOINTS.BOOTH)}?page={pagination.current_page} - Fetch booths (paginated)</li>
+          <li><strong>GET</strong> {getApiUrl(API_CONFIG.ENDPOINTS.BOOTH)}/&#123;id&#125; - Get specific booth</li>
+          <li><strong>GET</strong> {getApiUrl(API_CONFIG.ENDPOINTS.BOOTH)}/lok-sabha/&#123;loksabhaId&#125; - Get booths by Lok Sabha ID</li>
+          <li><strong>GET</strong> {getApiUrl(API_CONFIG.ENDPOINTS.BOOTH)}/vidhan-sabha/&#123;vidhansabhaId&#125; - Get booths by Vidhan Sabha ID</li>
+          <li><strong>GET</strong> {getApiUrl(API_CONFIG.ENDPOINTS.BOOTH)}/block/&#123;blockId&#125; - Get booths by Block ID</li>
+          <li><strong>GET</strong> {getApiUrl(API_CONFIG.ENDPOINTS.BOOTH)}/panchayat/&#123;panchayatId&#125; - Get booths by Panchayat ID</li>
+          <li><strong>GET</strong> {getApiUrl(API_CONFIG.ENDPOINTS.BOOTH)}/village/&#123;villageId&#125; - Get booths by Village ID</li>
+          <li><strong>GET</strong> {getApiUrl(API_CONFIG.ENDPOINTS.VIDHAN_SABHA)}/lok-sabha/&#123;loksabhaId&#125; - Get Vidhan Sabhas by Lok Sabha ID</li>
+          <li><strong>GET</strong> {getApiUrl(API_CONFIG.ENDPOINTS.BLOCK)}/vidhan-sabha/&#123;vidhansabhaId&#125; - Get Blocks by Vidhan Sabha ID</li>
+          <li><strong>GET</strong> {getApiUrl(API_CONFIG.ENDPOINTS.PANCHAYAT)}/block/&#123;blockId&#125; - Get Panchayats by Block ID</li>
+          <li><strong>GET</strong> {getApiUrl(API_CONFIG.ENDPOINTS.VILLAGE)}/panchayat/&#123;panchayatId&#125; - Get Villages by Panchayat ID</li>
+          <li><strong>POST</strong> {getApiUrl(API_CONFIG.ENDPOINTS.BOOTH)} - Create new booth</li>
+          <li><strong>PUT</strong> {getApiUrl(API_CONFIG.ENDPOINTS.BOOTH)}/&#123;id&#125; - Update booth</li>
+          <li><strong>DELETE</strong> {getApiUrl(API_CONFIG.ENDPOINTS.BOOTH)}/&#123;id&#125; - Delete booth</li>
         </ul>
+        <p><strong>Current Page:</strong> {pagination.current_page} of {pagination.last_page}</p>
+        <p><strong>Total Records:</strong> {pagination.total}</p>
+        <p><strong>API Base URL:</strong> {import.meta.env.VITE_API_URL || 'http://localhost:8000'}</p>
+        <p><strong>Authentication:</strong> {token ? '✅ Token Present' : '❌ Token Missing'}</p>
+        <p><strong>Token Preview:</strong> {token ? `${token.substring(0, 20)}...` : 'None'}</p>
       </div>
     </div>
   );

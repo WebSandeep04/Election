@@ -149,6 +149,38 @@ export const deleteBlock = createAsyncThunk(
   }
 );
 
+export const fetchBlocksByVidhanSabha = createAsyncThunk(
+  'block/fetchBlocksByVidhanSabha',
+  async (vidhansabhaId, { rejectWithValue, getState }) => {
+    try {
+      const token = getToken(getState);
+      const url = `${getApiUrl(API_CONFIG.ENDPOINTS.BLOCK)}/vidhan-sabha/${vidhansabhaId}`;
+      
+      console.log('=== FETCH BLOCKS BY VIDHAN SABHA API CALL ===');
+      console.log('Method: GET, URL:', url, 'Vidhan Sabha ID:', vidhansabhaId, 'Token:', token ? 'Present' : 'Missing');
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: getAuthHeaders(token),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('=== FETCH BLOCKS BY VIDHAN SABHA API RESPONSE ===');
+      console.log('Status:', response.status, 'Data:', data);
+
+      const blocks = data.blocks || data.data || [];
+      return blocks;
+    } catch (error) {
+      console.error('Error fetching Blocks by Vidhan Sabha:', error);
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 // Initial state
 const initialState = {
   blocks: [],
@@ -252,6 +284,20 @@ const blockSlice = createSlice({
         state.blocks = state.blocks.filter(item => item.id !== action.payload);
       })
       .addCase(deleteBlock.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      
+      // Fetch Blocks by Vidhan Sabha
+      .addCase(fetchBlocksByVidhanSabha.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchBlocksByVidhanSabha.fulfilled, (state, action) => {
+        state.loading = false;
+        // This doesn't update the main blocks state, just returns the filtered blocks
+      })
+      .addCase(fetchBlocksByVidhanSabha.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });

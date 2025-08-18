@@ -253,6 +253,15 @@
   font-family: 'Courier New', monospace;
 }
 
+.loksabha-cell, .vidhansabha-cell, .block-cell, .panchayat-cell, .village-cell, .type-cell {
+  color: #4a5568;
+  font-weight: 500;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .name-cell {
   font-weight: 600;
   color: #2d3748;
@@ -286,6 +295,12 @@
 .area-cell {
   color: #718096;
   font-family: 'Courier New', monospace;
+}
+
+.created-cell, .updated-cell {
+  color: #718096;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
 }
 
 .actions-cell {
@@ -425,6 +440,19 @@
   background: #f1f5f9;
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+/* Timestamp fields styling */
+.form-group input[placeholder*="Auto"] {
+  background: #f8f9fa;
+  border-color: #dee2e6;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.form-group input[placeholder*="Auto"]:focus {
+  border-color: #dee2e6;
+  box-shadow: none;
 }
 
 .form-group textarea {

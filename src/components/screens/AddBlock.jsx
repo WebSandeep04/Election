@@ -10,7 +10,7 @@ import {
   setCurrentPage
 } from '../../store/slices/blockSlice';
 import { fetchLokSabhas } from '../../store/slices/lokSabhaSlice';
-import { fetchVidhanSabhas } from '../../store/slices/vidhanSabhaSlice';
+import { fetchVidhanSabhas, fetchVidhanSabhasByLokSabha } from '../../store/slices/vidhanSabhaSlice';
 
 // SVG Icons
 const PlusIcon = () => (
@@ -66,11 +66,14 @@ const AddBlock = () => {
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [filteredVidhanSabhas, setFilteredVidhanSabhas] = useState([]);
   const [formData, setFormData] = useState({
     loksabha_id: '',
     vidhansabha_id: '',
     block_name: '',
-    block_status: '1'
+    block_status: '1',
+    created_at: '',
+    updated_at: ''
   });
 
   // Fetch Blocks, Lok Sabhas, and Vidhan Sabhas on component mount and token change
@@ -81,6 +84,37 @@ const AddBlock = () => {
       dispatch(fetchVidhanSabhas(1)); // Fetch all Vidhan Sabhas for dropdown
     }
   }, [dispatch, token, pagination.current_page]);
+
+  // Handle Lok Sabha selection and fetch related Vidhan Sabhas
+  const handleLokSabhaChange = async (e) => {
+    const loksabhaId = e.target.value;
+    console.log('Lok Sabha selected:', loksabhaId);
+    
+    setFormData(prev => ({
+      ...prev,
+      loksabha_id: loksabhaId,
+      vidhansabha_id: '' // Reset Vidhan Sabha selection
+    }));
+
+    if (loksabhaId) {
+      try {
+        console.log('Fetching Vidhan Sabhas for Lok Sabha ID:', loksabhaId);
+        const result = await dispatch(fetchVidhanSabhasByLokSabha(loksabhaId));
+        console.log('Vidhan Sabhas fetch result:', result);
+        
+        if (result.payload) {
+          setFilteredVidhanSabhas(result.payload);
+          console.log('Filtered Vidhan Sabhas set:', result.payload);
+        }
+      } catch (error) {
+        console.error('Error fetching Vidhan Sabhas by Lok Sabha:', error);
+        setFilteredVidhanSabhas([]);
+      }
+    } else {
+      setFilteredVidhanSabhas([]);
+      console.log('No Lok Sabha selected, cleared filtered Vidhan Sabhas');
+    }
+  };
 
   useEffect(() => {
     if (success) {
@@ -113,12 +147,20 @@ const AddBlock = () => {
       return;
     }
 
+    // Set timestamps
+    const now = new Date().toISOString();
+    const submitData = {
+      ...formData,
+      created_at: isEditing ? formData.created_at : now,
+      updated_at: now
+    };
+
     try {
       if (isEditing) {
-        await dispatch(updateBlock({ id: editingId, blockData: formData })).unwrap();
+        await dispatch(updateBlock({ id: editingId, blockData: submitData })).unwrap();
         setSuccess('Block updated successfully');
       } else {
-        await dispatch(createBlock(formData)).unwrap();
+        await dispatch(createBlock(submitData)).unwrap();
         setSuccess('Block created successfully');
       }
       
@@ -136,8 +178,25 @@ const AddBlock = () => {
       loksabha_id: block.loksabha_id || '',
       vidhansabha_id: block.vidhansabha_id || '',
       block_name: block.block_name || '',
-      block_status: block.block_status || '1'
+      block_status: block.block_status || '1',
+      created_at: block.created_at || '',
+      updated_at: block.updated_at || ''
     });
+    
+    // If editing, fetch related Vidhan Sabhas for the selected Lok Sabha
+    if (block.loksabha_id) {
+      dispatch(fetchVidhanSabhasByLokSabha(block.loksabha_id))
+        .then(result => {
+          if (result.payload) {
+            setFilteredVidhanSabhas(result.payload);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching Vidhan Sabhas for edit:', error);
+          setFilteredVidhanSabhas([]);
+        });
+    }
+    
     setIsEditing(true);
     setEditingId(block.id);
     setShowModal(true);
@@ -166,8 +225,11 @@ const AddBlock = () => {
       loksabha_id: '',
       vidhansabha_id: '',
       block_name: '',
-      block_status: '1'
+      block_status: '1',
+      created_at: '',
+      updated_at: ''
     });
+    setFilteredVidhanSabhas([]);
     setIsEditing(false);
     setEditingId(null);
   };
@@ -445,7 +507,7 @@ const AddBlock = () => {
                   id="loksabha_id"
                   name="loksabha_id"
                   value={formData.loksabha_id}
-                  onChange={handleInputChange}
+                  onChange={handleLokSabhaChange}
                   required
                   disabled={loading}
                 >
@@ -466,10 +528,15 @@ const AddBlock = () => {
                   value={formData.vidhansabha_id}
                   onChange={handleInputChange}
                   required
-                  disabled={loading}
+                  disabled={loading || !formData.loksabha_id}
                 >
-                  <option value="">Select Vidhan Sabha</option>
-                  {Array.isArray(vidhanSabhas) && vidhanSabhas.map((vidhanSabha) => (
+                  <option value="">
+                    {!formData.loksabha_id ? 'Select Lok Sabha first' : 
+                     loading ? 'Loading Vidhan Sabhas...' : 
+                     filteredVidhanSabhas.length === 0 ? 'No Vidhan Sabhas found' : 
+                     'Select Vidhan Sabha'}
+                  </option>
+                  {Array.isArray(filteredVidhanSabhas) && filteredVidhanSabhas.map((vidhanSabha) => (
                     <option key={vidhanSabha.id} value={vidhanSabha.id}>
                       {vidhanSabha.vidhansabha_name}
                     </option>
@@ -504,6 +571,33 @@ const AddBlock = () => {
                   <option value="1">Active</option>
                   <option value="0">Inactive</option>
                 </select>
+              </div>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="created_at">Created At</label>
+                  <input
+                    type="text"
+                    id="created_at"
+                    name="created_at"
+                    value={formData.created_at ? new Date(formData.created_at).toLocaleString() : ''}
+                    onChange={handleInputChange}
+                    disabled
+                    placeholder="Auto-generated on creation"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="updated_at">Updated At</label>
+                  <input
+                    type="text"
+                    id="updated_at"
+                    name="updated_at"
+                    value={formData.updated_at ? new Date(formData.updated_at).toLocaleString() : ''}
+                    onChange={handleInputChange}
+                    disabled
+                    placeholder="Auto-updated on save"
+                  />
+                </div>
               </div>
               
               <div className="modal-actions">

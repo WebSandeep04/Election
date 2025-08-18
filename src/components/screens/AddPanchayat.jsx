@@ -10,8 +10,8 @@ import {
   setCurrentPage
 } from '../../store/slices/panchayatSlice';
 import { fetchLokSabhas } from '../../store/slices/lokSabhaSlice';
-import { fetchVidhanSabhas } from '../../store/slices/vidhanSabhaSlice';
-import { fetchBlocks } from '../../store/slices/blockSlice';
+import { fetchVidhanSabhas, fetchVidhanSabhasByLokSabha } from '../../store/slices/vidhanSabhaSlice';
+import { fetchBlocks, fetchBlocksByVidhanSabha } from '../../store/slices/blockSlice';
 
 // SVG Icons
 const PlusIcon = () => (
@@ -68,13 +68,17 @@ const AddPanchayat = () => {
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [filteredVidhanSabhas, setFilteredVidhanSabhas] = useState([]);
+  const [filteredBlocks, setFilteredBlocks] = useState([]);
   const [formData, setFormData] = useState({
     loksabha_id: '',
     vidhansabha_id: '',
     block_id: '',
     panchayat_choosing: '1',
     panchayat_name: '',
-    panchayat_status: '1'
+    panchayat_status: '1',
+    created_at: '',
+    updated_at: ''
   });
 
   // Fetch Panchayats, Lok Sabhas, Vidhan Sabhas, and Blocks on component mount and token change
@@ -86,6 +90,70 @@ const AddPanchayat = () => {
       dispatch(fetchBlocks(1)); // Fetch all Blocks for dropdown
     }
   }, [dispatch, token, pagination.current_page]);
+
+  // Handle Lok Sabha selection and fetch related Vidhan Sabhas
+  const handleLokSabhaChange = async (e) => {
+    const loksabhaId = e.target.value;
+    console.log('Lok Sabha selected:', loksabhaId);
+    
+    setFormData(prev => ({
+      ...prev,
+      loksabha_id: loksabhaId,
+      vidhansabha_id: '', // Reset Vidhan Sabha selection
+      block_id: '' // Reset Block selection
+    }));
+
+    if (loksabhaId) {
+      try {
+        console.log('Fetching Vidhan Sabhas for Lok Sabha ID:', loksabhaId);
+        const result = await dispatch(fetchVidhanSabhasByLokSabha(loksabhaId));
+        console.log('Vidhan Sabhas fetch result:', result);
+        
+        if (result.payload) {
+          setFilteredVidhanSabhas(result.payload);
+          console.log('Filtered Vidhan Sabhas set:', result.payload);
+        }
+      } catch (error) {
+        console.error('Error fetching Vidhan Sabhas by Lok Sabha:', error);
+        setFilteredVidhanSabhas([]);
+      }
+    } else {
+      setFilteredVidhanSabhas([]);
+      setFilteredBlocks([]);
+      console.log('No Lok Sabha selected, cleared filtered Vidhan Sabhas and Blocks');
+    }
+  };
+
+  // Handle Vidhan Sabha selection and fetch related Blocks
+  const handleVidhanSabhaChange = async (e) => {
+    const vidhansabhaId = e.target.value;
+    console.log('Vidhan Sabha selected:', vidhansabhaId);
+    
+    setFormData(prev => ({
+      ...prev,
+      vidhansabha_id: vidhansabhaId,
+      block_id: '' // Reset Block selection
+    }));
+
+    if (vidhansabhaId) {
+      try {
+        console.log('Fetching Blocks for Vidhan Sabha ID:', vidhansabhaId);
+        const result = await dispatch(fetchBlocksByVidhanSabha(vidhansabhaId));
+        console.log('Blocks fetch result:', result);
+        
+        if (result.payload) {
+          setFilteredBlocks(result.payload);
+          console.log('Filtered Blocks set:', result.payload);
+        }
+      } catch (error) {
+        console.error('Error fetching Blocks by Vidhan Sabha:', error);
+        setFilteredBlocks([]);
+      }
+    } else {
+      setFilteredBlocks([]);
+      console.log('No Vidhan Sabha selected, cleared filtered Blocks');
+    }
+  };
 
   useEffect(() => {
     if (success) {
@@ -114,16 +182,54 @@ const AddPanchayat = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    console.log('=== PANCHAYAT FORM SUBMISSION ===');
+    console.log('Form Data:', formData);
+    console.log('Is Editing:', isEditing);
+    console.log('Editing ID:', editingId);
+    
     if (!formData.panchayat_name.trim() || !formData.loksabha_id || !formData.vidhansabha_id || !formData.block_id) {
+      console.error('Form validation failed:', {
+        panchayat_name: formData.panchayat_name,
+        loksabha_id: formData.loksabha_id,
+        vidhansabha_id: formData.vidhansabha_id,
+        block_id: formData.block_id
+      });
       return;
     }
 
+    // Set timestamps
+    const now = new Date().toISOString();
+    
+    // Clean and validate the data
+    const submitData = {
+      loksabha_id: parseInt(formData.loksabha_id) || formData.loksabha_id,
+      vidhansabha_id: parseInt(formData.vidhansabha_id) || formData.vidhansabha_id,
+      block_id: parseInt(formData.block_id) || formData.block_id,
+      panchayat_choosing: formData.panchayat_choosing,
+      panchayat_name: formData.panchayat_name.trim(),
+      panchayat_status: formData.panchayat_status,
+      created_at: isEditing ? formData.created_at : now,
+      updated_at: now
+    };
+
+    console.log('Submit Data:', submitData);
+    console.log('Data types:', {
+      loksabha_id: typeof submitData.loksabha_id,
+      vidhansabha_id: typeof submitData.vidhansabha_id,
+      block_id: typeof submitData.block_id,
+      panchayat_choosing: typeof submitData.panchayat_choosing,
+      panchayat_name: typeof submitData.panchayat_name,
+      panchayat_status: typeof submitData.panchayat_status
+    });
+
     try {
       if (isEditing) {
-        await dispatch(updatePanchayat({ id: editingId, panchayatData: formData })).unwrap();
+        console.log('Updating panchayat with ID:', editingId);
+        await dispatch(updatePanchayat({ id: editingId, panchayatData: submitData })).unwrap();
         setSuccess('Panchayat updated successfully');
       } else {
-        await dispatch(createPanchayat(formData)).unwrap();
+        console.log('Creating new panchayat');
+        await dispatch(createPanchayat(submitData)).unwrap();
         setSuccess('Panchayat created successfully');
       }
       
@@ -133,6 +239,11 @@ const AddPanchayat = () => {
       setShowModal(false);
     } catch (error) {
       console.error('Error submitting form:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        response: error.response
+      });
     }
   };
 
@@ -143,8 +254,39 @@ const AddPanchayat = () => {
       block_id: panchayat.block_id || '',
       panchayat_choosing: panchayat.panchayat_choosing || '1',
       panchayat_name: panchayat.panchayat_name || '',
-      panchayat_status: panchayat.panchayat_status || '1'
+      panchayat_status: panchayat.panchayat_status || '1',
+      created_at: panchayat.created_at || '',
+      updated_at: panchayat.updated_at || ''
     });
+    
+    // If editing, fetch related Vidhan Sabhas for the selected Lok Sabha
+    if (panchayat.loksabha_id) {
+      dispatch(fetchVidhanSabhasByLokSabha(panchayat.loksabha_id))
+        .then(result => {
+          if (result.payload) {
+            setFilteredVidhanSabhas(result.payload);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching Vidhan Sabhas for edit:', error);
+          setFilteredVidhanSabhas([]);
+        });
+    }
+    
+    // If editing, fetch related Blocks for the selected Vidhan Sabha
+    if (panchayat.vidhansabha_id) {
+      dispatch(fetchBlocksByVidhanSabha(panchayat.vidhansabha_id))
+        .then(result => {
+          if (result.payload) {
+            setFilteredBlocks(result.payload);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching Blocks for edit:', error);
+          setFilteredBlocks([]);
+        });
+    }
+    
     setIsEditing(true);
     setEditingId(panchayat.id);
     setShowModal(true);
@@ -175,8 +317,12 @@ const AddPanchayat = () => {
       block_id: '',
       panchayat_choosing: '1',
       panchayat_name: '',
-      panchayat_status: '1'
+      panchayat_status: '1',
+      created_at: '',
+      updated_at: ''
     });
+    setFilteredVidhanSabhas([]);
+    setFilteredBlocks([]);
     setIsEditing(false);
     setEditingId(null);
   };
@@ -198,6 +344,47 @@ const AddPanchayat = () => {
       console.log('Test response data:', data);
     } catch (error) {
       console.error('Test API error:', error);
+    }
+  };
+
+  // Test Panchayat creation with sample data
+  const testPanchayatCreation = async () => {
+    try {
+      console.log('Testing Panchayat creation with sample data...');
+      const sampleData = {
+        loksabha_id: 1,
+        vidhansabha_id: 1,
+        block_id: 1,
+        panchayat_choosing: '1',
+        panchayat_name: 'Test Panchayat',
+        panchayat_status: '1'
+      };
+      
+      console.log('Sample data:', sampleData);
+      
+      const response = await fetch('http://localhost:8000/api/panchayats', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(sampleData)
+      });
+      
+      console.log('Test creation response status:', response.status);
+      console.log('Test creation response headers:', Object.fromEntries(response.headers.entries()));
+      
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        console.log('Test creation response data:', data);
+      } else {
+        const data = await response.text();
+        console.log('Test creation response text:', data);
+      }
+    } catch (error) {
+      console.error('Test creation error:', error);
     }
   };
 
@@ -267,23 +454,30 @@ const AddPanchayat = () => {
           <h1>Panchayat Management</h1>
           <p>Manage local panchayats and their administrative structure</p>
         </div>
-        <div className="header-buttons">
-          <button 
-            className="btn btn-secondary test-btn"
-            onClick={testApiConnection}
-            disabled={loading}
-          >
-            Test API
-          </button>
-          <button 
-            className="btn btn-primary add-btn"
-            onClick={handleAddNew}
-            disabled={loading}
-          >
-            <PlusIcon />
-            Add New Panchayat
-          </button>
-        </div>
+                 <div className="header-buttons">
+           <button 
+             className="btn btn-secondary test-btn"
+             onClick={testApiConnection}
+             disabled={loading}
+           >
+             Test API
+           </button>
+           <button 
+             className="btn btn-secondary test-btn"
+             onClick={testPanchayatCreation}
+             disabled={loading}
+           >
+             Test Create
+           </button>
+           <button 
+             className="btn btn-primary add-btn"
+             onClick={handleAddNew}
+             disabled={loading}
+           >
+             <PlusIcon />
+             Add New Panchayat
+           </button>
+         </div>
       </div>
 
       {/* Success/Error Messages */}
@@ -464,7 +658,7 @@ const AddPanchayat = () => {
                   id="loksabha_id"
                   name="loksabha_id"
                   value={formData.loksabha_id}
-                  onChange={handleInputChange}
+                  onChange={handleLokSabhaChange}
                   required
                   disabled={loading}
                 >
@@ -483,12 +677,17 @@ const AddPanchayat = () => {
                   id="vidhansabha_id"
                   name="vidhansabha_id"
                   value={formData.vidhansabha_id}
-                  onChange={handleInputChange}
+                  onChange={handleVidhanSabhaChange}
                   required
-                  disabled={loading}
+                  disabled={loading || !formData.loksabha_id}
                 >
-                  <option value="">Select Vidhan Sabha</option>
-                  {Array.isArray(vidhanSabhas) && vidhanSabhas.map((vidhanSabha) => (
+                  <option value="">
+                    {!formData.loksabha_id ? 'Select Lok Sabha first' : 
+                     loading ? 'Loading Vidhan Sabhas...' : 
+                     filteredVidhanSabhas.length === 0 ? 'No Vidhan Sabhas found' : 
+                     'Select Vidhan Sabha'}
+                  </option>
+                  {Array.isArray(filteredVidhanSabhas) && filteredVidhanSabhas.map((vidhanSabha) => (
                     <option key={vidhanSabha.id} value={vidhanSabha.id}>
                       {vidhanSabha.vidhansabha_name}
                     </option>
@@ -504,10 +703,15 @@ const AddPanchayat = () => {
                   value={formData.block_id}
                   onChange={handleInputChange}
                   required
-                  disabled={loading}
+                  disabled={loading || !formData.vidhansabha_id}
                 >
-                  <option value="">Select Block</option>
-                  {Array.isArray(blocks) && blocks.map((block) => (
+                  <option value="">
+                    {!formData.vidhansabha_id ? 'Select Vidhan Sabha first' : 
+                     loading ? 'Loading Blocks...' : 
+                     filteredBlocks.length === 0 ? 'No Blocks found' : 
+                     'Select Block'}
+                  </option>
+                  {Array.isArray(filteredBlocks) && filteredBlocks.map((block) => (
                     <option key={block.id} value={block.id}>
                       {block.block_name}
                     </option>
@@ -558,6 +762,33 @@ const AddPanchayat = () => {
                 </select>
               </div>
               
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="created_at">Created At</label>
+                  <input
+                    type="text"
+                    id="created_at"
+                    name="created_at"
+                    value={formData.created_at ? new Date(formData.created_at).toLocaleString() : ''}
+                    onChange={handleInputChange}
+                    disabled
+                    placeholder="Auto-generated on creation"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="updated_at">Updated At</label>
+                  <input
+                    type="text"
+                    id="updated_at"
+                    name="updated_at"
+                    value={formData.updated_at ? new Date(formData.updated_at).toLocaleString() : ''}
+                    onChange={handleInputChange}
+                    disabled
+                    placeholder="Auto-updated on save"
+                  />
+                </div>
+              </div>
+              
               <div className="modal-actions">
                 <button 
                   type="button" 
@@ -583,16 +814,18 @@ const AddPanchayat = () => {
       {/* API Information */}
       <div className="api-info">
         <h3>API Endpoints Used:</h3>
-        <ul>
-          <li><strong>GET</strong> /api/panchayats?page={pagination.current_page} - Fetch panchayats (paginated)</li>
-          <li><strong>GET</strong> /api/panchayats/{'{id}'} - Get specific panchayat</li>
-          <li><strong>GET</strong> /api/panchayats/lok-sabha/{'{loksabhaId}'} - Get panchayats by Lok Sabha ID</li>
-          <li><strong>GET</strong> /api/panchayats/vidhan-sabha/{'{vidhansabhaId}'} - Get panchayats by Vidhan Sabha ID</li>
-          <li><strong>GET</strong> /api/panchayats/block/{'{blockId}'} - Get panchayats by Block ID</li>
-          <li><strong>POST</strong> /api/panchayats - Create new panchayat</li>
-          <li><strong>PUT</strong> /api/panchayats/{'{id}'} - Update panchayat</li>
-          <li><strong>DELETE</strong> /api/panchayats/{'{id}'} - Delete panchayat</li>
-        </ul>
+                 <ul>
+           <li><strong>GET</strong> /api/panchayats?page={pagination.current_page} - Fetch panchayats (paginated)</li>
+           <li><strong>GET</strong> /api/panchayats/{'{id}'} - Get specific panchayat</li>
+           <li><strong>GET</strong> /api/panchayats/lok-sabha/{'{loksabhaId}'} - Get panchayats by Lok Sabha ID</li>
+           <li><strong>GET</strong> /api/panchayats/vidhan-sabha/{'{vidhansabhaId}'} - Get panchayats by Vidhan Sabha ID</li>
+           <li><strong>GET</strong> /api/panchayats/block/{'{blockId}'} - Get panchayats by Block ID</li>
+           <li><strong>GET</strong> /api/vidhan-sabhas/lok-sabha/{'{loksabhaId}'} - Get Vidhan Sabhas by Lok Sabha ID</li>
+           <li><strong>GET</strong> /api/blocks/vidhan-sabha/{'{vidhansabhaId}'} - Get Blocks by Vidhan Sabha ID</li>
+           <li><strong>POST</strong> /api/panchayats - Create new panchayat</li>
+           <li><strong>PUT</strong> /api/panchayats/{'{id}'} - Update panchayat</li>
+           <li><strong>DELETE</strong> /api/panchayats/{'{id}'} - Delete panchayat</li>
+         </ul>
         <p><strong>Current Page:</strong> {pagination.current_page} of {pagination.last_page}</p>
         <p><strong>Total Records:</strong> {pagination.total}</p>
         <p><strong>API Base URL:</strong> {import.meta.env.VITE_API_URL || 'http://localhost:8000'}</p>

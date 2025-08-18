@@ -529,6 +529,26 @@
   cursor: not-allowed;
 }
 
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+/* Timestamp fields styling */
+.form-group input[placeholder*="Auto"] {
+  background: #f8f9fa;
+  border-color: #dee2e6;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.form-group input[placeholder*="Auto"]:focus {
+  border-color: #dee2e6;
+  box-shadow: none;
+}
+
 .modal-actions {
   display: flex;
   gap: 12px;

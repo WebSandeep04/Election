@@ -55,7 +55,10 @@ export const createPanchayat = createAsyncThunk(
       const url = getApiUrl(API_CONFIG.ENDPOINTS.PANCHAYAT);
       
       console.log('=== CREATE PANCHAYAT API CALL ===');
-      console.log('Method: POST, URL:', url, 'Data:', panchayatData);
+      console.log('Method: POST, URL:', url);
+      console.log('Token:', token ? 'Present' : 'Missing');
+      console.log('Data:', panchayatData);
+      console.log('Headers:', getAuthHeaders(token));
       
       const response = await fetch(url, {
         method: 'POST',
@@ -63,24 +66,33 @@ export const createPanchayat = createAsyncThunk(
         body: JSON.stringify(panchayatData),
       });
 
+      console.log('=== CREATE PANCHAYAT API RESPONSE ===');
+      console.log('Status:', response.status);
+      console.log('Status Text:', response.statusText);
+      console.log('Headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
         const contentType = response.headers.get('content-type');
+        console.log('Content-Type:', contentType);
+        
         if (contentType && contentType.includes('text/html')) {
           const errorText = await response.text();
+          console.log('HTML Error Response:', errorText);
           throw new Error(`Server Error (${response.status}): Laravel returned HTML error page.`);
         } else {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+          console.log('JSON Error Response:', errorData);
+          throw new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`);
         }
       }
 
       const data = await response.json();
-      console.log('=== CREATE PANCHAYAT API RESPONSE ===');
-      console.log('Status:', response.status, 'Data:', data);
+      console.log('Success Response Data:', data);
 
       return data.panchayat || data;
     } catch (error) {
       console.error('Error creating Panchayat:', error);
+      console.error('Error stack:', error.stack);
       return rejectWithValue(error.message);
     }
   }
@@ -144,6 +156,38 @@ export const deletePanchayat = createAsyncThunk(
       return id;
     } catch (error) {
       console.error('Error deleting Panchayat:', error);
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const fetchPanchayatsByBlock = createAsyncThunk(
+  'panchayat/fetchPanchayatsByBlock',
+  async (blockId, { rejectWithValue, getState }) => {
+    try {
+      const token = getToken(getState);
+      const url = `${getApiUrl(API_CONFIG.ENDPOINTS.PANCHAYAT)}/block/${blockId}`;
+      
+      console.log('=== FETCH PANCHAYATS BY BLOCK API CALL ===');
+      console.log('Method: GET, URL:', url, 'Block ID:', blockId, 'Token:', token ? 'Present' : 'Missing');
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: getAuthHeaders(token),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('=== FETCH PANCHAYATS BY BLOCK API RESPONSE ===');
+      console.log('Status:', response.status, 'Data:', data);
+
+      const panchayats = data.panchayats || data.data || [];
+      return panchayats;
+    } catch (error) {
+      console.error('Error fetching Panchayats by Block:', error);
       return rejectWithValue(error.message);
     }
   }
@@ -251,10 +295,24 @@ const panchayatSlice = createSlice({
         state.loading = false;
         state.panchayats = state.panchayats.filter(item => item.id !== action.payload);
       })
-      .addCase(deletePanchayat.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      });
+             .addCase(deletePanchayat.rejected, (state, action) => {
+         state.loading = false;
+         state.error = action.payload;
+       })
+       
+       // Fetch Panchayats by Block
+       .addCase(fetchPanchayatsByBlock.pending, (state) => {
+         state.loading = true;
+         state.error = null;
+       })
+       .addCase(fetchPanchayatsByBlock.fulfilled, (state, action) => {
+         state.loading = false;
+         // This doesn't update the main panchayats state, just returns the filtered panchayats
+       })
+       .addCase(fetchPanchayatsByBlock.rejected, (state, action) => {
+         state.loading = false;
+         state.error = action.payload;
+       });
   },
 });
 
