@@ -1,11 +1,8 @@
 import React from "react";
+import UserManagement from "./UserManagement";
+
 const Users = () => {
-  return (
-    <div>
-      <h2>Users</h2>
-      <p>This is a simple users component.</p>
-    </div>
-  );
+  return <UserManagement />;
 };
 
 export default Users;

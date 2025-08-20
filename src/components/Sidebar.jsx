@@ -34,7 +34,18 @@ const Sidebar = () => {
         { id: 'caste-ratio', label: 'Caste Ratio', icon: '📊' },
         { id: 'village-description', label: 'Village Description', icon: '🏘️' },
         { id: 'add-educations', label: 'Add Educations', icon: '🎓' },
-        { id: 'category', label: 'Category', icon: '📂' }
+        { id: 'category', label: 'Category', icon: '📂' },
+        { id: 'employee-types', label: 'Employee Types', icon: '🏷️' }
+      ]
+    },
+    {
+      id: 'user-management',
+      label: 'User Management',
+      icon: '👤',
+      description: 'Users & Roles Management',
+      subItems: [
+        { id: 'users', label: 'Users', icon: '👥' },
+        { id: 'role-management', label: 'Role Management', icon: '🔐' }
       ]
     },
     {

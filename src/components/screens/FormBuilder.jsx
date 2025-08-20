@@ -43,6 +43,15 @@ const FormBuilder = () => {
     }
   }, [error, success, dispatch]);
 
+  // If a form is selected elsewhere (e.g., FormList → Open), hydrate local editor state
+  useEffect(() => {
+    if (currentForm && (currentForm.name || Array.isArray(currentForm.questions))) {
+      setFormName(currentForm.name || "");
+      setQuestions(Array.isArray(currentForm.questions) ? currentForm.questions : []);
+      setShowPreview(false);
+    }
+  }, [currentForm]);
+
   const questionTypes = [
     { id: "single_choice", label: "Single Choice", icon: "🔘" },
     { id: "multiple_choice", label: "Multiple Choice", icon: "☑️" },

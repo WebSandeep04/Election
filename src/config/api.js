@@ -20,6 +20,8 @@ export const API_CONFIG = {
     VILLAGE: '/api/villages', // Added for Village
     BOOTH: '/api/booths', // Added for Booth
     FORMS: '/api/forms', // Added for Forms
+    ROLES: '/api/roles', // Added for Roles
+    USERS: '/api/users', // Added for Users
   },
 
   // Request timeout (in milliseconds)
@@ -29,6 +31,7 @@ export const API_CONFIG = {
   DEFAULT_HEADERS: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
   },
 };
 
@@ -39,8 +42,28 @@ export const getApiUrl = (endpoint) => {
 
 // Helper function to get headers with auth token
 export const getAuthHeaders = (token) => {
+  const resolvedToken = token || localStorage.getItem('auth_token') || undefined;
+  const authHeader = resolvedToken
+    ? (resolvedToken.startsWith('Bearer ') ? resolvedToken : `Bearer ${resolvedToken}`)
+    : undefined;
   return {
     ...API_CONFIG.DEFAULT_HEADERS,
-    ...(token && { Authorization: `Bearer ${token}` }),
+    ...(authHeader && { Authorization: authHeader }),
   };
+};
+
+// Ensure CSRF cookie for Sanctum/session flows
+let csrfFetched = false;
+export const ensureCsrf = async () => {
+  if (!API_CONFIG.USE_COOKIE_AUTH) return;
+  if (csrfFetched) return;
+  try {
+    await fetch(getApiUrl('/sanctum/csrf-cookie'), {
+      method: 'GET',
+      credentials: 'include',
+    });
+    csrfFetched = true;
+  } catch (_) {
+    // ignore; backend may not use Sanctum
+  }
 };

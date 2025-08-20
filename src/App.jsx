@@ -9,6 +9,7 @@ import Dashboard from './components/screens/Dashboard';
 import Analytics from './components/screens/Analytics';
 import Users from './components/screens/Users';
 import Settings from './components/screens/Settings';
+import RoleManagement from './components/screens/RoleManagement';
 
 // Master Data Components
 import EmployeeManagement from './components/screens/EmployeeManagement';
@@ -18,6 +19,7 @@ import VillageDescription from './components/screens/VillageDescription';
 import AddEducations from './components/screens/AddEducations';
 import AddParliament from './components/screens/AddParliament';
 import Category from './components/screens/Category';
+import EmployeeTypes from './components/screens/EmployeeTypes';
 
 // Parliament Components
 import AddLokSabha from './components/screens/AddLokSabha';
@@ -64,6 +66,8 @@ function App() {
         return <Analytics />;
       case 'users':
         return <Users />;
+      case 'role-management':
+        return <RoleManagement />;
       case 'settings':
         return <Settings />;
       
@@ -80,6 +84,8 @@ function App() {
         return <AddEducations />;
       case 'category':
         return <Category />;
+      case 'employee-types':
+        return <EmployeeTypes />;
       
       // Parliament Components
       case 'add-parliament':

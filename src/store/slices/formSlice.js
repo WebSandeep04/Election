@@ -1,27 +1,29 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { getApiUrl, getAuthHeaders, API_CONFIG } from '../../config/api';
+import { getApiUrl, getAuthHeaders } from '../../config/api';
 
 // Async thunks for API calls
 export const fetchForms = createAsyncThunk(
   'forms/fetchForms',
   async (params = {}, { getState, rejectWithValue }) => {
     try {
-      const state = getState();
-      const token = state.auth?.token || localStorage.getItem('auth_token') || undefined;
+      const { auth } = getState();
       const { page = 1, perPage = 10, search = '' } = params;
       const q = new URLSearchParams({ page: String(page), per_page: String(perPage), ...(search ? { search } : {}) });
 
       const response = await fetch(getApiUrl(`/api/forms?${q.toString()}`), {
-        headers: getAuthHeaders(token),
-        credentials: API_CONFIG.USE_COOKIE_AUTH ? 'include' : 'same-origin',
+        method: 'GET',
+        headers: getAuthHeaders(auth.token),
       });
 
-      const json = await response.json();
-      if (!response.ok) {
-        return rejectWithValue(json?.error?.message || 'Failed to fetch forms');
-      }
+      let data;
+      try { data = await response.json(); } catch { return rejectWithValue('Invalid JSON response from server'); }
+      if (!response.ok) return rejectWithValue(data?.message || data?.error?.message || 'Failed to fetch forms');
 
-      return { data: json.data || [], meta: json.meta || { page, per_page: perPage, total: 0, total_pages: 0 } };
+      const forms = Array.isArray(data?.forms) ? data.forms
+        : Array.isArray(data?.data) ? data.data
+        : Array.isArray(data) ? data : [];
+      const pagination = data.pagination || data.meta || { page, per_page: perPage, total: forms.length, total_pages: 1 };
+      return { forms, pagination };
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -32,23 +34,22 @@ export const createForm = createAsyncThunk(
   'forms/createForm',
   async (formData, { getState, rejectWithValue }) => {
     try {
-      const state = getState();
-      const token = state.auth?.token || localStorage.getItem('auth_token') || undefined;
+      const { auth } = getState();
       const response = await fetch(getApiUrl('/api/forms'), {
         method: 'POST',
-        headers: getAuthHeaders(token),
+        headers: getAuthHeaders(auth.token),
         body: JSON.stringify(formData),
-        credentials: API_CONFIG.USE_COOKIE_AUTH ? 'include' : 'same-origin',
       });
 
-      const json = await response.json();
+      let json; try { json = await response.json(); } catch { return rejectWithValue('Invalid JSON response from server'); }
       if (!response.ok) {
-        const message = json?.error?.message || json?.message || 'Failed to create form';
-        const details = json?.error?.details;
+        const message = json?.message || json?.error?.message || 'Failed to create form';
+        const details = json?.errors || json?.error?.details;
         return rejectWithValue(details ? `${message}: ${JSON.stringify(details)}` : message);
       }
 
-      return json;
+      // Accept either full form or wrapper
+      return json.form || json;
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -59,23 +60,21 @@ export const updateForm = createAsyncThunk(
   'forms/updateForm',
   async ({ id, formData }, { getState, rejectWithValue }) => {
     try {
-      const state = getState();
-      const token = state.auth?.token || localStorage.getItem('auth_token') || undefined;
+      const { auth } = getState();
       const response = await fetch(getApiUrl(`/api/forms/${id}`), {
         method: 'PUT',
-        headers: getAuthHeaders(token),
+        headers: getAuthHeaders(auth.token),
         body: JSON.stringify(formData),
-        credentials: API_CONFIG.USE_COOKIE_AUTH ? 'include' : 'same-origin',
       });
 
-      const json = await response.json();
+      let json; try { json = await response.json(); } catch { return rejectWithValue('Invalid JSON response from server'); }
       if (!response.ok) {
-        const message = json?.error?.message || json?.message || 'Failed to update form';
-        const details = json?.error?.details;
+        const message = json?.message || json?.error?.message || 'Failed to update form';
+        const details = json?.errors || json?.error?.details;
         return rejectWithValue(details ? `${message}: ${JSON.stringify(details)}` : message);
       }
 
-      return json;
+      return json.form || json;
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -86,19 +85,14 @@ export const deleteForm = createAsyncThunk(
   'forms/deleteForm',
   async (id, { getState, rejectWithValue }) => {
     try {
-      const state = getState();
-      const token = state.auth?.token || localStorage.getItem('auth_token') || undefined;
+      const { auth } = getState();
       const response = await fetch(getApiUrl(`/api/forms/${id}`), {
         method: 'DELETE',
-        headers: getAuthHeaders(token),
-        credentials: API_CONFIG.USE_COOKIE_AUTH ? 'include' : 'same-origin',
+        headers: getAuthHeaders(auth.token),
       });
 
       const json = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        return rejectWithValue(json?.error?.message || 'Failed to delete form');
-      }
-
+      if (!response.ok) return rejectWithValue(json?.message || 'Failed to delete form');
       return id;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -110,18 +104,15 @@ export const fetchFormById = createAsyncThunk(
   'forms/fetchFormById',
   async (id, { getState, rejectWithValue }) => {
     try {
-      const state = getState();
-      const token = state.auth?.token || localStorage.getItem('auth_token') || undefined;
+      const { auth } = getState();
       const response = await fetch(getApiUrl(`/api/forms/${id}`), {
-        headers: getAuthHeaders(token),
-        credentials: API_CONFIG.USE_COOKIE_AUTH ? 'include' : 'same-origin',
+        method: 'GET',
+        headers: getAuthHeaders(auth.token),
       });
 
-      const json = await response.json();
-      if (!response.ok) {
-        return rejectWithValue(json?.error?.message || 'Failed to fetch form');
-      }
-      return json;
+      let json; try { json = await response.json(); } catch { return rejectWithValue('Invalid JSON response from server'); }
+      if (!response.ok) return rejectWithValue(json?.message || json?.error?.message || 'Failed to fetch form');
+      return json.form || json;
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -163,8 +154,8 @@ const formSlice = createSlice({
       })
       .addCase(fetchForms.fulfilled, (state, action) => {
         state.loading = false;
-        state.forms = action.payload.data;
-        state.meta = action.payload.meta;
+        state.forms = action.payload.forms;
+        state.meta = action.payload.pagination;
       })
       .addCase(fetchForms.rejected, (state, action) => {
         state.loading = false;
