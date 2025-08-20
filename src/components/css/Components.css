@@ -74,7 +74,275 @@
   margin-right: 8px;
 }
 
-/* Responsive design */
+/* Access Denied Styles */
+.access-denied {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.access-denied-content {
+  background: white;
+  padding: 3rem;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
+}
+
+.access-denied-content h2 {
+  color: #374151;
+  margin-bottom: 1rem;
+  font-size: 1.875rem;
+  font-weight: 700;
+}
+
+.access-denied-content p {
+  color: #6b7280;
+  margin-bottom: 1.5rem;
+  font-size: 1.125rem;
+  line-height: 1.6;
+}
+
+.permission-info {
+  background: #f3f4f6;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border-left: 4px solid #ef4444;
+}
+
+.permission-info strong {
+  color: #374151;
+}
+
+.user-info {
+  background: #f0f9ff;
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 4px solid #3b82f6;
+}
+
+.user-info strong {
+  color: #374151;
+}
+
+/* Permission Debug Panel */
+.permission-debug {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #1f2937;
+  color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  max-width: 400px;
+  z-index: 1000;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.permission-debug h3 {
+  margin: 0 0 0.5rem 0;
+  color: #10b981;
+  font-size: 1rem;
+}
+
+.permission-debug ul {
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.permission-debug li {
+  margin-bottom: 0.25rem;
+}
+
+.permission-debug .permission-granted {
+  color: #10b981;
+}
+
+.permission-debug .permission-denied {
+  color: #ef4444;
+}
+
+/* Feature Gate Styles */
+.feature-gate {
+  position: relative;
+}
+
+.feature-gate.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.feature-gate .gate-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.gate-overlay .lock-icon {
+  font-size: 2rem;
+  color: #6b7280;
+}
+
+/* Role-based Content Styles */
+.role-content {
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.role-content.admin {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.role-content.manager {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.role-content.employee {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.role-content.viewer {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+.role-content.guest {
+  border-color: #6b7280;
+  background: #f9fafb;
+}
+
+/* Permission Status Indicators */
+.permission-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.permission-status.granted {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.permission-status.denied {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.permission-status.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* Permission Matrix Table */
+.permission-matrix {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.permission-matrix th,
+.permission-matrix td {
+  border: 1px solid #e5e7eb;
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.permission-matrix th {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+}
+
+.permission-matrix .permission-cell {
+  font-weight: 500;
+}
+
+.permission-matrix .granted {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.permission-matrix .denied {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Permission Management Styles */
+.permission-group {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.permission-group-header {
+  background: #f9fafb;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  font-weight: 600;
+  color: #374151;
+}
+
+.permission-group-content {
+  padding: 1rem;
+}
+
+.permission-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.permission-item:last-child {
+  border-bottom: none;
+}
+
+.permission-item-info {
+  flex: 1;
+}
+
+.permission-item-name {
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.25rem;
+}
+
+.permission-item-description {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.permission-item-toggle {
+  margin-left: 1rem;
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
   .component-container {
     padding: 16px;
@@ -82,5 +350,29 @@
   
   .content-card {
     padding: 16px;
+  }
+
+  .access-denied-content {
+    padding: 2rem;
+    margin: 1rem;
+  }
+  
+  .access-denied-content h2 {
+    font-size: 1.5rem;
+  }
+  
+  .permission-debug {
+    position: static;
+    margin: 1rem;
+    max-width: none;
+  }
+  
+  .permission-matrix {
+    font-size: 0.875rem;
+  }
+  
+  .permission-matrix th,
+  .permission-matrix td {
+    padding: 0.5rem;
   }
 }

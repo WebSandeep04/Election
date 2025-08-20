@@ -10,6 +10,7 @@ import Analytics from './components/screens/Analytics';
 import Users from './components/screens/Users';
 import Settings from './components/screens/Settings';
 import RoleManagement from './components/screens/RoleManagement';
+import PermissionManagement from './components/screens/PermissionManagement';
 
 // Master Data Components
 import EmployeeManagement from './components/screens/EmployeeManagement';
@@ -68,6 +69,8 @@ function App() {
         return <Users />;
       case 'role-management':
         return <RoleManagement />;
+      case 'permission-management':
+        return <PermissionManagement />;
       case 'settings':
         return <Settings />;
       

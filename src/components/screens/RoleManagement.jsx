@@ -13,6 +13,9 @@ import {
   setCurrentRole,
   clearCurrentRole,
   setCurrentPage,
+  fetchPermissions,
+  fetchRolePermissions,
+  syncRolePermissions,
 } from '../../store/slices/roleSlice';
 import './css/RoleManagement.css';
 
@@ -79,6 +82,7 @@ const RoleManagement = () => {
   const { roles: rawRoles, loading, error, success, pagination } = useSelector((state) => state.roles);
   const roles = Array.isArray(rawRoles) ? rawRoles : [];
   const { token } = useSelector((state) => state.auth);
+  const { permissions, permissionsPagination } = useSelector((state) => state.roles);
 
   // Local state
   const [showModal, setShowModal] = useState(false);
@@ -88,6 +92,24 @@ const RoleManagement = () => {
   const [confirmAction, setConfirmAction] = useState(null);
   const [confirmData, setConfirmData] = useState(null);
   const [search, setSearch] = useState('');
+  const [showPermsModal, setShowPermsModal] = useState(false);
+  const [permsSearch, setPermsSearch] = useState('');
+  const [permsLoading, setPermsLoading] = useState(false);
+  const [selectedRoleForPerms, setSelectedRoleForPerms] = useState(null);
+  const [selectedPermissionIds, setSelectedPermissionIds] = useState([]);
+
+  const safeText = (val) => {
+    if (val === null || val === undefined) return '-';
+    if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') return String(val);
+    if (Array.isArray(val)) {
+      const mapped = val.map((v) => (typeof v === 'object' ? (v?.name || v?.display_name || v?.title || v?.id || '-') : String(v)));
+      return mapped.join(', ');
+    }
+    if (typeof val === 'object') {
+      return val.name || val.display_name || val.title || JSON.stringify(val);
+    }
+    return String(val);
+  };
 
   // Form state
   const [formData, setFormData] = useState({
@@ -186,6 +208,80 @@ const RoleManagement = () => {
     dispatch(setCurrentPage(page));
     dispatch(fetchRoles(page));
   };
+
+  const openPermissionsModal = async (role) => {
+    console.log('Opening permissions modal for role:', role);
+    
+    if (!role || !role.id) {
+      console.error('Invalid role data:', role);
+      return;
+    }
+    
+    setSelectedRoleForPerms(role);
+    setShowPermsModal(true);
+    setPermsLoading(true);
+    
+    try {
+      // Fetch permissions first
+      console.log('Fetching permissions...');
+      await dispatch(fetchPermissions({ page: 1 })).unwrap();
+      
+      // Fetch assigned permissions for the role from backend to ensure correctness
+      const result = await dispatch(fetchRolePermissions(role.id)).unwrap();
+      const assigned = Array.isArray(result.permissions) ? result.permissions : [];
+      const existingPermissionIds = assigned.map(p => (typeof p === 'object' ? p.id : p)).filter(Boolean);
+      console.log('Assigned permissions from backend:', assigned);
+      setSelectedPermissionIds(existingPermissionIds);
+      
+    } catch (error) {
+      console.error('Error in openPermissionsModal:', error);
+    } finally {
+      setPermsLoading(false);
+    }
+  };
+
+  const togglePermission = (permId) => {
+    setSelectedPermissionIds(prev => prev.includes(permId) ? prev.filter(id => id !== permId) : [...prev, permId]);
+  };
+
+  const selectAllPermissions = () => {
+    const allIds = (permissions || []).map(p => p.id);
+    setSelectedPermissionIds(allIds);
+  };
+
+  const clearAllPermissions = () => setSelectedPermissionIds([]);
+
+  const savePermissions = async () => {
+    if (!selectedRoleForPerms) return;
+    setPermsLoading(true);
+    try {
+      await dispatch(syncRolePermissions({ roleId: selectedRoleForPerms.id, permissionIds: selectedPermissionIds })).unwrap();
+      setShowPermsModal(false);
+      setSelectedRoleForPerms(null);
+      setSelectedPermissionIds([]);
+    } catch (_) {
+    } finally {
+      setPermsLoading(false);
+    }
+  };
+
+  // Debounced search for permissions
+  useEffect(() => {
+    if (!showPermsModal) return;
+    const t = setTimeout(() => {
+      dispatch(fetchPermissions({ page: 1, search: permsSearch }));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [permsSearch, showPermsModal, dispatch]);
+
+  // Ensure selected permissions are set when permissions are loaded
+  useEffect(() => {
+    if (showPermsModal && selectedRoleForPerms && permissions.length > 0) {
+      const existingPermissionIds = (selectedRoleForPerms.permissions || []).map(p => p.id);
+      console.log('useEffect - Setting selected permissions:', existingPermissionIds);
+      setSelectedPermissionIds(existingPermissionIds);
+    }
+  }, [permissions, showPermsModal, selectedRoleForPerms]);
 
   // Search filter (client-side)
   const filtered = roles.filter(r =>
@@ -294,23 +390,23 @@ const RoleManagement = () => {
           <div className="modern-table-container">
             <table className="modern-table">
               <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Name</th>
-                  <th>Display Name</th>
-                  <th>Description</th>
-                  <th>Status</th>
-                  <th>Created</th>
-                  <th>Actions</th>
-                </tr>
+                                 <tr>
+                   <th>ID</th>
+                   <th>Name</th>
+                   <th>Display Name</th>
+                   <th>Description</th>
+                   <th>Status</th>
+                   <th>Created</th>
+                   <th>Actions</th>
+                 </tr>
               </thead>
               <tbody>
                 {filtered.map((role) => (
                   <tr key={role.id}>
                     <td className="id-cell">#{role.id}</td>
-                    <td className="name-cell"><strong>{role.name}</strong></td>
-                    <td>{role.display_name}</td>
-                    <td className="desc-cell">{role.description || '-'}</td>
+                                         <td className="name-cell"><strong>{safeText(role.name)}</strong></td>
+                     <td>{safeText(role.display_name)}</td>
+                     <td className="desc-cell">{safeText(role.description)}</td>
                     <td className="status-cell">
                       <span className={`status-badge ${role.is_active ? 'status-active' : 'status-inactive'}`}>
                         {role.is_active ? 'Active' : 'Inactive'}
@@ -324,6 +420,7 @@ const RoleManagement = () => {
                       <button className={`btn-icon ${role.is_active ? 'btn-deactivate' : 'btn-activate'}`} onClick={() => handleToggle(role)} disabled={loading} title={role.is_active ? 'Deactivate' : 'Activate'}>
                         {role.is_active ? '🔒' : '🔓'}
                       </button>
+                                             <button className="btn-icon" onClick={() => openPermissionsModal(role)} title="Edit Permissions">🔑</button>
                       <button className="btn-icon btn-delete" onClick={() => handleDelete(role)} disabled={loading} title="Delete">
                         <DeleteIcon />
                       </button>
@@ -415,6 +512,78 @@ const RoleManagement = () => {
             <div className="modal-actions">
               <button type="button" className="btn btn-outline" onClick={() => setShowConfirmModal(false)} disabled={loading}>Cancel</button>
               <button type="button" className={`btn ${confirmAction === 'delete' ? 'btn-danger' : 'btn-primary'}`} onClick={confirmActionHandler} disabled={loading}>Confirm</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPermsModal && (
+        <div className="modal-overlay" onClick={() => setShowPermsModal(false)}>
+          <div className="modal-content large-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Edit Permissions {selectedRoleForPerms ? `for ${selectedRoleForPerms.display_name || selectedRoleForPerms.name}` : ''}</h2>
+              <button className="btn-icon btn-close" onClick={() => setShowPermsModal(false)} title="Close"><CloseIcon /></button>
+            </div>
+                          <div className="modal-form">
+                <div className="search-filters-section" style={{marginBottom: 12}}>
+                  <div className="search-box">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    <input
+                      type="text"
+                      placeholder="Search permissions..."
+                      value={permsSearch}
+                      onChange={(e) => setPermsSearch(e.target.value)}
+                      disabled={permsLoading}
+                    />
+                  </div>
+                  <div style={{display:'flex', gap:8}}>
+                    <button className="btn btn-outline" onClick={selectAllPermissions} disabled={permsLoading}>Select All</button>
+                    <button className="btn btn-outline" onClick={clearAllPermissions} disabled={permsLoading}>Clear All</button>
+                  </div>
+                </div>
+                {process.env.NODE_ENV === 'development' && (
+                  <div style={{marginBottom: 12, padding: 8, background: '#f0f0f0', borderRadius: 4, fontSize: '12px'}}>
+                    <strong>Debug Info:</strong> Selected: {selectedPermissionIds.length} | Total Permissions: {permissions.length} | Role Permissions: {(selectedRoleForPerms?.permissions || []).length}
+                  </div>
+                )}
+              <div className="modern-table-container">
+                <table className="modern-table">
+                  <thead>
+                    <tr>
+                      <th style={{width:60}}>Select</th>
+                      <th>Name</th>
+                      <th>Display Name</th>
+                      <th>Description</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(permissions || []).map((perm) => {
+                      const isCurrentlyAssigned = (selectedRoleForPerms?.permissions || []).some(p => p.id === perm.id);
+                      return (
+                        <tr key={perm.id} className={isCurrentlyAssigned ? 'currently-assigned' : ''}>
+                          <td>
+                            <input type="checkbox" checked={selectedPermissionIds.includes(perm.id)} onChange={() => togglePermission(perm.id)} />
+                          </td>
+                          <td className="name-cell">
+                            <strong>{perm.name}</strong>
+                            {isCurrentlyAssigned && <span style={{marginLeft: 8, fontSize: '12px', color: '#10b981'}}>✓ Currently Assigned</span>}
+                          </td>
+                          <td>{perm.display_name}</td>
+                          <td className="desc-cell">{perm.description || '-'}</td>
+                          <td className="status-cell">
+                            <span className={`status-badge ${perm.is_active ? 'status-active' : 'status-inactive'}`}>{perm.is_active ? 'Active' : 'Inactive'}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="btn btn-outline" onClick={() => setShowPermsModal(false)} disabled={permsLoading}>Cancel</button>
+                <button type="button" className="btn btn-primary" onClick={savePermissions} disabled={permsLoading}>{permsLoading ? 'Saving...' : 'Save Permissions'}</button>
+              </div>
             </div>
           </div>
         </div>

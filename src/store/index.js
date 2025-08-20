@@ -14,6 +14,7 @@ import employeeTypeReducer from './slices/employeeTypeSlice'; // Added for Emplo
 import employeeReducer from './slices/employeeSlice'; // Added for Employees
 import roleReducer from './slices/roleSlice'; // Added for Roles
 import userReducer from './slices/userSlice'; // Added for Users
+import permissionReducer from './slices/permissionSlice'; // Added for Permissions
 
 export const store = configureStore({
   reducer: {
@@ -32,6 +33,7 @@ export const store = configureStore({
     employees: employeeReducer, // Added for Employees
     roles: roleReducer, // Added for Roles
     users: userReducer, // Added for Users
+    permissions: permissionReducer, // Added for Permissions
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

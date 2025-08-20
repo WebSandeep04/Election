@@ -14,6 +14,22 @@ const Sidebar = () => {
     activeScreen, 
     expandedCategories 
   } = useAppSelector((state) => state.ui);
+  const { user } = useAppSelector((state) => state.auth);
+
+  const isAdminRole = () => {
+    const roleId = user?.role?.id ?? user?.role_id ?? null;
+    // Support array roles as well
+    const rolesArray = Array.isArray(user?.roles) ? user.roles : [];
+    const hasAdminInArray = rolesArray.some((r) => (r?.id ?? r) === 1);
+    return roleId === 1 || hasAdminInArray;
+  };
+
+  const hasPermission = (perm) => {
+    if (isAdminRole()) return true; // role id 1 sees all
+    if (!perm) return true; // no perm requirement -> visible
+    const perms = user?.role?.permissions || user?.permissions || [];
+    return perms.some((p) => (p?.name || p) === perm);
+  };
 
   const menuItems = [
     {
@@ -21,6 +37,7 @@ const Sidebar = () => {
       label: 'Dashboard',
       icon: '📋',
       description: 'Your Dashboard',
+      perm: 'view_dashboard',
       subItems: []
     },
     {
@@ -28,14 +45,15 @@ const Sidebar = () => {
       label: 'Master Data',
       icon: '📋',
       description: 'Setup & Configuration',
+      perm: 'view_employee_management',
       subItems: [
-        { id: 'employee-management', label: 'Employee Management', icon: '👥' },
-        { id: 'add-caste', label: 'Add Caste', icon: '🏷️' },
-        { id: 'caste-ratio', label: 'Caste Ratio', icon: '📊' },
-        { id: 'village-description', label: 'Village Description', icon: '🏘️' },
-        { id: 'add-educations', label: 'Add Educations', icon: '🎓' },
-        { id: 'category', label: 'Category', icon: '📂' },
-        { id: 'employee-types', label: 'Employee Types', icon: '🏷️' }
+        { id: 'employee-management', label: 'Employee Management', icon: '👥', perm: 'view_employee_management' },
+        { id: 'add-caste', label: 'Add Caste', icon: '🏷️', perm: 'view_caste_management' },
+        { id: 'caste-ratio', label: 'Caste Ratio', icon: '📊', perm: 'view_caste_ratio' },
+        { id: 'village-description', label: 'Village Description', icon: '🏘️', perm: 'view_village_description' },
+        { id: 'add-educations', label: 'Add Educations', icon: '🎓', perm: 'view_education_management' },
+        { id: 'category', label: 'Category', icon: '📂', perm: 'view_category_management' },
+        { id: 'employee-types', label: 'Employee Types', icon: '🏷️', perm: 'view_employee_types' }
       ]
     },
     {
@@ -43,9 +61,11 @@ const Sidebar = () => {
       label: 'User Management',
       icon: '👤',
       description: 'Users & Roles Management',
+      perm: 'view_user_management',
       subItems: [
-        { id: 'users', label: 'Users', icon: '👥' },
-        { id: 'role-management', label: 'Role Management', icon: '🔐' }
+        { id: 'users', label: 'Users', icon: '👥', perm: 'view_user_management' },
+        { id: 'role-management', label: 'Role Management', icon: '🔐', perm: 'view_role_management' },
+        { id: 'permission-management', label: 'Permission Management', icon: '🛡️', perm: 'view_permission_management' }
       ]
     },
     {
@@ -53,14 +73,15 @@ const Sidebar = () => {
       label: 'Parliament',
       icon: '🏛️',
       description: 'Parliamentary Management',
+      perm: 'view_parliament_management',
       subItems: [
-        { id: 'add-parliament', label: 'Add Parliament', icon: '🏛️' },
-        { id: 'add-lok-sabha', label: 'Add Lok Sabha', icon: '🏠' },
-        { id: 'add-vidhan-sabha', label: 'Add Vidhan Sabha', icon: '🏢' },
-        { id: 'add-block', label: 'Add Block', icon: '🏛️' },
-        { id: 'add-panchayat', label: 'Add Panchayat', icon: '👥' },
-        { id: 'add-village', label: 'Add Village', icon: '🏘️' },
-        { id: 'add-booth', label: 'Add Booth', icon: '📊' }
+        { id: 'add-parliament', label: 'Add Parliament', icon: '🏛️', perm: 'view_parliament_management' },
+        { id: 'add-lok-sabha', label: 'Add Lok Sabha', icon: '🏛️', perm: 'view_lok_sabha' },
+        { id: 'add-vidhan-sabha', label: 'Add Vidhan Sabha', icon: '🏛️', perm: 'view_vidhan_sabha' },
+        { id: 'add-block', label: 'Add Block', icon: '🏛️', perm: 'view_blocks' },
+        { id: 'add-panchayat', label: 'Add Panchayat', icon: '🏛️', perm: 'view_panchayats' },
+        { id: 'add-village', label: 'Add Village', icon: '🏘️', perm: 'view_villages' },
+        { id: 'add-booth', label: 'Add Booth', icon: '📊', perm: 'view_booths' }
       ]
     },
     {
@@ -68,11 +89,12 @@ const Sidebar = () => {
       label: 'Data Collection & Forms',
       icon: '📝',
       description: 'Forms & Information Gathering',
+      perm: 'view_form_builder',
       subItems: [
-        { id: 'form-builder', label: 'Form Builder', icon: '🔨' },
-        { id: 'form-list', label: 'Form List', icon: '📋' },
-        { id: 'respondent-table', label: 'Respondent Table', icon: '👤' },
-        { id: 'teams', label: 'Teams', icon: '👥' }
+        { id: 'form-builder', label: 'Form Builder', icon: '🔨', perm: 'view_form_builder' },
+        { id: 'form-list', label: 'Form List', icon: '📋', perm: 'view_form_list' },
+        { id: 'respondent-table', label: 'Respondent Table', icon: '📋', perm: 'view_respondent_table' },
+        { id: 'teams', label: 'Teams', icon: '👥', perm: 'view_teams' }
       ]
     },
     {
@@ -80,13 +102,31 @@ const Sidebar = () => {
       label: 'Analysis & Tools',
       icon: '📈',
       description: 'Reports & Performance Tracking',
+      perm: 'view_employee_analysis',
       subItems: [
-        { id: 'employee-analysis', label: 'Employee Analysis', icon: '📊' },
-        { id: 'analysis', label: 'Analysis', icon: '🔍' },
-        { id: 'cache-clear', label: 'Cache Clear', icon: '🧹' }
+        { id: 'employee-analysis', label: 'Employee Analysis', icon: '👥', perm: 'view_employee_analysis' },
+        { id: 'analysis', label: 'Analysis', icon: '🔍', perm: 'view_analysis' },
+        { id: 'cache-clear', label: 'Cache Clear', icon: '🗑️', perm: 'view_cache_clear' }
       ]
     }
   ];
+
+  const filterByPermissions = (items) => {
+    if (isAdminRole()) return items; // Admin sees all categories and items
+    return items
+      .filter(cat => hasPermission(cat.perm))
+      .map(cat => {
+        const subItems = (cat.subItems || []).filter(si => hasPermission(si.perm));
+        // Hide categories that have no visible subItems (when they are group categories)
+        if ((cat.subItems || []).length > 0 && subItems.length === 0) {
+          return null;
+        }
+        return { ...cat, subItems };
+      })
+      .filter(Boolean);
+  };
+
+  const visibleMenu = filterByPermissions(menuItems);
 
   const handleToggleSidebar = () => {
     dispatch(setSidebarCollapsed(!sidebarCollapsed));
@@ -113,7 +153,7 @@ const Sidebar = () => {
       
       <nav className="sidebar-nav">
         <ul className="nav-list">
-          {menuItems.map((category) => (
+          {visibleMenu.map((category) => (
             <li key={category.id} className="nav-category">
               <button
                 className="category-header"
@@ -135,7 +175,7 @@ const Sidebar = () => {
                 )}
               </button>
               
-              {expandedCategories.includes(category.id) && !sidebarCollapsed && (
+              {expandedCategories.includes(category.id) && !sidebarCollapsed && category.subItems && category.subItems.length > 0 && (
                 <ul className="sub-menu">
                   {category.subItems.map((item) => (
                     <li key={item.id} className="sub-item">

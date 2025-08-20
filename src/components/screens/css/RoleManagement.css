@@ -139,6 +139,16 @@
 
 .error-state { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; text-align:center; color:#6b7280; }
 
+/* Currently assigned permissions styling */
+.currently-assigned {
+  background-color: #f0fdf4 !important;
+  border-left: 3px solid #10b981;
+}
+
+.currently-assigned:hover {
+  background-color: #ecfdf5 !important;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .role-management { padding:8px; }

@@ -9,6 +9,19 @@ const Header = () => {
   const { user } = useAppSelector((state) => state.auth);
   const { notifications } = useAppSelector((state) => state.ui);
 
+  const getRoleLabel = (role) => {
+    if (!role) return 'Guest';
+    if (typeof role === 'string' || typeof role === 'number') return String(role);
+    if (Array.isArray(role)) {
+      const parts = role.map((r) => (r?.display_name || r?.name || r?.id || ''));
+      return parts.filter(Boolean).join(', ') || 'Guest';
+    }
+    if (typeof role === 'object') {
+      return role.display_name || role.name || String(role.id || 'Guest');
+    }
+    return 'Guest';
+  };
+
   const handleNotificationClick = () => {
     // Add a sample notification
     dispatch(addNotification({
@@ -55,7 +68,7 @@ const Header = () => {
             </div>
             <div className="user-info">
               <span className="user-name">{user?.name || 'User'}</span>
-              <span className="user-role">{user?.role || 'Guest'}</span>
+              <span className="user-role">{getRoleLabel(user?.role)}</span>
             </div>
             <button className="logout-btn" onClick={handleLogout} title="Logout">
               <span>🚪</span>

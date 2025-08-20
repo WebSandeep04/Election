@@ -325,6 +325,72 @@ export const deactivateRole = createAsyncThunk(
   }
 );
 
+// Permissions thunks
+export const fetchPermissions = createAsyncThunk(
+  'role/fetchPermissions',
+  async (params = {}, { rejectWithValue, getState }) => {
+    try {
+      const token = getToken(getState);
+      const { page = 1, search = '' } = params;
+      const qp = new URLSearchParams({ page: String(page) });
+      if (search && String(search).trim().length > 0) qp.set('search', String(search).trim());
+      const url = `${getApiUrl(API_CONFIG.ENDPOINTS.PERMISSIONS)}?${qp.toString()}`;
+      const response = await fetch(url, { method: 'GET', headers: getAuthHeaders(token) });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || `HTTP error! status: ${response.status}`);
+      }
+      const permissions = data.permissions || data.data || [];
+      const pagination = data.pagination || data.meta || { current_page: page, last_page: 1, per_page: 10, total: permissions.length };
+      return { permissions, pagination };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const fetchRolePermissions = createAsyncThunk(
+  'role/fetchRolePermissions',
+  async (roleId, { rejectWithValue, getState }) => {
+    try {
+      const token = getToken(getState);
+      const url = `${getApiUrl(API_CONFIG.ENDPOINTS.ROLES)}/${roleId}/permissions`;
+      const response = await fetch(url, { method: 'GET', headers: getAuthHeaders(token) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.message || `HTTP error! status: ${response.status}`);
+      }
+      const permissions = data.permissions || data.data || data || [];
+      return { roleId, permissions };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const syncRolePermissions = createAsyncThunk(
+  'role/syncRolePermissions',
+  async ({ roleId, permissionIds }, { rejectWithValue, getState }) => {
+    try {
+      const token = getToken(getState);
+      const url = `${getApiUrl(API_CONFIG.ENDPOINTS.ROLES)}/${roleId}/permissions`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: getAuthHeaders(token),
+        body: JSON.stringify({ permission_ids: permissionIds })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || `HTTP error! status: ${response.status}`);
+      }
+      // backend returns role with permissions
+      return data.data || data.role || data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 // Initial state
 const initialState = {
   roles: [],
@@ -332,6 +398,10 @@ const initialState = {
   loading: false,
   error: null,
   success: null,
+  permissions: [],
+  permissionsPagination: { current_page: 1, last_page: 1, per_page: 10, total: 0 },
+  // Cache of assigned permissions per role id
+  rolePermissionsById: {},
   pagination: {
     current_page: 1,
     last_page: 1,
@@ -494,6 +564,54 @@ const roleSlice = createSlice({
         }
       })
       .addCase(deactivateRole.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      
+      // Fetch Permissions
+      .addCase(fetchPermissions.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchPermissions.fulfilled, (state, action) => {
+        state.loading = false;
+        state.permissions = Array.isArray(action.payload.permissions) ? action.payload.permissions : [];
+        state.permissionsPagination = action.payload.pagination;
+      })
+      .addCase(fetchPermissions.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      
+      // Fetch assigned permissions for a role
+      .addCase(fetchRolePermissions.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchRolePermissions.fulfilled, (state, action) => {
+        state.loading = false;
+        const { roleId, permissions } = action.payload;
+        state.rolePermissionsById[roleId] = Array.isArray(permissions) ? permissions : [];
+      })
+      .addCase(fetchRolePermissions.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      
+      // Sync Role Permissions
+      .addCase(syncRolePermissions.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(syncRolePermissions.fulfilled, (state, action) => {
+        state.loading = false;
+        state.success = 'Permissions updated successfully!';
+        const updatedRole = action.payload;
+        const index = state.roles.findIndex(r => r.id === updatedRole.id);
+        if (index !== -1) state.roles[index] = updatedRole;
+        if (state.currentRole && state.currentRole.id === updatedRole.id) state.currentRole = updatedRole;
+      })
+      .addCase(syncRolePermissions.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });
