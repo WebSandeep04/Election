@@ -49,6 +49,12 @@ const RefreshIcon = () => (
   </svg>
 );
 
+const SearchIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M10 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zm-3.5-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+  </svg>
+);
+
 const AddLokSabha = () => {
   const dispatch = useDispatch();
   const { lokSabhas, loading, error, pagination } = useSelector((state) => state.lokSabha);
@@ -66,6 +72,7 @@ const AddLokSabha = () => {
     loksabha_name: '',
     status: '1'
   });
+  const [search, setSearch] = useState('');
 
   // Fetch Lok Sabhas on component mount and token change
   useEffect(() => {
@@ -222,6 +229,10 @@ const AddLokSabha = () => {
     return pages;
   };
 
+  const filteredLokSabhas = Array.isArray(lokSabhas)
+    ? lokSabhas.filter(ls => (ls.loksabha_name || '').toLowerCase().includes(search.toLowerCase()))
+    : [];
+
   if (error && !loading) {
     return (
       <div className="lok-sabha-management">
@@ -278,6 +289,20 @@ const AddLokSabha = () => {
         </div>
       )}
 
+      {/* Search (employee-style) */}
+      <div className="search-filters-section">
+        <div className="search-box">
+          <SearchIcon />
+          <input
+            type="text"
+            placeholder="Search Lok Sabha by name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            disabled={loading}
+          />
+        </div>
+      </div>
+
       {/* Lok Sabha List Section */}
       <div className="lok-sabha-list-section">
         <div className="list-header">
@@ -330,7 +355,7 @@ const AddLokSabha = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {Array.isArray(lokSabhas) && lokSabhas.map((lokSabha) => (
+                  {filteredLokSabhas.map((lokSabha) => (
                     <tr key={lokSabha.id}>
                       <td className="id-cell">#{lokSabha.id}</td>
                       <td className="name-cell">{lokSabha.loksabha_name}</td>

@@ -13,9 +13,12 @@ const getToken = (getState) => {
 // Async thunks
 export const fetchVillages = createAsyncThunk(
   'village/fetchVillages',
-  async (page = 1, { rejectWithValue, getState }) => {
+  async (params = {}, { rejectWithValue, getState }) => {
     const token = getToken(getState);
-    const url = `${getApiUrl(API_CONFIG.ENDPOINTS.VILLAGE)}?page=${page}`;
+    const { page = 1, search = '' } = params;
+    const qp = new URLSearchParams({ page: String(page) });
+    if (search && String(search).trim().length > 0) qp.set('search', String(search).trim());
+    const url = `${getApiUrl(API_CONFIG.ENDPOINTS.VILLAGE)}?${qp.toString()}`;
     console.log('=== FETCH VILLAGES API CALL ===');
     console.log('Method: GET, URL:', url, 'Token:', token ? 'Present' : 'Missing');
     
@@ -35,12 +38,12 @@ export const fetchVillages = createAsyncThunk(
       
       const villages = data.villages || data.data || [];
       const pagination = data.pagination || data.meta || { 
-        current_page: 1, 
+        current_page: page, 
         last_page: 1, 
         per_page: 10, 
-        total: 0, 
+        total: villages.length, 
         from: 1, 
-        to: 0 
+        to: villages.length 
       };
       
       return { villages, pagination };

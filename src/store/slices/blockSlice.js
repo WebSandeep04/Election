@@ -13,10 +13,13 @@ const getToken = (getState) => {
 // Async thunks
 export const fetchBlocks = createAsyncThunk(
   'block/fetchBlocks',
-  async (page = 1, { rejectWithValue, getState }) => {
+  async (params = {}, { rejectWithValue, getState }) => {
     try {
       const token = getToken(getState);
-      const url = `${getApiUrl(API_CONFIG.ENDPOINTS.BLOCK)}?page=${page}`;
+      const { page = 1, search = '' } = params;
+      const qp = new URLSearchParams({ page: String(page) });
+      if (search && String(search).trim().length > 0) qp.set('search', String(search).trim());
+      const url = `${getApiUrl(API_CONFIG.ENDPOINTS.BLOCK)}?${qp.toString()}`;
       
       console.log('=== FETCH BLOCKS API CALL ===');
       console.log('Method: GET, URL:', url, 'Token:', token ? 'Present' : 'Missing');
@@ -36,7 +39,7 @@ export const fetchBlocks = createAsyncThunk(
 
       const blocks = data.blocks || data.data || [];
       const pagination = data.pagination || data.meta || {
-        current_page: 1, last_page: 1, per_page: 10, total: 0, from: 1, to: 0
+        current_page: page, last_page: 1, per_page: 10, total: blocks.length, from: 1, to: blocks.length
       };
 
       return { blocks, pagination };

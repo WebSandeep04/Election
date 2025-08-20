@@ -17,17 +17,19 @@ const getToken = (getState) => {
 // Async thunks
 export const fetchVidhanSabhas = createAsyncThunk(
   'vidhanSabha/fetchVidhanSabhas',
-  async (page = 1, { rejectWithValue, getState }) => {
+  async (params = {}, { rejectWithValue, getState }) => {
     try {
       const token = getToken(getState);
-      const url = `${getApiUrl(API_CONFIG.ENDPOINTS.VIDHAN_SABHA)}?page=${page}`;
+      const { page = 1, search = '' } = params;
+      const qp = new URLSearchParams({ page: String(page) });
+      if (search && String(search).trim().length > 0) qp.set('search', String(search).trim());
+      const url = `${getApiUrl(API_CONFIG.ENDPOINTS.VIDHAN_SABHA)}?${qp.toString()}`;
       
       console.log('=== FETCH VIDHAN SABHAS API CALL ===');
       console.log('Method: GET');
       console.log('URL:', url);
       console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('Headers:', getAuthHeaders(token));
-      console.log('Page:', page);
+      console.log('Params:', params);
       console.log('================================');
       
       const response = await fetch(url, {
@@ -45,15 +47,14 @@ export const fetchVidhanSabhas = createAsyncThunk(
       console.log('Response Data:', data);
       console.log('====================================');
 
-      // Extract vidhan_sabhas and pagination from the response
       const vidhanSabhas = data.vidhan_sabhas || data.data || [];
       const pagination = data.pagination || data.meta || {
-        current_page: 1,
+        current_page: page,
         last_page: 1,
         per_page: 10,
-        total: 0,
+        total: Array.isArray(vidhanSabhas) ? vidhanSabhas.length : 0,
         from: 1,
-        to: 0
+        to: Array.isArray(vidhanSabhas) ? vidhanSabhas.length : 0
       };
 
       return { vidhanSabhas, pagination };

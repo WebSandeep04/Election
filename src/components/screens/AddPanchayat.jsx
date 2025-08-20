@@ -80,16 +80,25 @@ const AddPanchayat = () => {
     created_at: '',
     updated_at: ''
   });
+  const [search, setSearch] = useState('');
 
   // Fetch Panchayats, Lok Sabhas, Vidhan Sabhas, and Blocks on component mount and token change
   useEffect(() => {
     if (token) {
-      dispatch(fetchPanchayats(pagination.current_page));
+      dispatch(fetchPanchayats({ page: pagination.current_page, search }));
       dispatch(fetchLokSabhas(1)); // Fetch all Lok Sabhas for dropdown
       dispatch(fetchVidhanSabhas(1)); // Fetch all Vidhan Sabhas for dropdown
       dispatch(fetchBlocks(1)); // Fetch all Blocks for dropdown
     }
   }, [dispatch, token, pagination.current_page]);
+
+  // debounced server search
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (token) dispatch(fetchPanchayats({ page: 1, search }));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [search, token, dispatch]);
 
   // Handle Lok Sabha selection and fetch related Vidhan Sabhas
   const handleLokSabhaChange = async (e) => {
@@ -492,6 +501,20 @@ const AddPanchayat = () => {
           {error}
         </div>
       )}
+
+      {/* Search */}
+      <div className="search-filters-section">
+        <div className="search-box">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input
+            type="text"
+            placeholder="Search Panchayats by name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            disabled={loading}
+          />
+        </div>
+      </div>
 
       {/* Panchayat List Section */}
       <div className="panchayat-list-section">

@@ -69,14 +69,23 @@ const AddVidhanSabha = () => {
     vidhansabha_name: '',
     vidhan_status: '1'
   });
+  const [search, setSearch] = useState('');
 
   // Fetch Vidhan Sabhas and Lok Sabhas on component mount and token change
   useEffect(() => {
     if (token) {
-      dispatch(fetchVidhanSabhas(pagination.current_page));
+      dispatch(fetchVidhanSabhas({ page: pagination.current_page, search }));
       dispatch(fetchLokSabhas(1)); // Fetch all Lok Sabhas for dropdown
     }
   }, [dispatch, token, pagination.current_page]);
+
+  // Debounced search
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (token) dispatch(fetchVidhanSabhas({ page: 1, search }));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [search, token, dispatch]);
 
   useEffect(() => {
     if (success) {
@@ -283,6 +292,20 @@ const AddVidhanSabha = () => {
           {error}
         </div>
       )}
+
+      {/* Search */}
+      <div className="search-filters-section">
+        <div className="search-box">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input
+            type="text"
+            placeholder="Search Vidhan Sabha by name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            disabled={loading}
+          />
+        </div>
+      </div>
 
       {/* Vidhan Sabha List Section */}
       <div className="vidhan-sabha-list-section">
