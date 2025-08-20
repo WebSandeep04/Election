@@ -12,10 +12,18 @@ export const login = createAsyncThunk(
         body: JSON.stringify(credentials),
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (_) {
+        data = null;
+      }
 
       if (!response.ok) {
-        return rejectWithValue(data.message || 'Login failed');
+        // Prefer backend-provided message (e.g., 403 inactive user)
+        const message = (data && (data.message || data.error)) ||
+          (response.status === 403 ? 'Your account is inactive. Please contact the administrator.' : 'Login failed');
+        return rejectWithValue(message);
       }
 
       return data;

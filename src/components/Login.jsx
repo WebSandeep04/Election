@@ -41,9 +41,10 @@ const Login = () => {
         title: 'Welcome'
       }));
     } catch (err) {
+      const backendMessage = typeof err === 'string' ? err : (err?.message || 'Login failed');
       dispatch(addNotification({
         type: 'error',
-        message: err.message || 'Login failed',
+        message: backendMessage,
         title: 'Login Error'
       }));
     }

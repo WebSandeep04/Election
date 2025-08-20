@@ -16,7 +16,7 @@ import {
 } from '../../store/slices/roleSlice';
 import './css/RoleManagement.css';
 
-// Icons (using simple SVG icons)
+// Icons
 const EditIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -67,47 +67,53 @@ const ChevronRightIcon = () => (
   </svg>
 );
 
+const SearchIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="11" cy="11" r="8"/>
+    <path d="m21 21-4.35-4.35"/>
+  </svg>
+);
+
 const RoleManagement = () => {
   const dispatch = useDispatch();
-  const { roles: rawRoles, currentRole, loading, error, success, pagination } = useSelector((state) => state.roles);
-  
-  // Ensure roles is always an array
+  const { roles: rawRoles, loading, error, success, pagination } = useSelector((state) => state.roles);
   const roles = Array.isArray(rawRoles) ? rawRoles : [];
   const { token } = useSelector((state) => state.auth);
 
+  // Local state
+  const [showModal, setShowModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [confirmData, setConfirmData] = useState(null);
+  const [search, setSearch] = useState('');
+
+  // Form state
   const [formData, setFormData] = useState({
     name: '',
     display_name: '',
     description: '',
     is_active: true,
   });
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [confirmAction, setConfirmAction] = useState(null);
-  const [confirmData, setConfirmData] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (token) {
-      dispatch(fetchRoles(1)); // Start with page 1
+      dispatch(fetchRoles(1));
     }
   }, [dispatch, token]);
 
   useEffect(() => {
     if (success) {
-      setTimeout(() => {
-        dispatch(clearSuccess());
-      }, 3000);
+      const t = setTimeout(() => dispatch(clearSuccess()), 3000);
+      return () => clearTimeout(t);
     }
   }, [success, dispatch]);
 
   useEffect(() => {
     if (error) {
-      setTimeout(() => {
-        dispatch(clearError());
-      }, 5000);
+      const t = setTimeout(() => dispatch(clearError()), 5000);
+      return () => clearTimeout(t);
     }
   }, [error, dispatch]);
 
@@ -119,16 +125,24 @@ const RoleManagement = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (isEditing) {
-      dispatch(updateRole({ id: editingId, roleData: formData }));
-    } else {
-      dispatch(createRole(formData));
-    }
-    
-    handleCloseModal();
+    try {
+      if (isEditing) {
+        await dispatch(updateRole({ id: editingId, roleData: formData }));
+      } else {
+        await dispatch(createRole(formData));
+      }
+      setShowModal(false);
+      resetForm();
+      dispatch(fetchRoles(1));
+    } catch (_) {}
+  };
+
+  const resetForm = () => {
+    setFormData({ name: '', display_name: '', description: '', is_active: true });
+    setIsEditing(false);
+    setEditingId(null);
   };
 
   const handleEdit = (role) => {
@@ -136,7 +150,7 @@ const RoleManagement = () => {
       name: role.name || '',
       display_name: role.display_name || '',
       description: role.description || '',
-      is_active: role.is_active !== undefined ? role.is_active : true,
+      is_active: !!role.is_active,
     });
     setIsEditing(true);
     setEditingId(role.id);
@@ -149,151 +163,139 @@ const RoleManagement = () => {
     setShowConfirmModal(true);
   };
 
-  const handleActivate = (role) => {
-    setConfirmAction('activate');
+  const handleToggle = (role) => {
+    setConfirmAction(role.is_active ? 'deactivate' : 'activate');
     setConfirmData(role);
     setShowConfirmModal(true);
   };
 
-  const handleDeactivate = (role) => {
-    setConfirmAction('deactivate');
-    setConfirmData(role);
-    setShowConfirmModal(true);
-  };
-
-  const confirmActionHandler = () => {
-    if (confirmAction === 'delete') {
-      dispatch(deleteRole(confirmData.id));
-    } else if (confirmAction === 'activate') {
-      dispatch(activateRole(confirmData.id));
-    } else if (confirmAction === 'deactivate') {
-      dispatch(deactivateRole(confirmData.id));
+  const confirmActionHandler = async () => {
+    try {
+      if (confirmAction === 'delete') await dispatch(deleteRole(confirmData.id));
+      if (confirmAction === 'activate') await dispatch(activateRole(confirmData.id));
+      if (confirmAction === 'deactivate') await dispatch(deactivateRole(confirmData.id));
+    } finally {
+      setShowConfirmModal(false);
+      setConfirmAction(null);
+      setConfirmData(null);
     }
-    setShowConfirmModal(false);
-    setConfirmAction(null);
-    setConfirmData(null);
   };
 
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setIsEditing(false);
-    setEditingId(null);
-    setFormData({
-      name: '',
-      display_name: '',
-      description: '',
-      is_active: true,
-    });
-  };
-
-  const handleRefresh = () => {
-    dispatch(fetchRoles(pagination.current_page));
-  };
-
+  const handleRefresh = () => dispatch(fetchRoles(pagination.current_page || 1));
   const handlePageChange = (page) => {
     dispatch(setCurrentPage(page));
     dispatch(fetchRoles(page));
   };
 
-  const filteredRoles = roles.filter(role =>
-    role.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    role.display_name?.toLowerCase().includes(searchTerm.toLowerCase())
+  // Search filter (client-side)
+  const filtered = roles.filter(r =>
+    (r.name || '').toLowerCase().includes(search.toLowerCase()) ||
+    (r.display_name || '').toLowerCase().includes(search.toLowerCase())
   );
 
-  const getConfirmMessage = () => {
-    if (confirmAction === 'delete') {
-      return `Are you sure you want to delete the role "${confirmData?.display_name}"? This action cannot be undone.`;
-    } else if (confirmAction === 'activate') {
-      return `Are you sure you want to activate the role "${confirmData?.display_name}"?`;
-    } else if (confirmAction === 'deactivate') {
-      return `Are you sure you want to deactivate the role "${confirmData?.display_name}"?`;
+  // Pagination numbers (employee-style)
+  const generatePageNumbers = () => {
+    const pages = [];
+    const current = pagination.current_page;
+    const last = pagination.last_page;
+    if (!current || !last) return pages;
+    if (last <= 7) {
+      for (let i = 1; i <= last; i++) pages.push(i);
+    } else if (current <= 4) {
+      for (let i = 1; i <= 5; i++) pages.push(i);
+      pages.push('...');
+      pages.push(last);
+    } else if (current >= last - 3) {
+      pages.push(1);
+      pages.push('...');
+      for (let i = last - 4; i <= last; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      pages.push('...');
+      for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+      pages.push('...');
+      pages.push(last);
     }
-    return '';
-  };
-
-  const getConfirmTitle = () => {
-    if (confirmAction === 'delete') {
-      return 'Delete Role';
-    } else if (confirmAction === 'activate') {
-      return 'Activate Role';
-    } else if (confirmAction === 'deactivate') {
-      return 'Deactivate Role';
-    }
-    return 'Confirm Action';
+    return pages;
   };
 
   if (!token) {
     return (
       <div className="role-management">
-        <div className="role-error">
-          Please log in to access role management.
-        </div>
+        <div className="error-state">Please log in to access role management.</div>
       </div>
     );
   }
 
   return (
     <div className="role-management">
+      {/* Header */}
       <div className="role-header">
-        <h1 className="role-title">Role Management</h1>
-        <div className="role-actions">
-          <button
-            className="role-btn role-btn-secondary"
-            onClick={handleRefresh}
+        <div className="header-content">
+          <h1>Role Management</h1>
+          <p>Manage roles with CRUD operations and quick search</p>
+        </div>
+        <button
+          className="btn btn-primary add-btn"
+          onClick={() => { resetForm(); setShowModal(true); }}
+          disabled={loading}
+        >
+          <PlusIcon />
+          Add New Role
+        </button>
+      </div>
+
+      {/* Alerts */}
+      {success && <div className="alert alert-success">{success}</div>}
+      {error && <div className="alert alert-error">{error}</div>}
+
+      {/* Search only */}
+      <div className="search-filters-section">
+        <div className="search-box">
+          <SearchIcon />
+          <input
+            type="text"
+            placeholder="Search roles by name or display name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             disabled={loading}
-          >
-            <RefreshIcon />
-            Refresh
-          </button>
-          <button
-            className="role-btn role-btn-primary"
-            onClick={() => setShowModal(true)}
-            disabled={loading}
-          >
-            <PlusIcon />
-            Add Role
-          </button>
+          />
         </div>
       </div>
 
-      {error && (
-        <div className="role-error">
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="role-success">
-          {success}
-        </div>
-      )}
-
-      <div className="role-search">
-        <input
-          type="text"
-          placeholder="Search roles..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="role-search-input"
-        />
-      </div>
-
-      {loading ? (
-        <div className="role-loading">
-          Loading roles...
-        </div>
-      ) : (
-        <div className="role-table-container">
-          {filteredRoles.length === 0 ? (
-            <div className="role-empty">
-              <div className="role-empty-icon">👥</div>
-              <p>No roles found.</p>
-              {searchTerm && <p>Try adjusting your search terms.</p>}
+      {/* List */}
+      <div className="role-list-section">
+        <div className="list-header">
+          <div className="list-header-left">
+            <h2>Roles List</h2>
+            <div className="pagination-info">
+              Showing {((pagination.current_page - 1) * pagination.per_page) + (filtered.length ? 1 : 0)} to {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of {pagination.total} roles
             </div>
-          ) : (
-            <table className="role-table">
+          </div>
+          <button className="btn btn-secondary refresh-btn" onClick={handleRefresh} disabled={loading}>
+            <RefreshIcon />
+            {loading ? 'Loading...' : 'Refresh'}
+          </button>
+        </div>
+
+        {loading && roles.length === 0 ? (
+          <div className="loading-state"><div className="spinner"></div><p>Loading roles...</p></div>
+        ) : filtered.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">🛡️</div>
+            <h3>No roles found</h3>
+            <p>Create your first role to get started.</p>
+            <button className="btn btn-primary" onClick={() => { resetForm(); setShowModal(true); }}>
+              <PlusIcon />
+              Add First Role
+            </button>
+          </div>
+        ) : (
+          <div className="modern-table-container">
+            <table className="modern-table">
               <thead>
                 <tr>
+                  <th>ID</th>
                   <th>Name</th>
                   <th>Display Name</th>
                   <th>Description</th>
@@ -303,173 +305,92 @@ const RoleManagement = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredRoles.map((role) => (
+                {filtered.map((role) => (
                   <tr key={role.id}>
-                    <td>
-                      <strong>{role.name}</strong>
-                    </td>
+                    <td className="id-cell">#{role.id}</td>
+                    <td className="name-cell"><strong>{role.name}</strong></td>
                     <td>{role.display_name}</td>
-                    <td>{role.description || '-'}</td>
-                    <td>
-                      <span className={`role-status ${role.is_active ? 'active' : 'inactive'}`}>
+                    <td className="desc-cell">{role.description || '-'}</td>
+                    <td className="status-cell">
+                      <span className={`status-badge ${role.is_active ? 'status-active' : 'status-inactive'}`}>
                         {role.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td>
-                      {role.created_at ? new Date(role.created_at).toLocaleDateString() : '-'}
-                    </td>
-                    <td className="role-actions-cell">
-                      <button
-                        className="role-action-btn role-btn-primary"
-                        onClick={() => handleEdit(role)}
-                        title="Edit Role"
-                      >
+                    <td className="date-cell">{role.created_at ? new Date(role.created_at).toLocaleDateString() : '-'}</td>
+                    <td className="actions-cell">
+                      <button className="btn-icon btn-edit" onClick={() => handleEdit(role)} disabled={loading} title="Edit">
                         <EditIcon />
-                        Edit
                       </button>
-                      {role.is_active ? (
-                        <button
-                          className="role-action-btn role-btn-warning"
-                          onClick={() => handleDeactivate(role)}
-                          title="Deactivate Role"
-                        >
-                          Deactivate
-                        </button>
-                      ) : (
-                        <button
-                          className="role-action-btn role-btn-success"
-                          onClick={() => handleActivate(role)}
-                          title="Activate Role"
-                        >
-                          Activate
-                        </button>
-                      )}
-                      <button
-                        className="role-action-btn role-btn-danger"
-                        onClick={() => handleDelete(role)}
-                        title="Delete Role"
-                      >
+                      <button className={`btn-icon ${role.is_active ? 'btn-deactivate' : 'btn-activate'}`} onClick={() => handleToggle(role)} disabled={loading} title={role.is_active ? 'Deactivate' : 'Activate'}>
+                        {role.is_active ? '🔒' : '🔓'}
+                      </button>
+                      <button className="btn-icon btn-delete" onClick={() => handleDelete(role)} disabled={loading} title="Delete">
                         <DeleteIcon />
-                        Delete
                       </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          )}
-        </div>
-      )}
+          </div>
+        )}
 
-      {pagination && pagination.last_page > 1 && (
-        <div className="role-pagination">
-          <button
-            className="role-pagination-btn"
-            onClick={() => handlePageChange(pagination.current_page - 1)}
-            disabled={pagination.current_page <= 1}
-          >
-            <ChevronLeftIcon />
-            Previous
-          </button>
-          
-          <span className="role-pagination-info">
-            Page {pagination.current_page} of {pagination.last_page}
-            {pagination.total > 0 && ` (${pagination.total} total roles)`}
-          </span>
-          
-          <button
-            className="role-pagination-btn"
-            onClick={() => handlePageChange(pagination.current_page + 1)}
-            disabled={pagination.current_page >= pagination.last_page}
-          >
-            Next
-            <ChevronRightIcon />
-          </button>
-        </div>
-      )}
+        {/* Pagination */}
+        {pagination.last_page > 1 && (
+          <div className="pagination">
+            <button className="btn btn-outline" onClick={() => handlePageChange(pagination.current_page - 1)} disabled={pagination.current_page === 1 || loading}>
+              <ChevronLeftIcon />
+              Previous
+            </button>
+            <div className="page-numbers">
+              {generatePageNumbers().map((page, index) => (
+                <button key={index} className={`btn ${page === pagination.current_page ? 'btn-primary' : 'btn-outline'}`} onClick={() => typeof page === 'number' && handlePageChange(page)} disabled={page === '...' || loading}>
+                  {page}
+                </button>
+              ))}
+            </div>
+            <button className="btn btn-outline" onClick={() => handlePageChange(pagination.current_page + 1)} disabled={pagination.current_page === pagination.last_page || loading}>
+              Next
+              <ChevronRightIcon />
+            </button>
+          </div>
+        )}
+      </div>
 
-      {/* Add/Edit Role Modal */}
+      {/* Add/Edit Modal */}
       {showModal && (
-        <div className="role-modal">
-          <div className="role-modal-content">
-            <div className="role-modal-header">
-              <h2 className="role-modal-title">
-                {isEditing ? 'Edit Role' : 'Add New Role'}
-              </h2>
-              <button
-                className="role-modal-close"
-                onClick={handleCloseModal}
-              >
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{isEditing ? 'Edit Role' : 'Add New Role'}</h2>
+              <button className="btn-icon btn-close" onClick={() => setShowModal(false)} title="Close">
                 <CloseIcon />
               </button>
             </div>
-            
-            <form onSubmit={handleSubmit} className="role-form">
-              <div className="role-form-group">
-                <label className="role-form-label">Role Name *</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="role-form-input"
-                  placeholder="e.g., admin, manager, employee"
-                  required
-                />
+            <form onSubmit={handleSubmit} className="modal-form">
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Role Name *</label>
+                  <input type="text" name="name" value={formData.name} onChange={handleInputChange} required placeholder="e.g., admin, manager" />
+                </div>
+                <div className="form-group">
+                  <label>Display Name *</label>
+                  <input type="text" name="display_name" value={formData.display_name} onChange={handleInputChange} required placeholder="e.g., Administrator" />
+                </div>
+                <div className="form-group">
+                  <label>Description</label>
+                  <input type="text" name="description" value={formData.description} onChange={handleInputChange} placeholder="Describe the role" />
+                </div>
+                <div className="form-group">
+                  <label className="checkbox-label">
+                    <input type="checkbox" name="is_active" checked={formData.is_active} onChange={handleInputChange} />
+                    Active
+                  </label>
+                </div>
               </div>
-              
-              <div className="role-form-group">
-                <label className="role-form-label">Display Name *</label>
-                <input
-                  type="text"
-                  name="display_name"
-                  value={formData.display_name}
-                  onChange={handleInputChange}
-                  className="role-form-input"
-                  placeholder="e.g., Administrator, Manager, Employee"
-                  required
-                />
-              </div>
-              
-              <div className="role-form-group">
-                <label className="role-form-label">Description</label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  className="role-form-textarea"
-                  placeholder="Describe the role's purpose and permissions..."
-                  rows="3"
-                />
-              </div>
-              
-              <div className="role-form-group">
-                <label className="role-form-checkbox">
-                  <input
-                    type="checkbox"
-                    name="is_active"
-                    checked={formData.is_active}
-                    onChange={handleInputChange}
-                  />
-                  Active
-                </label>
-              </div>
-              
-              <div className="role-form-actions">
-                <button
-                  type="button"
-                  className="role-btn role-btn-secondary"
-                  onClick={handleCloseModal}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="role-btn role-btn-primary"
-                  disabled={loading}
-                >
-                  {isEditing ? 'Update Role' : 'Create Role'}
-                </button>
+              <div className="modal-actions">
+                <button type="button" className="btn btn-outline" onClick={() => setShowModal(false)} disabled={loading}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={loading}>{isEditing ? 'Update Role' : 'Create Role'}</button>
               </div>
             </form>
           </div>
@@ -478,26 +399,22 @@ const RoleManagement = () => {
 
       {/* Confirmation Modal */}
       {showConfirmModal && (
-        <div className="role-confirm-modal">
-          <div className="role-confirm-content">
-            <h3 className="role-confirm-title">{getConfirmTitle()}</h3>
-            <p className="role-confirm-message">{getConfirmMessage()}</p>
-            <div className="role-confirm-actions">
-              <button
-                className="role-btn role-btn-secondary"
-                onClick={() => setShowConfirmModal(false)}
-              >
-                Cancel
+        <div className="modal-overlay" onClick={() => setShowConfirmModal(false)}>
+          <div className="modal-content small-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Confirm Action</h2>
+              <button className="btn-icon btn-close" onClick={() => setShowConfirmModal(false)} title="Close">
+                <CloseIcon />
               </button>
-              <button
-                className={`role-btn ${
-                  confirmAction === 'delete' ? 'role-btn-danger' : 'role-btn-primary'
-                }`}
-                onClick={confirmActionHandler}
-                disabled={loading}
-              >
-                {confirmAction === 'delete' ? 'Delete' : 'Confirm'}
-              </button>
+            </div>
+            <div className="confirmation-content">
+              {confirmAction === 'delete' && (<p>Are you sure you want to delete the role <strong>{confirmData?.display_name || confirmData?.name}</strong>?</p>)}
+              {confirmAction === 'activate' && (<p>Are you sure you want to activate <strong>{confirmData?.display_name || confirmData?.name}</strong>?</p>)}
+              {confirmAction === 'deactivate' && (<p>Are you sure you want to deactivate <strong>{confirmData?.display_name || confirmData?.name}</strong>?</p>)}
+            </div>
+            <div className="modal-actions">
+              <button type="button" className="btn btn-outline" onClick={() => setShowConfirmModal(false)} disabled={loading}>Cancel</button>
+              <button type="button" className={`btn ${confirmAction === 'delete' ? 'btn-danger' : 'btn-primary'}`} onClick={confirmActionHandler} disabled={loading}>Confirm</button>
             </div>
           </div>
         </div>
