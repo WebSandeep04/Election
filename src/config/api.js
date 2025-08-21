@@ -13,6 +13,7 @@ export const API_CONFIG = {
 		PROFILE: '/api/profile',
 		REFRESH_TOKEN: '/api/refresh-token',
 		CASTES: '/api/castes',
+		CASTE_RATIO: '/api/cast-ratios',
 		LOK_SABHA: '/api/lok-sabhas',
 		VIDHAN_SABHA: '/api/vidhan-sabhas',
 		BLOCK: '/api/blocks',
@@ -23,6 +24,8 @@ export const API_CONFIG = {
 		ROLES: '/api/roles', // Added for Roles
 		USERS: '/api/users', // Added for Users
 		PERMISSIONS: '/api/permissions', // Added for Permissions
+		EDUCATIONS: '/api/educations', // Added for Educations
+		EXPENSE_CATEGORIES: '/api/expense-categories', // Added for Expense Categories
 	},
 
 	// Request timeout (in milliseconds)

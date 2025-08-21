@@ -17,9 +17,9 @@ import EmployeeManagement from './components/screens/EmployeeManagement';
 import AddCaste from './components/screens/AddCaste';
 import CasteRatio from './components/screens/CasteRatio';
 import VillageDescription from './components/screens/VillageDescription';
-import AddEducations from './components/screens/AddEducations';
+import EducationManagement from './components/screens/EducationManagement';
 import AddParliament from './components/screens/AddParliament';
-import Category from './components/screens/Category';
+import ExpenseCategoryManagement from './components/screens/ExpenseCategoryManagement';
 import EmployeeTypes from './components/screens/EmployeeTypes';
 
 // Parliament Components
@@ -83,10 +83,10 @@ function App() {
         return <CasteRatio />;
       case 'village-description':
         return <VillageDescription />;
-      case 'add-educations':
-        return <AddEducations />;
+      case 'education-management':
+        return <EducationManagement />;
       case 'category':
-        return <Category />;
+        return <ExpenseCategoryManagement />;
       case 'employee-types':
         return <EmployeeTypes />;
       

@@ -3,6 +3,7 @@ import uiReducer from './slices/uiSlice';
 import authReducer from './slices/authSlice';
 import dataReducer from './slices/dataSlice';
 import casteReducer from './slices/casteSlice';
+import casteRatioReducer from './slices/casteRatioSlice';
 import lokSabhaReducer from './slices/lokSabhaSlice';
 import vidhanSabhaReducer from './slices/vidhanSabhaSlice';
 import blockReducer from './slices/blockSlice';
@@ -15,6 +16,8 @@ import employeeReducer from './slices/employeeSlice'; // Added for Employees
 import roleReducer from './slices/roleSlice'; // Added for Roles
 import userReducer from './slices/userSlice'; // Added for Users
 import permissionReducer from './slices/permissionSlice'; // Added for Permissions
+import educationReducer from './slices/educationSlice'; // Added for Educations
+import expenseCategoryReducer from './slices/expenseCategorySlice'; // Added for Expense Categories
 
 export const store = configureStore({
   reducer: {
@@ -22,6 +25,7 @@ export const store = configureStore({
     auth: authReducer,
     data: dataReducer,
     caste: casteReducer,
+    casteRatio: casteRatioReducer,
     lokSabha: lokSabhaReducer,
     vidhanSabha: vidhanSabhaReducer,
     block: blockReducer,
@@ -34,6 +38,8 @@ export const store = configureStore({
     roles: roleReducer, // Added for Roles
     users: userReducer, // Added for Users
     permissions: permissionReducer, // Added for Permissions
+    educations: educationReducer, // Added for Educations
+    expenseCategories: expenseCategoryReducer, // Added for Expense Categories
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

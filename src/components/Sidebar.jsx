@@ -51,8 +51,8 @@ const Sidebar = () => {
         { id: 'add-caste', label: 'Add Caste', icon: '🏷️', perm: 'view_caste_management' },
         { id: 'caste-ratio', label: 'Caste Ratio', icon: '📊', perm: 'view_caste_ratio' },
         { id: 'village-description', label: 'Village Description', icon: '🏘️', perm: 'view_village_description' },
-        { id: 'add-educations', label: 'Add Educations', icon: '🎓', perm: 'view_education_management' },
-        { id: 'category', label: 'Category', icon: '📂', perm: 'view_category_management' },
+        { id: 'education-management', label: 'Education Management', icon: '🎓', perm: 'view_education_management' },
+        { id: 'category', label: 'Expense Category', icon: '📂', perm: 'view_category_management' },
         { id: 'employee-types', label: 'Employee Types', icon: '🏷️', perm: 'view_employee_types' }
       ]
     },
