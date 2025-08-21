@@ -26,6 +26,7 @@ export const API_CONFIG = {
 		PERMISSIONS: '/api/permissions', // Added for Permissions
 		EDUCATIONS: '/api/educations', // Added for Educations
 		EXPENSE_CATEGORIES: '/api/expense-categories', // Added for Expense Categories
+		VILLAGE_DESCRIPTIONS: '/api/village-descriptions', // Added for Village Descriptions
 	},
 
 	// Request timeout (in milliseconds)

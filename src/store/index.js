@@ -18,6 +18,7 @@ import userReducer from './slices/userSlice'; // Added for Users
 import permissionReducer from './slices/permissionSlice'; // Added for Permissions
 import educationReducer from './slices/educationSlice'; // Added for Educations
 import expenseCategoryReducer from './slices/expenseCategorySlice'; // Added for Expense Categories
+import villageDescriptionReducer from './slices/villageDescriptionSlice'; // Added for Village Descriptions
 
 export const store = configureStore({
   reducer: {
@@ -40,6 +41,7 @@ export const store = configureStore({
     permissions: permissionReducer, // Added for Permissions
     educations: educationReducer, // Added for Educations
     expenseCategories: expenseCategoryReducer, // Added for Expense Categories
+    villageDescriptions: villageDescriptionReducer, // Added for Village Descriptions
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
