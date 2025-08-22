@@ -155,6 +155,17 @@
   font-weight: 500;
 }
 
+.click-hint {
+  color: #3b82f6;
+  font-size: 0.875rem;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #e6f3ff, #dbeafe);
+  border-radius: 8px;
+  border: 1px solid #3b82f6;
+  font-weight: 500;
+}
+
 .refresh-btn {
   background: linear-gradient(135deg, #48bb78, #38a169);
   color: white;
@@ -280,6 +291,22 @@
   background: linear-gradient(135deg, #f7fafc, #edf2f7);
 }
 
+.clickable-row {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clickable-row:hover {
+  background: linear-gradient(135deg, #e6f3ff, #dbeafe) !important;
+  transform: scale(1.01);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.clickable-row:hover .name-cell {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
 .id-cell {
   font-weight: 600;
   color: #667eea;
@@ -289,6 +316,22 @@
 .name-cell {
   font-weight: 600;
   color: #2d3748;
+  position: relative;
+}
+
+.name-cell::after {
+  content: '→';
+  position: absolute;
+  right: -20px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #3b82f6;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.clickable-row:hover .name-cell::after {
+  opacity: 1;
 }
 
 .state-cell {

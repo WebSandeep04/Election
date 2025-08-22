@@ -11,6 +11,7 @@ import {
 } from '../../store/slices/blockSlice';
 import { fetchLokSabhas } from '../../store/slices/lokSabhaSlice';
 import { fetchVidhanSabhas, fetchVidhanSabhasByLokSabha } from '../../store/slices/vidhanSabhaSlice';
+import { setActiveScreen, setActiveScreenWithParams } from '../../store/slices/uiSlice';
 
 // SVG Icons
 const PlusIcon = () => (
@@ -56,6 +57,7 @@ const AddBlock = () => {
   const { blocks, loading, error, pagination } = useSelector((state) => state.block);
   const { lokSabhas } = useSelector((state) => state.lokSabha);
   const { vidhanSabhas } = useSelector((state) => state.vidhanSabha);
+  const { navigationParams } = useSelector((state) => state.ui);
   const token = useSelector((state) => state.auth.token);
   
   const [success, setSuccess] = useState(null);
@@ -72,6 +74,10 @@ const AddBlock = () => {
     updated_at: ''
   });
   const [search, setSearch] = useState('');
+  
+  // Check if multiple names are entered
+  const multipleNames = formData.block_name.includes(',') && 
+    formData.block_name.split(',').filter(name => name.trim().length > 0).length > 1;
 
   // Fetch Blocks, Lok Sabhas, and Vidhan Sabhas on component mount and token change
   useEffect(() => {
@@ -81,6 +87,35 @@ const AddBlock = () => {
       dispatch(fetchVidhanSabhas(1)); // Fetch all Vidhan Sabhas for dropdown
     }
   }, [dispatch, token, pagination.current_page]);
+
+  // Handle navigation parameters - auto-open modal with pre-selected Vidhan Sabha
+  useEffect(() => {
+    if (navigationParams && navigationParams.selectedVidhanSabhaId) {
+      setFormData(prev => ({
+        ...prev,
+        loksabha_id: navigationParams.selectedLokSabhaId.toString(),
+        vidhansabha_id: navigationParams.selectedVidhanSabhaId.toString()
+      }));
+      
+      // Fetch Vidhan Sabhas for the selected Lok Sabha
+      if (navigationParams.selectedLokSabhaId) {
+        dispatch(fetchVidhanSabhasByLokSabha(navigationParams.selectedLokSabhaId))
+          .then(result => {
+            if (result.payload) {
+              setFilteredVidhanSabhas(result.payload);
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching Vidhan Sabhas:', error);
+            setFilteredVidhanSabhas([]);
+          });
+      }
+      
+      setShowModal(true);
+      // Clear navigation params after using them
+      dispatch(setActiveScreen('add-block'));
+    }
+  }, [navigationParams, dispatch]);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -159,8 +194,28 @@ const AddBlock = () => {
         await dispatch(updateBlock({ id: editingId, blockData: submitData })).unwrap();
         setSuccess('Block updated successfully');
       } else {
-        await dispatch(createBlock(submitData)).unwrap();
-        setSuccess('Block created successfully');
+        // Split names by comma and create multiple records
+        const names = formData.block_name.split(',').map(name => name.trim()).filter(name => name.length > 0);
+        
+        if (names.length === 1) {
+          // Single name - create one record
+          await dispatch(createBlock({
+            ...submitData,
+            block_name: names[0]
+          })).unwrap();
+          setSuccess('Block created successfully');
+        } else {
+          // Multiple names - create multiple records
+          const promises = names.map(name => 
+            dispatch(createBlock({
+              ...submitData,
+              block_name: name
+            })).unwrap()
+          );
+          
+          await Promise.all(promises);
+          setSuccess(`${names.length} Block constituencies created successfully`);
+        }
       }
       
       // Refresh the current page
@@ -240,6 +295,20 @@ const AddBlock = () => {
 
   const handleRefresh = () => {
     dispatch(fetchBlocks(pagination.current_page));
+  };
+
+  const handleBlockClick = (block) => {
+    dispatch(setActiveScreenWithParams({
+      screen: 'add-panchayat',
+      params: { 
+        selectedBlockId: block.id, 
+        selectedBlockName: block.block_name,
+        selectedVidhanSabhaId: block.vidhansabha_id,
+        selectedVidhanSabhaName: block.vidhan_sabha?.vidhansabha_name || `Vidhan Sabha ${block.vidhansabha_id}`,
+        selectedLokSabhaId: block.loksabha_id,
+        selectedLokSabhaName: block.lok_sabha?.loksabha_name || `Lok Sabha ${block.loksabha_id}`
+      }
+    }));
   };
 
   const handlePageChange = (page) => {
@@ -346,6 +415,9 @@ const AddBlock = () => {
             <div className="pagination-info">
               Showing {pagination.from || 0} to {pagination.to || 0} of {pagination.total || 0} blocks
             </div>
+            <div className="click-hint">
+              💡 Click on any Block name to add Panchayat constituencies for that Block
+            </div>
           </div>
           <button 
             className="btn btn-secondary refresh-btn"
@@ -393,7 +465,11 @@ const AddBlock = () => {
                 </thead>
                 <tbody>
                   {Array.isArray(blocks) && blocks.map((block) => (
-                    <tr key={block.id}>
+                    <tr 
+                      key={block.id}
+                      className="clickable-row"
+                      onClick={() => handleBlockClick(block)}
+                    >
                       <td className="id-cell">#{block.id}</td>
                       <td className="loksabha-cell">
                         {block.lok_sabha?.loksabha_name || `Lok Sabha ${block.loksabha_id}`}
@@ -405,7 +481,7 @@ const AddBlock = () => {
                       <td className="status-cell">{block.block_status === '1' ? 'Active' : 'Inactive'}</td>
                       <td className="created-cell">{new Date(block.created_at).toLocaleDateString()}</td>
                       <td className="updated-cell">{new Date(block.updated_at).toLocaleDateString()}</td>
-                      <td className="actions-cell">
+                      <td className="actions-cell" onClick={(e) => e.stopPropagation()}>
                         <button
                           className="btn-icon btn-edit"
                           onClick={() => handleEdit(block)}
@@ -476,7 +552,29 @@ const AddBlock = () => {
         <div className="modal-overlay" onClick={handleCancel}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>{isEditing ? 'Edit Block' : 'Add New Block'}</h2>
+              <div className="modal-header-content">
+                <h2>{isEditing ? 'Edit Block' : 'Add New Block'}</h2>
+                {navigationParams && navigationParams.selectedVidhanSabhaName && (
+                  <div className="selected-vidhan-sabha-indicator">
+                    <span className="indicator-label">Selected Vidhan Sabha:</span>
+                    <span className="indicator-value">{navigationParams.selectedVidhanSabhaName}</span>
+                  </div>
+                )}
+                {navigationParams && navigationParams.selectedLokSabhaName && (
+                  <div className="selected-lok-sabha-indicator">
+                    <span className="indicator-label">Lok Sabha:</span>
+                    <span className="indicator-value">{navigationParams.selectedLokSabhaName}</span>
+                  </div>
+                )}
+                {multipleNames && (
+                  <div className="multiple-names-indicator">
+                    <span className="indicator-label">Multiple Blocks:</span>
+                    <span className="indicator-value">
+                      {formData.block_name.split(',').filter(name => name.trim().length > 0).length} blocks will be created
+                    </span>
+                  </div>
+                )}
+              </div>
               <button 
                 className="btn-icon btn-close"
                 onClick={handleCancel}
@@ -538,11 +636,33 @@ const AddBlock = () => {
                   name="block_name"
                   value={formData.block_name}
                   onChange={handleInputChange}
-                  placeholder="Enter block name"
+                  placeholder="Enter block name (use comma to add multiple)"
                   required
                   disabled={loading}
                   autoFocus
                 />
+                <div className="form-hint">
+                  💡 You can add multiple blocks by separating names with commas (e.g., "Block 1, Block 2, Block 3")
+                </div>
+                {multipleNames && (
+                  <div className="names-preview">
+                    <div className="preview-label">Preview of blocks to be created:</div>
+                    <div className="preview-list">
+                      {formData.block_name.split(',').map((name, index) => {
+                        const trimmedName = name.trim();
+                        if (trimmedName.length > 0) {
+                          return (
+                            <div key={index} className="preview-item">
+                              <span className="preview-number">{index + 1}.</span>
+                              <span className="preview-name">{trimmedName}</span>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
               
               <div className="form-group">

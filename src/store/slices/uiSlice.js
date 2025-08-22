@@ -7,6 +7,7 @@ const initialState = {
   theme: 'light',
   notifications: [],
   loading: false,
+  navigationParams: null,
 };
 
 const uiSlice = createSlice({
@@ -21,6 +22,10 @@ const uiSlice = createSlice({
     },
     setActiveScreen: (state, action) => {
       state.activeScreen = action.payload;
+    },
+    setActiveScreenWithParams: (state, action) => {
+      state.activeScreen = action.payload.screen;
+      state.navigationParams = action.payload.params;
     },
     toggleCategory: (state, action) => {
       const categoryId = action.payload;
@@ -61,6 +66,7 @@ export const {
   toggleSidebar,
   setSidebarCollapsed,
   setActiveScreen,
+  setActiveScreenWithParams,
   toggleCategory,
   setExpandedCategories,
   setTheme,

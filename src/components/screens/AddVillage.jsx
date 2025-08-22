@@ -10,6 +10,7 @@ import { fetchVidhanSabhas, fetchVidhanSabhasByLokSabha } from '../../store/slic
 import { fetchBlocks, fetchBlocksByVidhanSabha } from '../../store/slices/blockSlice';
 import { fetchPanchayats, fetchPanchayatsByBlock } from '../../store/slices/panchayatSlice';
 import { fetchVillageChoosings } from '../../store/slices/villageChoosingSlice';
+import { setActiveScreen, setActiveScreenWithParams } from '../../store/slices/uiSlice';
 import { API_CONFIG, getApiUrl } from '../../config/api';
 
 // SVG Icons
@@ -59,6 +60,7 @@ const AddVillage = () => {
   const { blocks } = useSelector((state) => state.block);
   const { panchayats } = useSelector((state) => state.panchayat);
   const { villageChoosings } = useSelector((state) => state.villageChoosing);
+  const { navigationParams } = useSelector((state) => state.ui);
   const token = useSelector((state) => state.auth.token);
   
   // Helper function to get village type display text
@@ -104,6 +106,9 @@ const AddVillage = () => {
   });
   const [search, setSearch] = useState('');
 
+  // Check if multiple names are provided
+  const multipleNames = formData.village_name.includes(',') && formData.village_name.split(',').filter(name => name.trim().length > 0).length > 1;
+
   // Fetch data on component mount
   useEffect(() => {
     if (token) {
@@ -115,6 +120,60 @@ const AddVillage = () => {
       dispatch(fetchVillageChoosings()); // Fetch village choosing options
     }
   }, [dispatch, token, pagination.current_page]);
+
+  // Handle navigation parameters for pre-selection
+  useEffect(() => {
+    if (navigationParams && navigationParams.selectedPanchayatId) {
+      setFormData(prev => ({
+        ...prev,
+        loksabha_id: navigationParams.selectedLokSabhaId.toString(),
+        vidhansabha_id: navigationParams.selectedVidhanSabhaId.toString(),
+        block_id: navigationParams.selectedBlockId.toString(),
+        panchayat_id: navigationParams.selectedPanchayatId.toString()
+      }));
+
+      if (navigationParams.selectedLokSabhaId) {
+        dispatch(fetchVidhanSabhasByLokSabha(navigationParams.selectedLokSabhaId))
+          .then(result => {
+            if (result.payload) {
+              setFilteredVidhanSabhas(result.payload);
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching Vidhan Sabhas:', error);
+            setFilteredVidhanSabhas([]);
+          });
+      }
+
+      if (navigationParams.selectedVidhanSabhaId) {
+        dispatch(fetchBlocksByVidhanSabha(navigationParams.selectedVidhanSabhaId))
+          .then(result => {
+            if (result.payload) {
+              setFilteredBlocks(result.payload);
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching Blocks:', error);
+            setFilteredBlocks([]);
+          });
+      }
+
+      if (navigationParams.selectedBlockId) {
+        dispatch(fetchPanchayatsByBlock(navigationParams.selectedBlockId))
+          .then(result => {
+            if (result.payload) {
+              setFilteredPanchayats(result.payload);
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching Panchayats:', error);
+            setFilteredPanchayats([]);
+          });
+      }
+      setShowModal(true);
+      dispatch(setActiveScreen('add-village')); // Clear navigation params
+    }
+  }, [navigationParams, dispatch]);
 
   // debounced server search
   useEffect(() => {
@@ -243,38 +302,75 @@ const AddVillage = () => {
     // Set timestamps
     const now = new Date().toISOString();
     
-         // Get the village choosing name from the selected ID
-     const selectedChoosing = Array.isArray(villageChoosings) 
-       ? villageChoosings.find(option => option.id == formData.village_choosing)
-       : null;
-     
-     // Clean and validate the data
-     const submitData = {
-       loksabha_id: parseInt(formData.loksabha_id) || formData.loksabha_id,
-       vidhansabha_id: parseInt(formData.vidhansabha_id) || formData.vidhansabha_id,
-       block_id: parseInt(formData.block_id) || formData.block_id,
-       panchayat_id: parseInt(formData.panchayat_id) || formData.panchayat_id,
-       village_choosing_id: parseInt(formData.village_choosing) || formData.village_choosing,
-       village_choosing: selectedChoosing ? selectedChoosing.name : formData.village_choosing,
-       village_name: formData.village_name.trim(),
-       village_status: formData.village_status,
-       created_at: isEditing ? formData.created_at : now,
-       updated_at: now
-     };
-
-    try {
-      if (isEditing) {
-        await dispatch(updateVillage({ id: editingId, villageData: submitData })).unwrap();
-        setSuccess('Village updated successfully!');
-      } else {
-        await dispatch(createVillage(submitData)).unwrap();
-        setSuccess('Village created successfully!');
-      }
+    // Check if multiple names are provided
+    if (multipleNames) {
+      // Split by comma, trim whitespace, and filter out empty names
+      const names = formData.village_name.split(',')
+        .map(name => name.trim())
+        .filter(name => name.length > 0);
       
-      setShowModal(false);
-      resetForm();
-    } catch (error) {
-      console.error('Error submitting form:', error);
+      // Get the village choosing name from the selected ID
+      const selectedChoosing = Array.isArray(villageChoosings) 
+        ? villageChoosings.find(option => option.id == formData.village_choosing)
+        : null;
+      
+      try {
+        // Create multiple villages using Promise.all
+        await Promise.all(names.map(name => {
+          const submitData = {
+            loksabha_id: parseInt(formData.loksabha_id) || formData.loksabha_id,
+            vidhansabha_id: parseInt(formData.vidhansabha_id) || formData.vidhansabha_id,
+            block_id: parseInt(formData.block_id) || formData.block_id,
+            panchayat_id: parseInt(formData.panchayat_id) || formData.panchayat_id,
+            village_choosing_id: parseInt(formData.village_choosing) || formData.village_choosing,
+            village_choosing: selectedChoosing ? selectedChoosing.name : formData.village_choosing,
+            village_name: name,
+            village_status: formData.village_status,
+            created_at: now,
+            updated_at: now
+          };
+          return dispatch(createVillage(submitData)).unwrap();
+        }));
+        
+        setSuccess(`${names.length} Villages created successfully!`);
+        setShowModal(false);
+        resetForm();
+      } catch (error) {
+        console.error('Error creating multiple villages:', error);
+      }
+    } else {
+      // Single village creation (existing logic)
+      const selectedChoosing = Array.isArray(villageChoosings) 
+        ? villageChoosings.find(option => option.id == formData.village_choosing)
+        : null;
+      
+      const submitData = {
+        loksabha_id: parseInt(formData.loksabha_id) || formData.loksabha_id,
+        vidhansabha_id: parseInt(formData.vidhansabha_id) || formData.vidhansabha_id,
+        block_id: parseInt(formData.block_id) || formData.block_id,
+        panchayat_id: parseInt(formData.panchayat_id) || formData.panchayat_id,
+        village_choosing_id: parseInt(formData.village_choosing) || formData.village_choosing,
+        village_choosing: selectedChoosing ? selectedChoosing.name : formData.village_choosing,
+        village_name: formData.village_name.trim(),
+        village_status: formData.village_status,
+        created_at: isEditing ? formData.created_at : now,
+        updated_at: now
+      };
+
+      try {
+        if (isEditing) {
+          await dispatch(updateVillage({ id: editingId, villageData: submitData })).unwrap();
+          setSuccess('Village updated successfully!');
+        } else {
+          await dispatch(createVillage(submitData)).unwrap();
+          setSuccess('Village created successfully!');
+        }
+        
+        setShowModal(false);
+        resetForm();
+      } catch (error) {
+        console.error('Error submitting form:', error);
+      }
     }
   };
 
@@ -347,6 +443,24 @@ const AddVillage = () => {
         console.error('Error deleting village:', error);
       }
     }
+  };
+
+  const handleVillageClick = (village) => {
+    dispatch(setActiveScreenWithParams({
+      screen: 'add-booth',
+      params: {
+        selectedVillageId: village.id,
+        selectedVillageName: village.village_name,
+        selectedPanchayatId: village.panchayat_id,
+        selectedPanchayatName: village.panchayat?.panchayat_name || `Panchayat ${village.panchayat_id}`,
+        selectedBlockId: village.block_id,
+        selectedBlockName: village.block?.block_name || `Block ${village.block_id}`,
+        selectedVidhanSabhaId: village.vidhansabha_id,
+        selectedVidhanSabhaName: village.vidhan_sabha?.vidhansabha_name || `Vidhan Sabha ${village.vidhansabha_id}`,
+        selectedLokSabhaId: village.loksabha_id,
+        selectedLokSabhaName: village.lok_sabha?.loksabha_name || `Lok Sabha ${village.loksabha_id}`
+      }
+    }));
   };
 
   const resetForm = () => {
@@ -483,7 +597,7 @@ const AddVillage = () => {
               </thead>
               <tbody>
                 {villages.map((village) => (
-                  <tr key={village.id}>
+                  <tr key={village.id} className="clickable-row" onClick={() => handleVillageClick(village)}>
                     <td className="id-cell">#{village.id}</td>
                     <td className="loksabha-cell">
                       {village.lok_sabha?.loksabha_name || 'N/A'}
@@ -510,7 +624,7 @@ const AddVillage = () => {
                     <td className="updated-cell">
                       {new Date(village.updated_at).toLocaleDateString()}
                     </td>
-                    <td className="actions-cell">
+                    <td className="actions-cell" onClick={(e) => e.stopPropagation()}>
                       <button
                         className="btn-icon btn-edit"
                         onClick={() => handleEdit(village)}
@@ -534,9 +648,13 @@ const AddVillage = () => {
             </table>
           </div>
         )}
-      </div>
+                  </div>
 
-      {/* Pagination */}
+            <div className="click-hint">
+              💡 Click on any Village name to add Booth constituencies for that Village
+            </div>
+
+            {/* Pagination */}
       {pagination.last_page > 1 && (
         <div className="pagination">
           <button
@@ -569,7 +687,41 @@ const AddVillage = () => {
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>{isEditing ? 'Edit Village' : 'Add New Village'}</h2>
+              <div className="modal-header-content">
+                <h2>{isEditing ? 'Edit Village' : 'Add New Village'}</h2>
+                {navigationParams && navigationParams.selectedPanchayatName && (
+                  <div className="selected-panchayat-indicator">
+                    <span className="indicator-label">Selected Panchayat:</span>
+                    <span className="indicator-value">{navigationParams.selectedPanchayatName}</span>
+                  </div>
+                )}
+                {navigationParams && navigationParams.selectedBlockName && (
+                  <div className="selected-block-indicator">
+                    <span className="indicator-label">Block:</span>
+                    <span className="indicator-value">{navigationParams.selectedBlockName}</span>
+                  </div>
+                )}
+                {navigationParams && navigationParams.selectedVidhanSabhaName && (
+                  <div className="selected-vidhan-sabha-indicator">
+                    <span className="indicator-label">Vidhan Sabha:</span>
+                    <span className="indicator-value">{navigationParams.selectedVidhanSabhaName}</span>
+                  </div>
+                )}
+                {navigationParams && navigationParams.selectedLokSabhaName && (
+                  <div className="selected-lok-sabha-indicator">
+                    <span className="indicator-label">Lok Sabha:</span>
+                    <span className="indicator-value">{navigationParams.selectedLokSabhaName}</span>
+                  </div>
+                )}
+                {multipleNames && (
+                  <div className="multiple-names-indicator">
+                    <span className="indicator-label">Multiple Villages:</span>
+                    <span className="indicator-value">
+                      {formData.village_name.split(',').filter(name => name.trim().length > 0).length} villages will be created
+                    </span>
+                  </div>
+                )}
+              </div>
               <button 
                 className="btn-icon btn-close"
                 onClick={() => setShowModal(false)}
@@ -721,11 +873,27 @@ const AddVillage = () => {
                     name="village_name"
                     value={formData.village_name}
                     onChange={handleInputChange}
-                    placeholder="Enter village name"
+                    placeholder="Enter village name (use comma to add multiple)"
                     required
                     disabled={loading}
                     autoFocus
                   />
+                  <div className="form-hint">
+                    💡 Tip: You can add multiple villages by separating names with commas (e.g., "Village1, Village2, Village3")
+                  </div>
+                  {multipleNames && (
+                    <div className="names-preview">
+                      <div className="preview-label">Villages that will be created:</div>
+                      <div className="preview-list">
+                        {formData.village_name.split(',').map((name, index) => name.trim()).filter(name => name.length > 0).map((name, index) => (
+                          <div key={index} className="preview-item">
+                            <span className="preview-number">#{index + 1}</span>
+                            <span className="preview-name">{name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -13,6 +13,7 @@ import { fetchLokSabhas } from '../../store/slices/lokSabhaSlice';
 import { fetchVidhanSabhas, fetchVidhanSabhasByLokSabha } from '../../store/slices/vidhanSabhaSlice';
 import { fetchBlocks, fetchBlocksByVidhanSabha } from '../../store/slices/blockSlice';
 import { fetchPanchayatChoosings } from '../../store/slices/panchayatChoosingSlice';
+import { setActiveScreen, setActiveScreenWithParams } from '../../store/slices/uiSlice';
 
 // SVG Icons
 const PlusIcon = () => (
@@ -60,6 +61,7 @@ const AddPanchayat = () => {
   const { vidhanSabhas } = useSelector((state) => state.vidhanSabha);
   const { blocks } = useSelector((state) => state.block);
   const { panchayatChoosings } = useSelector((state) => state.panchayatChoosing);
+  const { navigationParams } = useSelector((state) => state.ui);
   const token = useSelector((state) => state.auth.token);
   
      // Helper function to get panchayat type display text
@@ -102,6 +104,10 @@ const AddPanchayat = () => {
     updated_at: ''
   });
   const [search, setSearch] = useState('');
+  
+  // Check if multiple names are entered
+  const multipleNames = formData.panchayat_name.includes(',') && 
+    formData.panchayat_name.split(',').filter(name => name.trim().length > 0).length > 1;
 
   // Fetch Panchayats, Lok Sabhas, Vidhan Sabhas, Blocks, and Choosing options on component mount and token change
   useEffect(() => {
@@ -117,6 +123,50 @@ const AddPanchayat = () => {
       });
     }
   }, [dispatch, token, pagination.current_page]);
+
+  // Handle navigation parameters - auto-open modal with pre-selected Block
+  useEffect(() => {
+    if (navigationParams && navigationParams.selectedBlockId) {
+      setFormData(prev => ({
+        ...prev,
+        loksabha_id: navigationParams.selectedLokSabhaId.toString(),
+        vidhansabha_id: navigationParams.selectedVidhanSabhaId.toString(),
+        block_id: navigationParams.selectedBlockId.toString()
+      }));
+      
+      // Fetch Vidhan Sabhas for the selected Lok Sabha
+      if (navigationParams.selectedLokSabhaId) {
+        dispatch(fetchVidhanSabhasByLokSabha(navigationParams.selectedLokSabhaId))
+          .then(result => {
+            if (result.payload) {
+              setFilteredVidhanSabhas(result.payload);
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching Vidhan Sabhas:', error);
+            setFilteredVidhanSabhas([]);
+          });
+      }
+      
+      // Fetch Blocks for the selected Vidhan Sabha
+      if (navigationParams.selectedVidhanSabhaId) {
+        dispatch(fetchBlocksByVidhanSabha(navigationParams.selectedVidhanSabhaId))
+          .then(result => {
+            if (result.payload) {
+              setFilteredBlocks(result.payload);
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching Blocks:', error);
+            setFilteredBlocks([]);
+          });
+      }
+      
+      setShowModal(true);
+      // Clear navigation params after using them
+      dispatch(setActiveScreen('add-panchayat'));
+    }
+  }, [navigationParams, dispatch]);
 
   // debounced server search
   useEffect(() => {
@@ -237,8 +287,28 @@ const AddPanchayat = () => {
         await dispatch(updatePanchayat({ id: editingId, panchayatData: submitData })).unwrap();
         setSuccess('Panchayat updated successfully');
       } else {
-        await dispatch(createPanchayat(submitData)).unwrap();
-        setSuccess('Panchayat created successfully');
+        // Split names by comma and create multiple records
+        const names = formData.panchayat_name.split(',').map(name => name.trim()).filter(name => name.length > 0);
+        
+        if (names.length === 1) {
+          // Single name - create one record
+          await dispatch(createPanchayat({
+            ...submitData,
+            panchayat_name: names[0]
+          })).unwrap();
+          setSuccess('Panchayat created successfully');
+        } else {
+          // Multiple names - create multiple records
+          const promises = names.map(name => 
+            dispatch(createPanchayat({
+              ...submitData,
+              panchayat_name: name
+            })).unwrap()
+          );
+          
+          await Promise.all(promises);
+          setSuccess(`${names.length} Panchayat constituencies created successfully`);
+        }
       }
       
       // Refresh the current page
@@ -306,6 +376,22 @@ const AddPanchayat = () => {
         console.error('Error deleting Panchayat:', error);
       }
     }
+  };
+
+  const handlePanchayatClick = (panchayat) => {
+    dispatch(setActiveScreenWithParams({
+      screen: 'add-village',
+      params: {
+        selectedPanchayatId: panchayat.id,
+        selectedPanchayatName: panchayat.panchayat_name,
+        selectedBlockId: panchayat.block_id,
+        selectedBlockName: panchayat.block?.block_name || `Block ${panchayat.block_id}`,
+        selectedVidhanSabhaId: panchayat.vidhansabha_id,
+        selectedVidhanSabhaName: panchayat.vidhan_sabha?.vidhansabha_name || `Vidhan Sabha ${panchayat.vidhansabha_id}`,
+        selectedLokSabhaId: panchayat.loksabha_id,
+        selectedLokSabhaName: panchayat.lok_sabha?.loksabha_name || `Lok Sabha ${panchayat.loksabha_id}`
+      }
+    }));
   };
 
   const handleCancel = () => {
@@ -492,7 +578,7 @@ const AddPanchayat = () => {
                 </thead>
                 <tbody>
                   {Array.isArray(panchayats) && panchayats.map((panchayat) => (
-                    <tr key={panchayat.id}>
+                    <tr key={panchayat.id} className="clickable-row" onClick={() => handlePanchayatClick(panchayat)}>
                       <td className="id-cell">#{panchayat.id}</td>
                       <td className="loksabha-cell">
                         {panchayat.lok_sabha?.loksabha_name || `Lok Sabha ${panchayat.loksabha_id}`}
@@ -510,7 +596,7 @@ const AddPanchayat = () => {
                       <td className="status-cell">{getStatusText(panchayat.panchayat_status)}</td>
                       <td className="created-cell">{new Date(panchayat.created_at).toLocaleDateString()}</td>
                       <td className="updated-cell">{new Date(panchayat.updated_at).toLocaleDateString()}</td>
-                      <td className="actions-cell">
+                      <td className="actions-cell" onClick={(e) => e.stopPropagation()}>
                         <button
                           className="btn-icon btn-edit"
                           onClick={() => handleEdit(panchayat)}
@@ -532,6 +618,10 @@ const AddPanchayat = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            <div className="click-hint">
+              💡 Click on any Panchayat name to add Village constituencies for that Panchayat
             </div>
 
             {/* Pagination */}
@@ -581,7 +671,35 @@ const AddPanchayat = () => {
         <div className="modal-overlay" onClick={handleCancel}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>{isEditing ? 'Edit Panchayat' : 'Add New Panchayat'}</h2>
+              <div className="modal-header-content">
+                <h2>{isEditing ? 'Edit Panchayat' : 'Add New Panchayat'}</h2>
+                {navigationParams && navigationParams.selectedBlockName && (
+                  <div className="selected-block-indicator">
+                    <span className="indicator-label">Selected Block:</span>
+                    <span className="indicator-value">{navigationParams.selectedBlockName}</span>
+                  </div>
+                )}
+                {navigationParams && navigationParams.selectedVidhanSabhaName && (
+                  <div className="selected-vidhan-sabha-indicator">
+                    <span className="indicator-label">Vidhan Sabha:</span>
+                    <span className="indicator-value">{navigationParams.selectedVidhanSabhaName}</span>
+                  </div>
+                )}
+                {navigationParams && navigationParams.selectedLokSabhaName && (
+                  <div className="selected-lok-sabha-indicator">
+                    <span className="indicator-label">Lok Sabha:</span>
+                    <span className="indicator-value">{navigationParams.selectedLokSabhaName}</span>
+                  </div>
+                )}
+                {multipleNames && (
+                  <div className="multiple-names-indicator">
+                    <span className="indicator-label">Multiple Panchayats:</span>
+                    <span className="indicator-value">
+                      {formData.panchayat_name.split(',').filter(name => name.trim().length > 0).length} panchayats will be created
+                    </span>
+                  </div>
+                )}
+              </div>
               <button 
                 className="btn-icon btn-close"
                 onClick={handleCancel}
@@ -667,11 +785,33 @@ const AddPanchayat = () => {
                   name="panchayat_name"
                   value={formData.panchayat_name}
                   onChange={handleInputChange}
-                  placeholder="Enter panchayat name"
+                  placeholder="Enter panchayat name (use comma to add multiple)"
                   required
                   disabled={loading}
                   autoFocus
                 />
+                <div className="form-hint">
+                  💡 You can add multiple panchayats by separating names with commas (e.g., "Panchayat 1, Panchayat 2, Panchayat 3")
+                </div>
+                {multipleNames && (
+                  <div className="names-preview">
+                    <div className="preview-label">Preview of panchayats to be created:</div>
+                    <div className="preview-list">
+                      {formData.panchayat_name.split(',').map((name, index) => {
+                        const trimmedName = name.trim();
+                        if (trimmedName.length > 0) {
+                          return (
+                            <div key={index} className="preview-item">
+                              <span className="preview-number">{index + 1}.</span>
+                              <span className="preview-name">{trimmedName}</span>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
               
                              <div className="form-group">

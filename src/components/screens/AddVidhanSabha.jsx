@@ -10,6 +10,7 @@ import {
   setCurrentPage
 } from '../../store/slices/vidhanSabhaSlice';
 import { fetchLokSabhas } from '../../store/slices/lokSabhaSlice';
+import { setActiveScreen, setActiveScreenWithParams } from '../../store/slices/uiSlice';
 
 // SVG Icons
 const PlusIcon = () => (
@@ -54,6 +55,7 @@ const AddVidhanSabha = () => {
   const dispatch = useDispatch();
   const { vidhanSabhas, loading, error, pagination } = useSelector((state) => state.vidhanSabha);
   const { lokSabhas } = useSelector((state) => state.lokSabha);
+  const { navigationParams } = useSelector((state) => state.ui);
   const token = useSelector((state) => state.auth.token);
   
   const [success, setSuccess] = useState(null);
@@ -66,6 +68,10 @@ const AddVidhanSabha = () => {
     vidhan_status: '1'
   });
   const [search, setSearch] = useState('');
+  
+  // Check if multiple names are entered
+  const multipleNames = formData.vidhansabha_name.includes(',') && 
+    formData.vidhansabha_name.split(',').filter(name => name.trim().length > 0).length > 1;
 
   // Fetch Vidhan Sabhas and Lok Sabhas on component mount and token change
   useEffect(() => {
@@ -74,6 +80,19 @@ const AddVidhanSabha = () => {
       dispatch(fetchLokSabhas(1)); // Fetch all Lok Sabhas for dropdown
     }
   }, [dispatch, token, pagination.current_page]);
+
+  // Handle navigation parameters - auto-open modal with pre-selected Lok Sabha
+  useEffect(() => {
+    if (navigationParams && navigationParams.selectedLokSabhaId) {
+      setFormData(prev => ({
+        ...prev,
+        loksabha_id: navigationParams.selectedLokSabhaId.toString()
+      }));
+      setShowModal(true);
+      // Clear navigation params after using them
+      dispatch(setActiveScreen('add-vidhan-sabha'));
+    }
+  }, [navigationParams, dispatch]);
 
   // Debounced search
   useEffect(() => {
@@ -119,8 +138,28 @@ const AddVidhanSabha = () => {
         await dispatch(updateVidhanSabha({ id: editingId, vidhanSabhaData: formData })).unwrap();
         setSuccess('Vidhan Sabha updated successfully');
       } else {
-        await dispatch(createVidhanSabha(formData)).unwrap();
-        setSuccess('Vidhan Sabha created successfully');
+        // Split names by comma and create multiple records
+        const names = formData.vidhansabha_name.split(',').map(name => name.trim()).filter(name => name.length > 0);
+        
+        if (names.length === 1) {
+          // Single name - create one record
+          await dispatch(createVidhanSabha({
+            ...formData,
+            vidhansabha_name: names[0]
+          })).unwrap();
+          setSuccess('Vidhan Sabha created successfully');
+        } else {
+          // Multiple names - create multiple records
+          const promises = names.map(name => 
+            dispatch(createVidhanSabha({
+              ...formData,
+              vidhansabha_name: name
+            })).unwrap()
+          );
+          
+          await Promise.all(promises);
+          setSuccess(`${names.length} Vidhan Sabha constituencies created successfully`);
+        }
       }
       
       // Refresh the current page
@@ -180,6 +219,18 @@ const AddVidhanSabha = () => {
 
   const handleRefresh = () => {
     dispatch(fetchVidhanSabhas(pagination.current_page));
+  };
+
+  const handleVidhanSabhaClick = (vidhanSabha) => {
+    dispatch(setActiveScreenWithParams({
+      screen: 'add-block',
+      params: { 
+        selectedVidhanSabhaId: vidhanSabha.id, 
+        selectedVidhanSabhaName: vidhanSabha.vidhansabha_name,
+        selectedLokSabhaId: vidhanSabha.loksabha_id,
+        selectedLokSabhaName: vidhanSabha.lok_sabha?.loksabha_name || `Lok Sabha ${vidhanSabha.loksabha_id}`
+      }
+    }));
   };
 
   const handlePageChange = (page) => {
@@ -286,6 +337,9 @@ const AddVidhanSabha = () => {
             <div className="pagination-info">
               Showing {pagination.from || 0} to {pagination.to || 0} of {pagination.total || 0} constituencies
             </div>
+            <div className="click-hint">
+              💡 Click on any Vidhan Sabha name to add Block constituencies for that Vidhan Sabha
+            </div>
           </div>
           <button 
             className="btn btn-secondary refresh-btn"
@@ -332,7 +386,11 @@ const AddVidhanSabha = () => {
                 </thead>
                 <tbody>
                   {Array.isArray(vidhanSabhas) && vidhanSabhas.map((vidhanSabha) => (
-                    <tr key={vidhanSabha.id}>
+                    <tr 
+                      key={vidhanSabha.id}
+                      className="clickable-row"
+                      onClick={() => handleVidhanSabhaClick(vidhanSabha)}
+                    >
                       <td className="id-cell">#{vidhanSabha.id}</td>
                       <td className="loksabha-cell">
                         {vidhanSabha.lok_sabha?.loksabha_name || `Lok Sabha ${vidhanSabha.loksabha_id}`}
@@ -341,7 +399,7 @@ const AddVidhanSabha = () => {
                       <td className="status-cell">{vidhanSabha.vidhan_status === '1' ? 'Active' : 'Inactive'}</td>
                       <td className="created-cell">{new Date(vidhanSabha.created_at).toLocaleDateString()}</td>
                       <td className="updated-cell">{new Date(vidhanSabha.updated_at).toLocaleDateString()}</td>
-                      <td className="actions-cell">
+                      <td className="actions-cell" onClick={(e) => e.stopPropagation()}>
                         <button
                           className="btn-icon btn-edit"
                           onClick={() => handleEdit(vidhanSabha)}
@@ -412,7 +470,23 @@ const AddVidhanSabha = () => {
         <div className="modal-overlay" onClick={handleCancel}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>{isEditing ? 'Edit Vidhan Sabha Constituency' : 'Add New Vidhan Sabha Constituency'}</h2>
+              <div className="modal-header-content">
+                <h2>{isEditing ? 'Edit Vidhan Sabha Constituency' : 'Add New Vidhan Sabha Constituency'}</h2>
+                                 {navigationParams && navigationParams.selectedLokSabhaName && (
+                   <div className="selected-lok-sabha-indicator">
+                     <span className="indicator-label">Selected Lok Sabha:</span>
+                     <span className="indicator-value">{navigationParams.selectedLokSabhaName}</span>
+                   </div>
+                 )}
+                 {multipleNames && (
+                   <div className="multiple-names-indicator">
+                     <span className="indicator-label">Multiple Constituencies:</span>
+                     <span className="indicator-value">
+                       {formData.vidhansabha_name.split(',').filter(name => name.trim().length > 0).length} constituencies will be created
+                     </span>
+                   </div>
+                 )}
+              </div>
               <button 
                 className="btn-icon btn-close"
                 onClick={handleCancel}
@@ -442,20 +516,42 @@ const AddVidhanSabha = () => {
                 </select>
               </div>
               
-              <div className="form-group">
-                <label htmlFor="vidhansabha_name">Vidhan Sabha Name *</label>
-                <input
-                  type="text"
-                  id="vidhansabha_name"
-                  name="vidhansabha_name"
-                  value={formData.vidhansabha_name}
-                  onChange={handleInputChange}
-                  placeholder="Enter Vidhan Sabha name"
-                  required
-                  disabled={loading}
-                  autoFocus
-                />
-              </div>
+                             <div className="form-group">
+                 <label htmlFor="vidhansabha_name">Vidhan Sabha Name *</label>
+                 <input
+                   type="text"
+                   id="vidhansabha_name"
+                   name="vidhansabha_name"
+                   value={formData.vidhansabha_name}
+                   onChange={handleInputChange}
+                   placeholder="Enter Vidhan Sabha name (use comma to add multiple)"
+                   required
+                   disabled={loading}
+                   autoFocus
+                 />
+                 <div className="form-hint">
+                   💡 You can add multiple constituencies by separating names with commas (e.g., "Constituency 1, Constituency 2, Constituency 3")
+                 </div>
+                 {multipleNames && (
+                   <div className="names-preview">
+                     <div className="preview-label">Preview of constituencies to be created:</div>
+                     <div className="preview-list">
+                       {formData.vidhansabha_name.split(',').map((name, index) => {
+                         const trimmedName = name.trim();
+                         if (trimmedName.length > 0) {
+                           return (
+                             <div key={index} className="preview-item">
+                               <span className="preview-number">{index + 1}.</span>
+                               <span className="preview-name">{trimmedName}</span>
+                             </div>
+                           );
+                         }
+                         return null;
+                       })}
+                     </div>
+                   </div>
+                 )}
+               </div>
               
               <div className="form-group">
                 <label htmlFor="vidhan_status">Status</label>

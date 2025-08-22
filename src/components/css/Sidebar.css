@@ -85,6 +85,12 @@
   color: #f9fafb;
 }
 
+.category-header.active {
+  background: #3b82f6;
+  color: #ffffff;
+  border-right: 3px solid #60a5fa;
+}
+
 .category-icon {
   font-size: 18px;
   min-width: 20px;

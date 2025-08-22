@@ -8,6 +8,7 @@ import {
   clearError,
   setCurrentPage
 } from '../../store/slices/lokSabhaSlice';
+import { setActiveScreenWithParams } from '../../store/slices/uiSlice';
 import './css/AddLokSabha.css';
 
 // Icons (using simple SVG icons)
@@ -172,6 +173,13 @@ const AddLokSabha = () => {
     dispatch(fetchLokSabhas(pagination.current_page));
   };
 
+  const handleLokSabhaClick = (lokSabha) => {
+    dispatch(setActiveScreenWithParams({
+      screen: 'add-vidhan-sabha',
+      params: { selectedLokSabhaId: lokSabha.id, selectedLokSabhaName: lokSabha.loksabha_name }
+    }));
+  };
+
   const handlePageChange = (page) => {
     dispatch(setCurrentPage(page));
     dispatch(fetchLokSabhas(page));
@@ -275,12 +283,15 @@ const AddLokSabha = () => {
       {/* Lok Sabha List Section */}
       <div className="lok-sabha-list-section">
         <div className="list-header">
-          <div className="list-header-left">
-            <h2>Lok Sabha Constituencies</h2>
-            <div className="pagination-info">
-              Showing {pagination.from || 0} to {pagination.to || 0} of {pagination.total || 0} constituencies
-            </div>
+                  <div className="list-header-left">
+          <h2>Lok Sabha Constituencies</h2>
+          <div className="pagination-info">
+            Showing {pagination.from || 0} to {pagination.to || 0} of {pagination.total || 0} constituencies
           </div>
+          <div className="click-hint">
+            💡 Click on any Lok Sabha name to add Vidhan Sabha constituencies for that Lok Sabha
+          </div>
+        </div>
           <button 
             className="btn btn-secondary refresh-btn"
             onClick={handleRefresh}
@@ -325,13 +336,17 @@ const AddLokSabha = () => {
                 </thead>
                 <tbody>
                   {filteredLokSabhas.map((lokSabha) => (
-                    <tr key={lokSabha.id}>
+                    <tr 
+                      key={lokSabha.id} 
+                      className="clickable-row"
+                      onClick={() => handleLokSabhaClick(lokSabha)}
+                    >
                       <td className="id-cell">#{lokSabha.id}</td>
                       <td className="name-cell">{lokSabha.loksabha_name}</td>
                       <td className="status-cell">{lokSabha.status === '1' ? 'Active' : 'Inactive'}</td>
                       <td className="created-cell">{new Date(lokSabha.created_at).toLocaleDateString()}</td>
                       <td className="updated-cell">{new Date(lokSabha.updated_at).toLocaleDateString()}</td>
-                      <td className="actions-cell">
+                      <td className="actions-cell" onClick={(e) => e.stopPropagation()}>
                         <button
                           className="btn-icon btn-edit"
                           onClick={() => handleEdit(lokSabha)}

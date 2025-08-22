@@ -49,7 +49,7 @@ const Header = () => {
       <div className="header-left">
         <div className="logo">
           <span className="logo-icon">⚡</span>
-          <span className="logo-text">Election App</span>
+          <span className="logo-text">India Info Speed</span>
         </div>
       </div>
       

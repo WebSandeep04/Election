@@ -148,6 +148,17 @@
   font-size: 0.9rem;
 }
 
+.click-hint {
+  color: #3b82f6;
+  font-size: 0.875rem;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #e6f3ff, #dbeafe);
+  border-radius: 8px;
+  border: 1px solid #3b82f6;
+  font-weight: 500;
+}
+
 .refresh-btn {
   background: linear-gradient(135deg, #4299e1, #3182ce);
   color: white;
@@ -264,6 +275,43 @@
 .modern-table tbody tr:hover {
   background: rgba(102, 126, 234, 0.05);
   transition: background-color 0.2s ease;
+}
+
+.clickable-row {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clickable-row:hover {
+  background: linear-gradient(135deg, #e6f3ff, #dbeafe) !important;
+  transform: scale(1.01);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.clickable-row:hover .name-cell {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+.name-cell {
+  font-weight: 600;
+  color: #2d3748;
+  position: relative;
+}
+
+.name-cell::after {
+  content: '→';
+  position: absolute;
+  right: -20px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #3b82f6;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.clickable-row:hover .name-cell::after {
+  opacity: 1;
 }
 
 /* Table Cell Styles */
@@ -467,10 +515,83 @@
   border-bottom: 1px solid #e2e8f0;
 }
 
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px 30px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-header-content {
+  flex: 1;
+}
+
 .modal-header h2 {
-  margin: 0;
+  margin: 0 0 8px 0;
   color: #2d3748;
   font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.selected-vidhan-sabha-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #e6f3ff, #dbeafe);
+  border-radius: 8px;
+  border: 1px solid #3b82f6;
+  margin-bottom: 8px;
+}
+
+.selected-lok-sabha-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+  border-radius: 8px;
+  border: 1px solid #0ea5e9;
+  margin-bottom: 8px;
+}
+
+.indicator-label {
+  font-size: 0.875rem;
+  color: #374151;
+  font-weight: 500;
+}
+
+.indicator-value {
+  font-size: 0.875rem;
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+.selected-lok-sabha-indicator .indicator-value {
+  color: #0ea5e9;
+}
+
+.multiple-names-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border-radius: 8px;
+  border: 1px solid #f59e0b;
+  margin-top: 8px;
+}
+
+.multiple-names-indicator .indicator-label {
+  font-size: 0.875rem;
+  color: #92400e;
+  font-weight: 500;
+}
+
+.multiple-names-indicator .indicator-value {
+  font-size: 0.875rem;
+  color: #d97706;
   font-weight: 600;
 }
 
@@ -517,6 +638,60 @@
   background: #f7fafc;
   color: #a0aec0;
   cursor: not-allowed;
+}
+
+.form-hint {
+  margin-top: 8px;
+  font-size: 0.875rem;
+  color: #3b82f6;
+  background: linear-gradient(135deg, #e6f3ff, #dbeafe);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #3b82f6;
+  font-weight: 500;
+}
+
+.names-preview {
+  margin-top: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+  border-radius: 8px;
+  border: 1px solid #0ea5e9;
+}
+
+.preview-label {
+  font-size: 0.875rem;
+  color: #0c4a6e;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.preview-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 4px;
+}
+
+.preview-number {
+  font-size: 0.75rem;
+  color: #0ea5e9;
+  font-weight: 600;
+  min-width: 20px;
+}
+
+.preview-name {
+  font-size: 0.875rem;
+  color: #0c4a6e;
+  font-weight: 500;
 }
 
 .form-row {

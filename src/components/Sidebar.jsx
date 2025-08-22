@@ -156,8 +156,14 @@ const Sidebar = () => {
           {visibleMenu.map((category) => (
             <li key={category.id} className="nav-category">
               <button
-                className="category-header"
-                onClick={() => handleCategoryToggle(category.id)}
+                className={`category-header ${category.id === 'dashboard' ? (activeScreen === 'dashboard' ? 'active' : '') : ''}`}
+                onClick={() => {
+                  if (category.id === 'dashboard') {
+                    handleItemClick('dashboard');
+                  } else {
+                    handleCategoryToggle(category.id);
+                  }
+                }}
               >
                 <span className="category-icon">{category.icon}</span>
                 {!sidebarCollapsed && (
