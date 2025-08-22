@@ -12,6 +12,7 @@ import {
 import { fetchLokSabhas } from '../../store/slices/lokSabhaSlice';
 import { fetchVidhanSabhas, fetchVidhanSabhasByLokSabha } from '../../store/slices/vidhanSabhaSlice';
 import { fetchBlocks, fetchBlocksByVidhanSabha } from '../../store/slices/blockSlice';
+import { fetchPanchayatChoosings } from '../../store/slices/panchayatChoosingSlice';
 
 // SVG Icons
 const PlusIcon = () => (
@@ -58,11 +59,38 @@ const AddPanchayat = () => {
   const { lokSabhas } = useSelector((state) => state.lokSabha);
   const { vidhanSabhas } = useSelector((state) => state.vidhanSabha);
   const { blocks } = useSelector((state) => state.block);
+  const { panchayatChoosings } = useSelector((state) => state.panchayatChoosing);
   const token = useSelector((state) => state.auth.token);
   
-  // Debug authentication state
-  console.log('Auth token:', token ? 'Present' : 'Missing');
-  console.log('Auth state:', useSelector((state) => state.auth));
+     // Helper function to get panchayat type display text
+   const getPanchayatTypeText = (type) => {
+     // First try to find by ID in the database options
+     if (Array.isArray(panchayatChoosings)) {
+       const choosingOption = panchayatChoosings.find(option => option.id == type);
+       if (choosingOption) {
+         return choosingOption.name;
+       }
+     }
+     
+     // Fallback to hardcoded values for backward compatibility
+     if (type == 1) return 'Mahanagar Pallika';
+     if (type == 2) return 'Gram Panchayat';
+     return type;
+   };
+  
+  // Helper function to get status display text
+  const getStatusText = (status) => {
+    if (status == 1) return 'Active';
+    if (status == 0) return 'Inactive';
+    return status;
+  };
+  
+     // Debug authentication state
+   console.log('Auth token:', token ? 'Present' : 'Missing');
+   console.log('Auth state:', useSelector((state) => state.auth));
+   console.log('Panchayat choosings from Redux:', panchayatChoosings);
+   console.log('Panchayat choosings is array:', Array.isArray(panchayatChoosings));
+   console.log('Panchayat choosings length:', Array.isArray(panchayatChoosings) ? panchayatChoosings.length : 0);
   
   const [success, setSuccess] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -74,7 +102,7 @@ const AddPanchayat = () => {
     loksabha_id: '',
     vidhansabha_id: '',
     block_id: '',
-    panchayat_choosing: '1',
+    panchayat_choosing: '',
     panchayat_name: '',
     panchayat_status: '1',
     created_at: '',
@@ -82,13 +110,19 @@ const AddPanchayat = () => {
   });
   const [search, setSearch] = useState('');
 
-  // Fetch Panchayats, Lok Sabhas, Vidhan Sabhas, and Blocks on component mount and token change
+  // Fetch Panchayats, Lok Sabhas, Vidhan Sabhas, Blocks, and Choosing options on component mount and token change
   useEffect(() => {
     if (token) {
       dispatch(fetchPanchayats({ page: pagination.current_page, search }));
       dispatch(fetchLokSabhas(1)); // Fetch all Lok Sabhas for dropdown
       dispatch(fetchVidhanSabhas(1)); // Fetch all Vidhan Sabhas for dropdown
       dispatch(fetchBlocks(1)); // Fetch all Blocks for dropdown
+      dispatch(fetchPanchayatChoosings()).then(result => {
+        console.log('Panchayat choosings fetch result:', result);
+        if (result.error) {
+          console.error('Failed to fetch panchayat choosings:', result.error);
+        }
+      });
     }
   }, [dispatch, token, pagination.current_page]);
 
@@ -196,12 +230,13 @@ const AddPanchayat = () => {
     console.log('Is Editing:', isEditing);
     console.log('Editing ID:', editingId);
     
-    if (!formData.panchayat_name.trim() || !formData.loksabha_id || !formData.vidhansabha_id || !formData.block_id) {
+    if (!formData.panchayat_name.trim() || !formData.loksabha_id || !formData.vidhansabha_id || !formData.block_id || !formData.panchayat_choosing) {
       console.error('Form validation failed:', {
         panchayat_name: formData.panchayat_name,
         loksabha_id: formData.loksabha_id,
         vidhansabha_id: formData.vidhansabha_id,
-        block_id: formData.block_id
+        block_id: formData.block_id,
+        panchayat_choosing: formData.panchayat_choosing
       });
       return;
     }
@@ -209,17 +244,23 @@ const AddPanchayat = () => {
     // Set timestamps
     const now = new Date().toISOString();
     
-    // Clean and validate the data
-    const submitData = {
-      loksabha_id: parseInt(formData.loksabha_id) || formData.loksabha_id,
-      vidhansabha_id: parseInt(formData.vidhansabha_id) || formData.vidhansabha_id,
-      block_id: parseInt(formData.block_id) || formData.block_id,
-      panchayat_choosing: formData.panchayat_choosing,
-      panchayat_name: formData.panchayat_name.trim(),
-      panchayat_status: formData.panchayat_status,
-      created_at: isEditing ? formData.created_at : now,
-      updated_at: now
-    };
+         // Get the panchayat choosing name from the selected ID
+     const selectedChoosing = Array.isArray(panchayatChoosings) 
+       ? panchayatChoosings.find(option => option.id == formData.panchayat_choosing)
+       : null;
+     
+     // Clean and validate the data
+     const submitData = {
+       loksabha_id: parseInt(formData.loksabha_id) || formData.loksabha_id,
+       vidhansabha_id: parseInt(formData.vidhansabha_id) || formData.vidhansabha_id,
+       block_id: parseInt(formData.block_id) || formData.block_id,
+       panchayat_choosing_id: parseInt(formData.panchayat_choosing) || formData.panchayat_choosing,
+       panchayat_choosing: selectedChoosing ? selectedChoosing.name : formData.panchayat_choosing,
+       panchayat_name: formData.panchayat_name.trim(),
+       panchayat_status: formData.panchayat_status,
+       created_at: isEditing ? formData.created_at : now,
+       updated_at: now
+     };
 
     console.log('Submit Data:', submitData);
     console.log('Data types:', {
@@ -256,17 +297,17 @@ const AddPanchayat = () => {
     }
   };
 
-  const handleEdit = (panchayat) => {
-    setFormData({
-      loksabha_id: panchayat.loksabha_id || '',
-      vidhansabha_id: panchayat.vidhansabha_id || '',
-      block_id: panchayat.block_id || '',
-      panchayat_choosing: panchayat.panchayat_choosing || '1',
-      panchayat_name: panchayat.panchayat_name || '',
-      panchayat_status: panchayat.panchayat_status || '1',
-      created_at: panchayat.created_at || '',
-      updated_at: panchayat.updated_at || ''
-    });
+     const handleEdit = (panchayat) => {
+     setFormData({
+       loksabha_id: panchayat.loksabha_id || '',
+       vidhansabha_id: panchayat.vidhansabha_id || '',
+       block_id: panchayat.block_id || '',
+       panchayat_choosing: panchayat.panchayat_choosing_id || panchayat.panchayat_choosing || '',
+       panchayat_name: panchayat.panchayat_name || '',
+       panchayat_status: panchayat.panchayat_status || '1',
+       created_at: panchayat.created_at || '',
+       updated_at: panchayat.updated_at || ''
+     });
     
     // If editing, fetch related Vidhan Sabhas for the selected Lok Sabha
     if (panchayat.loksabha_id) {
@@ -324,7 +365,7 @@ const AddPanchayat = () => {
       loksabha_id: '',
       vidhansabha_id: '',
       block_id: '',
-      panchayat_choosing: '1',
+      panchayat_choosing: '',
       panchayat_name: '',
       panchayat_status: '1',
       created_at: '',
@@ -353,6 +394,35 @@ const AddPanchayat = () => {
       console.log('Test response data:', data);
     } catch (error) {
       console.error('Test API error:', error);
+    }
+  };
+
+  // Test Panchayat Choosing API connection
+  const testPanchayatChoosingApi = async () => {
+    try {
+      console.log('Testing Panchayat Choosing API connection...');
+      const response = await fetch('http://localhost:8000/api/panchayat-choosings', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      console.log('Panchayat Choosing Test response status:', response.status);
+      console.log('Panchayat Choosing Test response headers:', Object.fromEntries(response.headers.entries()));
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Panchayat Choosing Test response data:', data);
+        alert('✅ Panchayat Choosing API Test Successful! Check console for details.');
+      } else {
+        const errorText = await response.text();
+        console.error('Panchayat Choosing Test API Error Response:', errorText);
+        alert(`❌ Panchayat Choosing API Test Failed! Status: ${response.status}. Check console for details.`);
+      }
+    } catch (error) {
+      console.error('Panchayat Choosing Test API error:', error);
+      alert(`❌ Panchayat Choosing API Test Error: ${error.message}`);
     }
   };
 
@@ -473,6 +543,20 @@ const AddPanchayat = () => {
            </button>
            <button 
              className="btn btn-secondary test-btn"
+             onClick={testPanchayatChoosingApi}
+             disabled={loading}
+           >
+             Test Choosing API
+           </button>
+           <button 
+             className="btn btn-secondary test-btn"
+             onClick={() => dispatch(fetchPanchayatChoosings())}
+             disabled={loading}
+           >
+             Refresh Choosing Options
+           </button>
+           <button 
+             className="btn btn-secondary test-btn"
              onClick={testPanchayatCreation}
              disabled={loading}
            >
@@ -586,11 +670,9 @@ const AddPanchayat = () => {
                       </td>
                       <td className="name-cell">{panchayat.panchayat_name}</td>
                       <td className="choosing-cell">
-                        {panchayat.panchayat_choosing === '1' ? 'Mahanagar Pallika' : 
-                         panchayat.panchayat_choosing === '2' ? 'Gram Panchayat' : 
-                         panchayat.panchayat_choosing}
+                        {getPanchayatTypeText(panchayat.panchayat_choosing)}
                       </td>
-                      <td className="status-cell">{panchayat.panchayat_status === '1' ? 'Active' : 'Inactive'}</td>
+                      <td className="status-cell">{getStatusText(panchayat.panchayat_status)}</td>
                       <td className="created-cell">{new Date(panchayat.created_at).toLocaleDateString()}</td>
                       <td className="updated-cell">{new Date(panchayat.updated_at).toLocaleDateString()}</td>
                       <td className="actions-cell">
@@ -757,19 +839,28 @@ const AddPanchayat = () => {
                 />
               </div>
               
-              <div className="form-group">
-                <label htmlFor="panchayat_choosing">Panchayat Type</label>
-                <select
-                  id="panchayat_choosing"
-                  name="panchayat_choosing"
-                  value={formData.panchayat_choosing}
-                  onChange={handleInputChange}
-                  disabled={loading}
-                >
-                  <option value="1">Mahanagar Pallika</option>
-                  <option value="2">Gram Panchayat</option>
-                </select>
-              </div>
+                             <div className="form-group">
+                 <label htmlFor="panchayat_choosing">Panchayat Type</label>
+                 <select
+                   id="panchayat_choosing"
+                   name="panchayat_choosing"
+                   value={formData.panchayat_choosing}
+                   onChange={handleInputChange}
+                   disabled={loading}
+                 >
+                   <option value="">Select Panchayat Type</option>
+                   {Array.isArray(panchayatChoosings) && panchayatChoosings.map((option) => (
+                     <option key={option.id} value={option.id}>
+                       {option.name}
+                     </option>
+                   ))}
+                 </select>
+                 {(!Array.isArray(panchayatChoosings) || panchayatChoosings.length === 0) && (
+                   <small style={{color: 'orange'}}>
+                     Loading panchayat types from database...
+                   </small>
+                 )}
+               </div>
               
               <div className="form-group">
                 <label htmlFor="panchayat_status">Status</label>
@@ -824,7 +915,7 @@ const AddPanchayat = () => {
                 <button 
                   type="submit" 
                   className="btn btn-primary"
-                  disabled={loading || !formData.panchayat_name.trim() || !formData.loksabha_id || !formData.vidhansabha_id || !formData.block_id}
+                  disabled={loading || !formData.panchayat_name.trim() || !formData.loksabha_id || !formData.vidhansabha_id || !formData.block_id || !formData.panchayat_choosing}
                 >
                   {loading ? 'Processing...' : (isEditing ? 'Update Panchayat' : 'Create Panchayat')}
                 </button>
@@ -854,6 +945,8 @@ const AddPanchayat = () => {
         <p><strong>API Base URL:</strong> {import.meta.env.VITE_API_URL || 'http://localhost:8000'}</p>
         <p><strong>Authentication:</strong> {token ? '✅ Token Present' : '❌ Token Missing'}</p>
         <p><strong>Token Preview:</strong> {token ? `${token.substring(0, 20)}...` : 'None'}</p>
+                 <p><strong>Panchayat Choosings:</strong> {Array.isArray(panchayatChoosings) ? panchayatChoosings.length : 0} options loaded</p>
+         <p><strong>Choosing Options:</strong> {Array.isArray(panchayatChoosings) ? panchayatChoosings.map(opt => opt.name).join(', ') : 'None'}</p>
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ import { fetchLokSabhas } from '../../store/slices/lokSabhaSlice';
 import { fetchVidhanSabhas, fetchVidhanSabhasByLokSabha } from '../../store/slices/vidhanSabhaSlice';
 import { fetchBlocks, fetchBlocksByVidhanSabha } from '../../store/slices/blockSlice';
 import { fetchPanchayats, fetchPanchayatsByBlock } from '../../store/slices/panchayatSlice';
+import { fetchVillageChoosings } from '../../store/slices/villageChoosingSlice';
 import { API_CONFIG, getApiUrl } from '../../config/api';
 
 // SVG Icons
@@ -57,11 +58,38 @@ const AddVillage = () => {
   const { vidhanSabhas } = useSelector((state) => state.vidhanSabha);
   const { blocks } = useSelector((state) => state.block);
   const { panchayats } = useSelector((state) => state.panchayat);
+  const { villageChoosings } = useSelector((state) => state.villageChoosing);
   const token = useSelector((state) => state.auth.token);
+  
+  // Helper function to get village type display text
+  const getVillageTypeText = (type) => {
+    // First try to find by ID in the database options
+    if (Array.isArray(villageChoosings)) {
+      const choosingOption = villageChoosings.find(option => option.id == type);
+      if (choosingOption) {
+        return choosingOption.name;
+      }
+    }
+    
+    // Fallback to hardcoded values for backward compatibility
+    if (type == 1) return 'Ward';
+    if (type == 2) return 'Village';
+    return type;
+  };
+  
+  // Helper function to get status display text
+  const getStatusText = (status) => {
+    if (status == 1) return 'Active';
+    if (status == 0) return 'Inactive';
+    return status;
+  };
   
   // Debug authentication state
   console.log('Auth token:', token ? 'Present' : 'Missing');
   console.log('Auth state:', useSelector((state) => state.auth));
+  console.log('Village choosings from Redux:', villageChoosings);
+  console.log('Village choosings is array:', Array.isArray(villageChoosings));
+  console.log('Village choosings length:', Array.isArray(villageChoosings) ? villageChoosings.length : 0);
   
   const [success, setSuccess] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -75,7 +103,7 @@ const AddVillage = () => {
     vidhansabha_id: '',
     block_id: '',
     panchayat_id: '',
-    village_choosing: '2',
+    village_choosing: '',
     village_name: '',
     village_status: '1',
     created_at: '',
@@ -91,6 +119,7 @@ const AddVillage = () => {
       dispatch(fetchVidhanSabhas(1)); // Fetch all Vidhan Sabhas for dropdown
       dispatch(fetchBlocks(1)); // Fetch all Blocks for dropdown
       dispatch(fetchPanchayats(1)); // Fetch all Panchayats for dropdown
+      dispatch(fetchVillageChoosings()); // Fetch village choosing options
     }
   }, [dispatch, token, pagination.current_page]);
 
@@ -237,13 +266,14 @@ const AddVillage = () => {
     console.log('Is Editing:', isEditing);
     console.log('Editing ID:', editingId);
     
-    if (!formData.village_name.trim() || !formData.loksabha_id || !formData.vidhansabha_id || !formData.block_id || !formData.panchayat_id) {
+    if (!formData.village_name.trim() || !formData.loksabha_id || !formData.vidhansabha_id || !formData.block_id || !formData.panchayat_id || !formData.village_choosing) {
       console.error('Form validation failed:', {
         village_name: formData.village_name,
         loksabha_id: formData.loksabha_id,
         vidhansabha_id: formData.vidhansabha_id,
         block_id: formData.block_id,
-        panchayat_id: formData.panchayat_id
+        panchayat_id: formData.panchayat_id,
+        village_choosing: formData.village_choosing
       });
       return;
     }
@@ -251,18 +281,24 @@ const AddVillage = () => {
     // Set timestamps
     const now = new Date().toISOString();
     
-    // Clean and validate the data
-    const submitData = {
-      loksabha_id: parseInt(formData.loksabha_id) || formData.loksabha_id,
-      vidhansabha_id: parseInt(formData.vidhansabha_id) || formData.vidhansabha_id,
-      block_id: parseInt(formData.block_id) || formData.block_id,
-      panchayat_id: parseInt(formData.panchayat_id) || formData.panchayat_id,
-      village_choosing: formData.village_choosing,
-      village_name: formData.village_name.trim(),
-      village_status: formData.village_status,
-      created_at: isEditing ? formData.created_at : now,
-      updated_at: now
-    };
+         // Get the village choosing name from the selected ID
+     const selectedChoosing = Array.isArray(villageChoosings) 
+       ? villageChoosings.find(option => option.id == formData.village_choosing)
+       : null;
+     
+     // Clean and validate the data
+     const submitData = {
+       loksabha_id: parseInt(formData.loksabha_id) || formData.loksabha_id,
+       vidhansabha_id: parseInt(formData.vidhansabha_id) || formData.vidhansabha_id,
+       block_id: parseInt(formData.block_id) || formData.block_id,
+       panchayat_id: parseInt(formData.panchayat_id) || formData.panchayat_id,
+       village_choosing_id: parseInt(formData.village_choosing) || formData.village_choosing,
+       village_choosing: selectedChoosing ? selectedChoosing.name : formData.village_choosing,
+       village_name: formData.village_name.trim(),
+       village_status: formData.village_status,
+       created_at: isEditing ? formData.created_at : now,
+       updated_at: now
+     };
 
     console.log('Submit Data:', submitData);
     console.log('Data types:', {
@@ -298,18 +334,18 @@ const AddVillage = () => {
     }
   };
 
-  const handleEdit = (village) => {
-    setFormData({
-      loksabha_id: village.loksabha_id || '',
-      vidhansabha_id: village.vidhansabha_id || '',
-      block_id: village.block_id || '',
-      panchayat_id: village.panchayat_id || '',
-      village_choosing: village.village_choosing || '2',
-      village_name: village.village_name || '',
-      village_status: village.village_status || '1',
-      created_at: village.created_at || '',
-      updated_at: village.updated_at || ''
-    });
+     const handleEdit = (village) => {
+     setFormData({
+       loksabha_id: village.loksabha_id || '',
+       vidhansabha_id: village.vidhansabha_id || '',
+       block_id: village.block_id || '',
+       panchayat_id: village.panchayat_id || '',
+       village_choosing: village.village_choosing_id || village.village_choosing || '',
+       village_name: village.village_name || '',
+       village_status: village.village_status || '1',
+       created_at: village.created_at || '',
+       updated_at: village.updated_at || ''
+     });
     
     // If editing, fetch related Vidhan Sabhas for the selected Lok Sabha
     if (village.loksabha_id) {
@@ -375,7 +411,7 @@ const AddVillage = () => {
       vidhansabha_id: '',
       block_id: '',
       panchayat_id: '',
-      village_choosing: '2',
+      village_choosing: '',
       village_name: '',
       village_status: '1',
       created_at: '',
@@ -425,6 +461,35 @@ const AddVillage = () => {
     }
   };
 
+  // Test Village Choosing API connection
+  const testVillageChoosingApi = async () => {
+    try {
+      console.log('Testing Village Choosing API connection...');
+      const response = await fetch('http://localhost:8000/api/village-choosings', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      console.log('Village Choosing Test response status:', response.status);
+      console.log('Village Choosing Test response headers:', Object.fromEntries(response.headers.entries()));
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Village Choosing Test response data:', data);
+        alert('✅ Village Choosing API Test Successful! Check console for details.');
+      } else {
+        const errorText = await response.text();
+        console.error('Village Choosing Test API Error Response:', errorText);
+        alert(`❌ Village Choosing API Test Failed! Status: ${response.status}. Check console for details.`);
+      }
+    } catch (error) {
+      console.error('Village Choosing Test API error:', error);
+      alert(`❌ Village Choosing API Test Error: ${error.message}`);
+    }
+  };
+
   return (
     <div className="village-management">
       {/* Header */}
@@ -441,6 +506,20 @@ const AddVillage = () => {
           >
             <RefreshIcon />
             Test API
+          </button>
+          <button 
+            className="btn btn-secondary test-btn"
+            onClick={testVillageChoosingApi}
+            disabled={loading}
+          >
+            Test Choosing API
+          </button>
+          <button 
+            className="btn btn-secondary test-btn"
+            onClick={() => dispatch(fetchVillageChoosings())}
+            disabled={loading}
+          >
+            Refresh Choosing Options
           </button>
           <button 
             className="btn btn-primary add-btn"
@@ -558,13 +637,11 @@ const AddVillage = () => {
                       {village.panchayat?.panchayat_name || 'N/A'}
                     </td>
                     <td className="type-cell">
-                      {village.village_choosing === '1' ? 'Ward' : 
-                       village.village_choosing === '2' ? 'Village' : 
-                       village.village_choosing}
+                      {getVillageTypeText(village.village_choosing)}
                     </td>
                     <td className="name-cell">{village.village_name}</td>
                     <td className="status-cell">
-                      {village.village_status === '1' ? 'Active' : 'Inactive'}
+                      {getStatusText(village.village_status)}
                     </td>
                     <td className="created-cell">
                       {new Date(village.created_at).toLocaleDateString()}
@@ -746,9 +823,18 @@ const AddVillage = () => {
                     required
                     disabled={loading}
                   >
-                    <option value="1">Ward</option>
-                    <option value="2">Village</option>
+                    <option value="">Select Village Type</option>
+                    {Array.isArray(villageChoosings) && villageChoosings.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.name}
+                      </option>
+                    ))}
                   </select>
+                  {(!Array.isArray(villageChoosings) || villageChoosings.length === 0) && (
+                    <small style={{color: 'orange'}}>
+                      Loading village types from database...
+                    </small>
+                  )}
                 </div>
                 <div className="form-group">
                   <label htmlFor="village_status">Status</label>
@@ -821,7 +907,7 @@ const AddVillage = () => {
                 <button 
                   type="submit" 
                   className="btn btn-primary"
-                  disabled={loading || !formData.village_name.trim() || !formData.loksabha_id || !formData.vidhansabha_id || !formData.block_id || !formData.panchayat_id}
+                  disabled={loading || !formData.village_name.trim() || !formData.loksabha_id || !formData.vidhansabha_id || !formData.block_id || !formData.panchayat_id || !formData.village_choosing}
                 >
                   {loading ? 'Processing...' : (isEditing ? 'Update Village' : 'Create Village')}
                 </button>

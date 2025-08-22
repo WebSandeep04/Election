@@ -18,7 +18,9 @@ export const API_CONFIG = {
 		VIDHAN_SABHA: '/api/vidhan-sabhas',
 		BLOCK: '/api/blocks',
 		PANCHAYAT: '/api/panchayats',
+		PANCHAYAT_CHOOSING: '/api/panchayat-choosings', // Added for Panchayat Choosing
 		VILLAGE: '/api/villages', // Added for Village
+		VILLAGE_CHOOSING: '/api/village-choosings', // Added for Village Choosing
 		BOOTH: '/api/booths', // Added for Booth
 		FORMS: '/api/forms', // Added for Forms
 		ROLES: '/api/roles', // Added for Roles

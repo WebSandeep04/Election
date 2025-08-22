@@ -8,7 +8,9 @@ import lokSabhaReducer from './slices/lokSabhaSlice';
 import vidhanSabhaReducer from './slices/vidhanSabhaSlice';
 import blockReducer from './slices/blockSlice';
 import panchayatReducer from './slices/panchayatSlice';
+import panchayatChoosingReducer from './slices/panchayatChoosingSlice'; // Added for Panchayat Choosing
 import villageReducer from './slices/villageSlice'; // Added for Village
+import villageChoosingReducer from './slices/villageChoosingSlice'; // Added for Village Choosing
 import boothReducer from './slices/boothSlice'; // Added for Booth
 import formReducer from './slices/formSlice'; // Added for Forms
 import employeeTypeReducer from './slices/employeeTypeSlice'; // Added for Employee Types
@@ -31,7 +33,9 @@ export const store = configureStore({
     vidhanSabha: vidhanSabhaReducer,
     block: blockReducer,
     panchayat: panchayatReducer,
+    panchayatChoosing: panchayatChoosingReducer, // Added for Panchayat Choosing
     village: villageReducer, // Added for Village
+    villageChoosing: villageChoosingReducer, // Added for Village Choosing
     booth: boothReducer, // Added for Booth
     forms: formReducer, // Added for Forms
     employeeTypes: employeeTypeReducer, // Added for Employee Types

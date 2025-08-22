@@ -10,6 +10,8 @@ import { fetchVidhanSabhas, fetchVidhanSabhasByLokSabha } from '../../store/slic
 import { fetchBlocks, fetchBlocksByVidhanSabha } from '../../store/slices/blockSlice';
 import { fetchPanchayats, fetchPanchayatsByBlock } from '../../store/slices/panchayatSlice';
 import { fetchVillages, fetchVillagesByPanchayat } from '../../store/slices/villageSlice';
+import { fetchVillageChoosings } from '../../store/slices/villageChoosingSlice';
+import { fetchPanchayatChoosings } from '../../store/slices/panchayatChoosingSlice';
 import { API_CONFIG, getApiUrl } from '../../config/api';
 
 // SVG Icons
@@ -59,7 +61,41 @@ const AddBooth = () => {
   const { blocks } = useSelector((state) => state.block);
   const { panchayats } = useSelector((state) => state.panchayat);
   const { villages } = useSelector((state) => state.village);
+  const { villageChoosings } = useSelector((state) => state.villageChoosing);
+  const { panchayatChoosings } = useSelector((state) => state.panchayatChoosing);
   const token = useSelector((state) => state.auth.token);
+  
+  // Helper function to get village type display text
+  const getVillageTypeText = (type) => {
+    // First try to find by ID in the database options
+    if (Array.isArray(villageChoosings)) {
+      const choosingOption = villageChoosings.find(option => option.id == type);
+      if (choosingOption) {
+        return choosingOption.name;
+      }
+    }
+    
+    // Fallback to hardcoded values for backward compatibility
+    if (type == 1) return 'Ward';
+    if (type == 2) return 'Village';
+    return type;
+  };
+
+  // Helper function to get panchayat type display text
+  const getPanchayatTypeText = (type) => {
+    // First try to find by ID in the database options
+    if (Array.isArray(panchayatChoosings)) {
+      const choosingOption = panchayatChoosings.find(option => option.id == type);
+      if (choosingOption) {
+        return choosingOption.name;
+      }
+    }
+    
+    // Fallback to hardcoded values for backward compatibility
+    if (type == 1) return 'Mahanagar Pallika';
+    if (type == 2) return 'Gram Panchayat';
+    return type;
+  };
   
   // Debug authentication state
   console.log('Auth token:', token ? 'Present' : 'Missing');
@@ -78,8 +114,9 @@ const AddBooth = () => {
     vidhansabha_id: '',
     block_id: '',
     panchayat_id: '',
+    panchayat_choosing: '',
     village_id: '',
-    village_choosing: '2',
+    village_choosing: '',
     booth_name: '',
     booth_status: '1',
     created_at: '',
@@ -96,6 +133,8 @@ const AddBooth = () => {
       dispatch(fetchBlocks(1)); // Fetch all Blocks for dropdown
       dispatch(fetchPanchayats(1)); // Fetch all Panchayats for dropdown
       dispatch(fetchVillages(1)); // Fetch all Villages for dropdown
+      dispatch(fetchVillageChoosings()); // Fetch village choosing options
+      dispatch(fetchPanchayatChoosings()); // Fetch panchayat choosing options
     }
   }, [dispatch, token, pagination.current_page]);
 
@@ -217,13 +256,33 @@ const AddBooth = () => {
     const panchayatId = e.target.value;
     console.log('Panchayat selected:', panchayatId);
     
-    setFormData(prev => ({
-      ...prev,
-      panchayat_id: panchayatId,
-      village_id: '' // Reset Village selection
-    }));
-
     if (panchayatId) {
+      // Find the selected panchayat from filtered panchayats
+      const selectedPanchayat = filteredPanchayats.find(panchayat => panchayat.id == panchayatId);
+      
+      if (selectedPanchayat) {
+        console.log('Selected panchayat data:', selectedPanchayat);
+        
+        // Automatically set the panchayat type based on the selected panchayat's choosing value
+        const panchayatType = selectedPanchayat.panchayat_choosing_id || selectedPanchayat.panchayat_choosing;
+        
+        setFormData(prev => ({
+          ...prev,
+          panchayat_id: panchayatId,
+          panchayat_choosing: panchayatType || '', // Default to empty if not found
+          village_id: '' // Reset Village selection
+        }));
+        
+        console.log('Automatically set panchayat type to:', panchayatType);
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          panchayat_id: panchayatId,
+          panchayat_choosing: '',
+          village_id: '' // Reset Village selection
+        }));
+      }
+
       try {
         console.log('Fetching Villages for Panchayat ID:', panchayatId);
         const result = await dispatch(fetchVillagesByPanchayat(panchayatId));
@@ -238,8 +297,46 @@ const AddBooth = () => {
         setFilteredVillages([]);
       }
     } else {
+      setFormData(prev => ({
+        ...prev,
+        panchayat_id: '',
+        panchayat_choosing: '',
+        village_id: ''
+      }));
       setFilteredVillages([]);
       console.log('No Panchayat selected, cleared filtered Villages');
+    }
+  };
+
+  // Handle Village selection and automatically set village type
+  const handleVillageChange = (e) => {
+    const villageId = e.target.value;
+    console.log('Village selected:', villageId);
+    
+    if (villageId) {
+      // Find the selected village from filtered villages
+      const selectedVillage = filteredVillages.find(village => village.id == villageId);
+      
+      if (selectedVillage) {
+        console.log('Selected village data:', selectedVillage);
+        
+        // Automatically set the village type based on the selected village's choosing value
+        const villageType = selectedVillage.village_choosing_id || selectedVillage.village_choosing;
+        
+        setFormData(prev => ({
+          ...prev,
+          village_id: villageId,
+          village_choosing: villageType || '' // Default to empty if not found
+        }));
+        
+        console.log('Automatically set village type to:', villageType);
+      }
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        village_id: '',
+        village_choosing: '' // Reset to empty
+      }));
     }
   };
 
@@ -274,13 +371,66 @@ const AddBooth = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    console.log('=== BOOTH FORM SUBMISSION ===');
+    console.log('Form Data:', formData);
+    console.log('Is Editing:', isEditing);
+    console.log('Editing ID:', editingId);
+    
+    if (!formData.booth_name.trim() || !formData.loksabha_id || !formData.vidhansabha_id || !formData.block_id || !formData.panchayat_id || !formData.panchayat_choosing || !formData.village_id || !formData.village_choosing) {
+      console.error('Form validation failed:', {
+        booth_name: formData.booth_name,
+        loksabha_id: formData.loksabha_id,
+        vidhansabha_id: formData.vidhansabha_id,
+        block_id: formData.block_id,
+        panchayat_id: formData.panchayat_id,
+        panchayat_choosing: formData.panchayat_choosing,
+        village_id: formData.village_id,
+        village_choosing: formData.village_choosing
+      });
+      return;
+    }
+
     // Set timestamps
     const now = new Date().toISOString();
+    
+    // Get the village choosing name from the selected ID
+    const selectedChoosing = Array.isArray(villageChoosings) 
+      ? villageChoosings.find(option => option.id == formData.village_choosing)
+      : null;
+    
+    // Get the panchayat choosing name from the selected ID
+    const selectedPanchayatChoosing = Array.isArray(panchayatChoosings) 
+      ? panchayatChoosings.find(option => option.id == formData.panchayat_choosing)
+      : null;
+    
+    // Clean and validate the data
     const submitData = {
-      ...formData,
+      loksabha_id: parseInt(formData.loksabha_id) || formData.loksabha_id,
+      vidhansabha_id: parseInt(formData.vidhansabha_id) || formData.vidhansabha_id,
+      block_id: parseInt(formData.block_id) || formData.block_id,
+      panchayat_id: parseInt(formData.panchayat_id) || formData.panchayat_id,
+      panchayat_choosing_id: parseInt(formData.panchayat_choosing) || formData.panchayat_choosing,
+      panchayat_choosing: selectedPanchayatChoosing ? selectedPanchayatChoosing.name : formData.panchayat_choosing,
+      village_id: parseInt(formData.village_id) || formData.village_id,
+      village_choosing_id: parseInt(formData.village_choosing) || formData.village_choosing,
+      village_choosing: selectedChoosing ? selectedChoosing.name : formData.village_choosing,
+      booth_name: formData.booth_name.trim(),
+      booth_status: formData.booth_status,
       created_at: isEditing ? formData.created_at : now,
       updated_at: now
     };
+
+    console.log('Submit Data:', submitData);
+    console.log('Data types:', {
+      loksabha_id: typeof submitData.loksabha_id,
+      vidhansabha_id: typeof submitData.vidhansabha_id,
+      block_id: typeof submitData.block_id,
+      panchayat_id: typeof submitData.panchayat_id,
+      village_id: typeof submitData.village_id,
+      village_choosing: typeof submitData.village_choosing,
+      booth_name: typeof submitData.booth_name,
+      booth_status: typeof submitData.booth_status
+    });
     
     try {
       if (isEditing) {
@@ -303,8 +453,9 @@ const AddBooth = () => {
       vidhansabha_id: booth.vidhansabha_id || '',
       block_id: booth.block_id || '',
       panchayat_id: booth.panchayat_id || '',
+      panchayat_choosing: booth.panchayat_choosing_id || booth.panchayat_choosing || '',
       village_id: booth.village_id || '',
-      village_choosing: booth.village_choosing || '2',
+      village_choosing: booth.village_choosing_id || booth.village_choosing || '',
       booth_name: booth.booth_name || '',
       booth_status: booth.booth_status || '1',
       created_at: booth.created_at || '',
@@ -389,8 +540,9 @@ const AddBooth = () => {
       vidhansabha_id: '',
       block_id: '',
       panchayat_id: '',
+      panchayat_choosing: '',
       village_id: '',
-      village_choosing: '2',
+      village_choosing: '',
       booth_name: '',
       booth_status: '1',
       created_at: '',
@@ -549,8 +701,9 @@ const AddBooth = () => {
                   <th>Vidhan Sabha</th>
                   <th>Block</th>
                   <th>Panchayat</th>
+                  <th>Panchayat Type</th>
                   <th>Village</th>
-                  <th>Type</th>
+                  <th>Village Type</th>
                   <th>Booth Name</th>
                   <th>Status</th>
                   <th>Created At</th>
@@ -574,13 +727,14 @@ const AddBooth = () => {
                     <td className="panchayat-cell">
                       {booth.panchayat?.panchayat_name || 'N/A'}
                     </td>
-                                         <td className="village-cell">
+                    <td className="panchayat-type-cell">
+                      {booth.panchayat_choosing_data?.name || getPanchayatTypeText(booth.panchayat_choosing_id || booth.panchayat_choosing)}
+                    </td>
+                    <td className="village-cell">
                        {booth.village?.village_name || 'N/A'}
                      </td>
-                     <td className="type-cell">
-                       {booth.village_choosing === '1' ? 'Ward' : 
-                        booth.village_choosing === '2' ? 'Village' : 
-                        booth.village_choosing}
+                     <td className="village-type-cell">
+                       {booth.village_choosing_data?.name || getVillageTypeText(booth.village_choosing_id || booth.village_choosing)}
                      </td>
                      <td className="name-cell">{booth.booth_name}</td>
                     <td className="status-cell">
@@ -753,6 +907,29 @@ const AddBooth = () => {
                     ))}
                   </select>
                 </div>
+                <div className="form-group">
+                  <label htmlFor="panchayat_choosing">Panchayat Type *</label>
+                  <select
+                    id="panchayat_choosing"
+                    name="panchayat_choosing"
+                    value={formData.panchayat_choosing}
+                    onChange={handleInputChange}
+                    required
+                    disabled={loading}
+                  >
+                    <option value="">Select Panchayat Type</option>
+                    {Array.isArray(panchayatChoosings) && panchayatChoosings.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.name}
+                      </option>
+                    ))}
+                  </select>
+                  {(!Array.isArray(panchayatChoosings) || panchayatChoosings.length === 0) && (
+                    <small style={{color: 'orange'}}>
+                      Loading panchayat types from database...
+                    </small>
+                  )}
+                </div>
               </div>
 
                              <div className="form-row">
@@ -762,7 +939,7 @@ const AddBooth = () => {
                      id="village_id"
                      name="village_id"
                      value={formData.village_id}
-                     onChange={handleInputChange}
+                     onChange={handleVillageChange}
                      required
                      disabled={loading || !formData.panchayat_id}
                    >
@@ -789,9 +966,18 @@ const AddBooth = () => {
                      required
                      disabled={loading}
                    >
-                     <option value="1">Ward</option>
-                     <option value="2">Village</option>
+                     <option value="">Select Village Type</option>
+                     {Array.isArray(villageChoosings) && villageChoosings.map((option) => (
+                       <option key={option.id} value={option.id}>
+                         {option.name}
+                       </option>
+                     ))}
                    </select>
+                   {(!Array.isArray(villageChoosings) || villageChoosings.length === 0) && (
+                     <small style={{color: 'orange'}}>
+                       Loading village types from database...
+                     </small>
+                   )}
                  </div>
                </div>
 
@@ -864,7 +1050,7 @@ const AddBooth = () => {
                 <button 
                   type="submit" 
                   className="btn btn-primary"
-                  disabled={loading || !formData.booth_name.trim() || !formData.loksabha_id || !formData.vidhansabha_id || !formData.block_id || !formData.panchayat_id || !formData.village_id}
+                  disabled={loading || !formData.booth_name.trim() || !formData.loksabha_id || !formData.vidhansabha_id || !formData.block_id || !formData.panchayat_id || !formData.panchayat_choosing || !formData.village_id || !formData.village_choosing}
                 >
                   {loading ? 'Processing...' : (isEditing ? 'Update Booth' : 'Create Booth')}
                 </button>
