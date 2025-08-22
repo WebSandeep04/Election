@@ -232,16 +232,3 @@ export const ROLE_PERMISSIONS = {
     SIDEBAR_PERMISSIONS.BOOTHS
   ]
 };
-
-/**
- * Debug helper to log user permissions
- * @param {Object} user - User object
- */
-export const debugUserPermissions = (user) => {
-  console.log('=== User Permission Debug ===');
-  console.log('User:', user?.name || 'Unknown');
-  console.log('Role:', getUserRoleName(user));
-  console.log('Is Admin:', isAdmin(user));
-  console.log('Permissions:', getUserPermissionNames(user));
-  console.log('=============================');
-};

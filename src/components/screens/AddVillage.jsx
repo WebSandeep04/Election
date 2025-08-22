@@ -84,13 +84,6 @@ const AddVillage = () => {
     return status;
   };
   
-  // Debug authentication state
-  console.log('Auth token:', token ? 'Present' : 'Missing');
-  console.log('Auth state:', useSelector((state) => state.auth));
-  console.log('Village choosings from Redux:', villageChoosings);
-  console.log('Village choosings is array:', Array.isArray(villageChoosings));
-  console.log('Village choosings length:', Array.isArray(villageChoosings) ? villageChoosings.length : 0);
-  
   const [success, setSuccess] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -153,7 +146,6 @@ const AddVillage = () => {
   // Handle Lok Sabha selection and fetch related Vidhan Sabhas
   const handleLokSabhaChange = async (e) => {
     const loksabhaId = e.target.value;
-    console.log('Lok Sabha selected:', loksabhaId);
     
     setFormData(prev => ({
       ...prev,
@@ -165,30 +157,24 @@ const AddVillage = () => {
 
     if (loksabhaId) {
       try {
-        console.log('Fetching Vidhan Sabhas for Lok Sabha ID:', loksabhaId);
         const result = await dispatch(fetchVidhanSabhasByLokSabha(loksabhaId));
-        console.log('Vidhan Sabhas fetch result:', result);
         
         if (result.payload) {
           setFilteredVidhanSabhas(result.payload);
-          console.log('Filtered Vidhan Sabhas set:', result.payload);
         }
       } catch (error) {
-        console.error('Error fetching Vidhan Sabhas by Lok Sabha:', error);
         setFilteredVidhanSabhas([]);
       }
     } else {
       setFilteredVidhanSabhas([]);
       setFilteredBlocks([]);
       setFilteredPanchayats([]);
-      console.log('No Lok Sabha selected, cleared filtered data');
     }
   };
 
   // Handle Vidhan Sabha selection and fetch related Blocks
   const handleVidhanSabhaChange = async (e) => {
     const vidhansabhaId = e.target.value;
-    console.log('Vidhan Sabha selected:', vidhansabhaId);
     
     setFormData(prev => ({
       ...prev,
@@ -199,29 +185,23 @@ const AddVillage = () => {
 
     if (vidhansabhaId) {
       try {
-        console.log('Fetching Blocks for Vidhan Sabha ID:', vidhansabhaId);
         const result = await dispatch(fetchBlocksByVidhanSabha(vidhansabhaId));
-        console.log('Blocks fetch result:', result);
         
         if (result.payload) {
           setFilteredBlocks(result.payload);
-          console.log('Filtered Blocks set:', result.payload);
         }
       } catch (error) {
-        console.error('Error fetching Blocks by Vidhan Sabha:', error);
         setFilteredBlocks([]);
       }
     } else {
       setFilteredBlocks([]);
       setFilteredPanchayats([]);
-      console.log('No Vidhan Sabha selected, cleared filtered Blocks and Panchayats');
     }
   };
 
   // Handle Block selection and fetch related Panchayats
   const handleBlockChange = async (e) => {
     const blockId = e.target.value;
-    console.log('Block selected:', blockId);
     
     setFormData(prev => ({
       ...prev,
@@ -231,21 +211,16 @@ const AddVillage = () => {
 
     if (blockId) {
       try {
-        console.log('Fetching Panchayats for Block ID:', blockId);
         const result = await dispatch(fetchPanchayatsByBlock(blockId));
-        console.log('Panchayats fetch result:', result);
         
         if (result.payload) {
           setFilteredPanchayats(result.payload);
-          console.log('Filtered Panchayats set:', result.payload);
         }
       } catch (error) {
-        console.error('Error fetching Panchayats by Block:', error);
         setFilteredPanchayats([]);
       }
     } else {
       setFilteredPanchayats([]);
-      console.log('No Block selected, cleared filtered Panchayats');
     }
   };
 
@@ -261,20 +236,7 @@ const AddVillage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    console.log('=== VILLAGE FORM SUBMISSION ===');
-    console.log('Form Data:', formData);
-    console.log('Is Editing:', isEditing);
-    console.log('Editing ID:', editingId);
-    
     if (!formData.village_name.trim() || !formData.loksabha_id || !formData.vidhansabha_id || !formData.block_id || !formData.panchayat_id || !formData.village_choosing) {
-      console.error('Form validation failed:', {
-        village_name: formData.village_name,
-        loksabha_id: formData.loksabha_id,
-        vidhansabha_id: formData.vidhansabha_id,
-        block_id: formData.block_id,
-        panchayat_id: formData.panchayat_id,
-        village_choosing: formData.village_choosing
-      });
       return;
     }
 
@@ -300,24 +262,11 @@ const AddVillage = () => {
        updated_at: now
      };
 
-    console.log('Submit Data:', submitData);
-    console.log('Data types:', {
-      loksabha_id: typeof submitData.loksabha_id,
-      vidhansabha_id: typeof submitData.vidhansabha_id,
-      block_id: typeof submitData.block_id,
-      panchayat_id: typeof submitData.panchayat_id,
-      village_choosing: typeof submitData.village_choosing,
-      village_name: typeof submitData.village_name,
-      village_status: typeof submitData.village_status
-    });
-
     try {
       if (isEditing) {
-        console.log('Updating village with ID:', editingId);
         await dispatch(updateVillage({ id: editingId, villageData: submitData })).unwrap();
         setSuccess('Village updated successfully!');
       } else {
-        console.log('Creating new village');
         await dispatch(createVillage(submitData)).unwrap();
         setSuccess('Village created successfully!');
       }
@@ -326,11 +275,6 @@ const AddVillage = () => {
       resetForm();
     } catch (error) {
       console.error('Error submitting form:', error);
-      console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
-        response: error.response
-      });
     }
   };
 
@@ -429,67 +373,6 @@ const AddVillage = () => {
     dispatch(fetchVillages(page));
   };
 
-  const handleTestAPI = async () => {
-    console.log('=== TESTING VILLAGE API ===');
-    console.log('Auth token:', token ? 'Present' : 'Missing');
-    console.log('Auth state:', useSelector((state) => state.auth));
-    
-    try {
-      const response = await fetch(`${getApiUrl(API_CONFIG.ENDPOINTS.VILLAGE)}?page=1`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      console.log('Test API Response Status:', response.status);
-      console.log('Test API Response Headers:', response.headers);
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Test API Response Data:', data);
-        alert('✅ API Test Successful! Check console for details.');
-      } else {
-        const errorText = await response.text();
-        console.error('Test API Error Response:', errorText);
-        alert(`❌ API Test Failed! Status: ${response.status}. Check console for details.`);
-      }
-    } catch (error) {
-      console.error('Test API Error:', error);
-      alert(`❌ API Test Error: ${error.message}`);
-    }
-  };
-
-  // Test Village Choosing API connection
-  const testVillageChoosingApi = async () => {
-    try {
-      console.log('Testing Village Choosing API connection...');
-      const response = await fetch('http://localhost:8000/api/village-choosings', {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      console.log('Village Choosing Test response status:', response.status);
-      console.log('Village Choosing Test response headers:', Object.fromEntries(response.headers.entries()));
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Village Choosing Test response data:', data);
-        alert('✅ Village Choosing API Test Successful! Check console for details.');
-      } else {
-        const errorText = await response.text();
-        console.error('Village Choosing Test API Error Response:', errorText);
-        alert(`❌ Village Choosing API Test Failed! Status: ${response.status}. Check console for details.`);
-      }
-    } catch (error) {
-      console.error('Village Choosing Test API error:', error);
-      alert(`❌ Village Choosing API Test Error: ${error.message}`);
-    }
-  };
-
   return (
     <div className="village-management">
       {/* Header */}
@@ -499,28 +382,6 @@ const AddVillage = () => {
           <p>Manage villages and village-level information</p>
         </div>
         <div className="header-actions">
-          <button 
-            className="btn btn-secondary test-api-btn"
-            onClick={handleTestAPI}
-            disabled={loading}
-          >
-            <RefreshIcon />
-            Test API
-          </button>
-          <button 
-            className="btn btn-secondary test-btn"
-            onClick={testVillageChoosingApi}
-            disabled={loading}
-          >
-            Test Choosing API
-          </button>
-          <button 
-            className="btn btn-secondary test-btn"
-            onClick={() => dispatch(fetchVillageChoosings())}
-            disabled={loading}
-          >
-            Refresh Choosing Options
-          </button>
           <button 
             className="btn btn-primary add-btn"
             onClick={() => {
@@ -916,30 +777,6 @@ const AddVillage = () => {
           </div>
         </div>
       )}
-
-      {/* API Information */}
-      <div className="api-info">
-        <h3>API Endpoints Used:</h3>
-        <ul>
-          <li><strong>GET</strong> {getApiUrl(API_CONFIG.ENDPOINTS.VILLAGE)}?page={pagination.current_page} - Fetch villages (paginated)</li>
-          <li><strong>GET</strong> {getApiUrl(API_CONFIG.ENDPOINTS.VILLAGE)}/&#123;id&#125; - Get specific village</li>
-          <li><strong>GET</strong> {getApiUrl(API_CONFIG.ENDPOINTS.VILLAGE)}/lok-sabha/&#123;loksabhaId&#125; - Get villages by Lok Sabha ID</li>
-          <li><strong>GET</strong> {getApiUrl(API_CONFIG.ENDPOINTS.VILLAGE)}/vidhan-sabha/&#123;vidhansabhaId&#125; - Get villages by Vidhan Sabha ID</li>
-          <li><strong>GET</strong> {getApiUrl(API_CONFIG.ENDPOINTS.VILLAGE)}/block/&#123;blockId&#125; - Get villages by Block ID</li>
-          <li><strong>GET</strong> {getApiUrl(API_CONFIG.ENDPOINTS.VILLAGE)}/panchayat/&#123;panchayatId&#125; - Get villages by Panchayat ID</li>
-          <li><strong>GET</strong> {getApiUrl(API_CONFIG.ENDPOINTS.VIDHAN_SABHA)}/lok-sabha/&#123;loksabhaId&#125; - Get Vidhan Sabhas by Lok Sabha ID</li>
-          <li><strong>GET</strong> {getApiUrl(API_CONFIG.ENDPOINTS.BLOCK)}/vidhan-sabha/&#123;vidhansabhaId&#125; - Get Blocks by Vidhan Sabha ID</li>
-          <li><strong>GET</strong> {getApiUrl(API_CONFIG.ENDPOINTS.PANCHAYAT)}/block/&#123;blockId&#125; - Get Panchayats by Block ID</li>
-          <li><strong>POST</strong> {getApiUrl(API_CONFIG.ENDPOINTS.VILLAGE)} - Create new village</li>
-          <li><strong>PUT</strong> {getApiUrl(API_CONFIG.ENDPOINTS.VILLAGE)}/&#123;id&#125; - Update village</li>
-          <li><strong>DELETE</strong> {getApiUrl(API_CONFIG.ENDPOINTS.VILLAGE)}/&#123;id&#125; - Delete village</li>
-        </ul>
-        <p><strong>Current Page:</strong> {pagination.current_page} of {pagination.last_page}</p>
-        <p><strong>Total Records:</strong> {pagination.total}</p>
-        <p><strong>API Base URL:</strong> {import.meta.env.VITE_API_URL || 'http://localhost:8000'}</p>
-        <p><strong>Authentication:</strong> {token ? '✅ Token Present' : '❌ Token Missing'}</p>
-        <p><strong>Token Preview:</strong> {token ? `${token.substring(0, 20)}...` : 'None'}</p>
-      </div>
     </div>
   );
 };

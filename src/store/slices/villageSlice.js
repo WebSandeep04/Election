@@ -13,43 +13,28 @@ const getToken = (getState) => {
 // Async thunks
 export const fetchVillages = createAsyncThunk(
   'village/fetchVillages',
-  async (params = {}, { rejectWithValue, getState }) => {
-    const token = getToken(getState);
-    const { page = 1, search = '' } = params;
-    const qp = new URLSearchParams({ page: String(page) });
-    if (search && String(search).trim().length > 0) qp.set('search', String(search).trim());
-    const url = `${getApiUrl(API_CONFIG.ENDPOINTS.VILLAGE)}?${qp.toString()}`;
-    console.log('=== FETCH VILLAGES API CALL ===');
-    console.log('Method: GET, URL:', url, 'Token:', token ? 'Present' : 'Missing');
-    
+  async (params = {}, { getState, rejectWithValue }) => {
     try {
-      const response = await fetch(url, { 
-        method: 'GET', 
-        headers: getAuthHeaders(token) 
-      });
+      const { token } = getState().auth;
+      const { page = 1, search = '' } = params;
       
+      let url = `${getApiUrl(API_CONFIG.ENDPOINTS.VILLAGE)}?page=${page}`;
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: getAuthHeaders(token)
+      });
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      console.log('=== FETCH VILLAGES API RESPONSE ===');
-      console.log('Status:', response.status, 'Data:', data);
-      
-      const villages = data.villages || data.data || [];
-      const pagination = data.pagination || data.meta || { 
-        current_page: page, 
-        last_page: 1, 
-        per_page: 10, 
-        total: villages.length, 
-        from: 1, 
-        to: villages.length 
-      };
-      
-      return { villages, pagination };
+      return data;
     } catch (error) {
-      console.error('=== FETCH VILLAGES API ERROR ===');
-      console.error('Error:', error.message);
       return rejectWithValue(error.message);
     }
   }
@@ -60,8 +45,6 @@ export const createVillage = createAsyncThunk(
   async (villageData, { rejectWithValue, getState }) => {
     const token = getToken(getState);
     const url = getApiUrl(API_CONFIG.ENDPOINTS.VILLAGE);
-    console.log('=== CREATE VILLAGE API CALL ===');
-    console.log('Method: POST, URL:', url, 'Data:', villageData);
     
     try {
       const response = await fetch(url, { 
@@ -82,8 +65,6 @@ export const createVillage = createAsyncThunk(
       }
       
       const data = await response.json();
-      console.log('=== CREATE VILLAGE API RESPONSE ===');
-      console.log('Status:', response.status, 'Data:', data);
       
       return data.village || data;
     } catch (error) {
@@ -99,8 +80,6 @@ export const updateVillage = createAsyncThunk(
   async ({ id, villageData }, { rejectWithValue, getState }) => {
     const token = getToken(getState);
     const url = `${getApiUrl(API_CONFIG.ENDPOINTS.VILLAGE)}/${id}`;
-    console.log('=== UPDATE VILLAGE API CALL ===');
-    console.log('Method: PUT, URL:', url, 'ID:', id, 'Data:', villageData);
     
     try {
       const response = await fetch(url, { 
@@ -121,8 +100,6 @@ export const updateVillage = createAsyncThunk(
       }
       
       const data = await response.json();
-      console.log('=== UPDATE VILLAGE API RESPONSE ===');
-      console.log('Status:', response.status, 'Data:', data);
       
       return data.village || data;
     } catch (error) {
@@ -138,8 +115,6 @@ export const deleteVillage = createAsyncThunk(
   async (id, { rejectWithValue, getState }) => {
     const token = getToken(getState);
     const url = `${getApiUrl(API_CONFIG.ENDPOINTS.VILLAGE)}/${id}`;
-    console.log('=== DELETE VILLAGE API CALL ===');
-    console.log('Method: DELETE, URL:', url, 'ID:', id);
     
     try {
       const response = await fetch(url, { 
@@ -159,8 +134,6 @@ export const deleteVillage = createAsyncThunk(
       }
       
       const data = await response.json();
-      console.log('=== DELETE VILLAGE API RESPONSE ===');
-      console.log('Status:', response.status, 'Data:', data);
       
       return { id, message: data.message || 'Village deleted successfully' };
     } catch (error) {
@@ -178,9 +151,6 @@ export const fetchVillagesByPanchayat = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.VILLAGE)}/panchayat/${panchayatId}`;
       
-      console.log('=== FETCH VILLAGES BY PANCHAYAT API CALL ===');
-      console.log('Method: GET, URL:', url, 'Panchayat ID:', panchayatId, 'Token:', token ? 'Present' : 'Missing');
-      
       const response = await fetch(url, {
         method: 'GET',
         headers: getAuthHeaders(token),
@@ -191,11 +161,7 @@ export const fetchVillagesByPanchayat = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== FETCH VILLAGES BY PANCHAYAT API RESPONSE ===');
-      console.log('Status:', response.status, 'Data:', data);
-
-      const villages = data.villages || data.data || [];
-      return villages;
+      return data.villages || data.data || [];
     } catch (error) {
       console.error('Error fetching Villages by Panchayat:', error);
       return rejectWithValue(error.message);
@@ -259,8 +225,15 @@ const villageSlice = createSlice({
       })
       .addCase(fetchVillages.fulfilled, (state, action) => {
         state.loading = false;
-        state.villages = action.payload.villages;
-        state.pagination = action.payload.pagination;
+        state.villages = action.payload.villages || action.payload.data || [];
+        state.pagination = action.payload.pagination || action.payload.meta || { 
+          current_page: action.payload.page || 1, 
+          last_page: action.payload.last_page || 1, 
+          per_page: action.payload.per_page || 10, 
+          total: action.payload.total || 0, 
+          from: action.payload.from || 1, 
+          to: action.payload.to || 0 
+        };
       })
       .addCase(fetchVillages.rejected, (state, action) => {
         state.loading = false;

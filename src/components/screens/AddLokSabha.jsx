@@ -60,10 +60,6 @@ const AddLokSabha = () => {
   const { lokSabhas, loading, error, pagination } = useSelector((state) => state.lokSabha);
   const token = useSelector((state) => state.auth.token);
   
-  // Debug authentication state
-  console.log('Auth token:', token ? 'Present' : 'Missing');
-  console.log('Auth state:', useSelector((state) => state.auth));
-  
   const [success, setSuccess] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -167,26 +163,6 @@ const AddLokSabha = () => {
     setEditingId(null);
   };
 
-  // Test API connection
-  const testApiConnection = async () => {
-    try {
-      console.log('Testing API connection...');
-      const response = await fetch('http://localhost:8000/api/lok-sabhas', {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      console.log('Test response status:', response.status);
-      console.log('Test response headers:', Object.fromEntries(response.headers.entries()));
-      const data = await response.text();
-      console.log('Test response data:', data);
-    } catch (error) {
-      console.error('Test API error:', error);
-    }
-  };
-
   const handleAddNew = () => {
     resetForm();
     setShowModal(true);
@@ -258,13 +234,6 @@ const AddLokSabha = () => {
           <p>Manage Lok Sabha constituencies and MP information</p>
         </div>
         <div className="header-buttons">
-          <button 
-            className="btn btn-secondary test-btn"
-            onClick={testApiConnection}
-            disabled={loading}
-          >
-            Test API
-          </button>
           <button 
             className="btn btn-primary add-btn"
             onClick={handleAddNew}
@@ -494,22 +463,6 @@ const AddLokSabha = () => {
           </div>
         </div>
       )}
-
-      {/* API Information */}
-      <div className="api-info">
-        <h3>API Endpoints Used:</h3>
-        <ul>
-          <li><strong>GET</strong> /api/lok-sabhas?page={pagination.current_page} - Fetch Lok Sabha constituencies (paginated)</li>
-          <li><strong>POST</strong> /api/lok-sabhas - Create new Lok Sabha</li>
-          <li><strong>PUT</strong> /api/lok-sabhas/:id - Update Lok Sabha</li>
-          <li><strong>DELETE</strong> /api/lok-sabhas/:id - Delete Lok Sabha</li>
-        </ul>
-        <p><strong>Current Page:</strong> {pagination.current_page} of {pagination.last_page}</p>
-        <p><strong>Total Records:</strong> {pagination.total}</p>
-        <p><strong>API Base URL:</strong> {import.meta.env.VITE_API_URL || 'http://localhost:8000'}</p>
-        <p><strong>Authentication:</strong> {token ? '✅ Token Present' : '❌ Token Missing'}</p>
-        <p><strong>Token Preview:</strong> {token ? `${token.substring(0, 20)}...` : 'None'}</p>
-      </div>
     </div>
   );
 };

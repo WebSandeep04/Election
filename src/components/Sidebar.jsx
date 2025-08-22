@@ -75,7 +75,7 @@ const Sidebar = () => {
       description: 'Parliamentary Management',
       perm: 'view_parliament_management',
       subItems: [
-        { id: 'add-parliament', label: 'Add Parliament', icon: '🏛️', perm: 'view_parliament_management' },
+        // { id: 'add-parliament', label: 'Add Parliament', icon: '🏛️', perm: 'view_parliament_management' },
         { id: 'add-lok-sabha', label: 'Add Lok Sabha', icon: '🏛️', perm: 'view_lok_sabha' },
         { id: 'add-vidhan-sabha', label: 'Add Vidhan Sabha', icon: '🏛️', perm: 'view_vidhan_sabha' },
         { id: 'add-block', label: 'Add Block', icon: '🏛️', perm: 'view_blocks' },

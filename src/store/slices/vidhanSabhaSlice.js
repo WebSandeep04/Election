@@ -17,24 +17,19 @@ const getToken = (getState) => {
 // Async thunks
 export const fetchVidhanSabhas = createAsyncThunk(
   'vidhanSabha/fetchVidhanSabhas',
-  async (params = {}, { rejectWithValue, getState }) => {
+  async (params = {}, { getState, rejectWithValue }) => {
     try {
-      const token = getToken(getState);
+      const { token } = getState().auth;
       const { page = 1, search = '' } = params;
-      const qp = new URLSearchParams({ page: String(page) });
-      if (search && String(search).trim().length > 0) qp.set('search', String(search).trim());
-      const url = `${getApiUrl(API_CONFIG.ENDPOINTS.VIDHAN_SABHA)}?${qp.toString()}`;
       
-      console.log('=== FETCH VIDHAN SABHAS API CALL ===');
-      console.log('Method: GET');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('Params:', params);
-      console.log('================================');
-      
+      let url = `${getApiUrl(API_CONFIG.ENDPOINTS.VIDHAN_SABHA)}?page=${page}`;
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+
       const response = await fetch(url, {
         method: 'GET',
-        headers: getAuthHeaders(token),
+        headers: getAuthHeaders(token)
       });
 
       if (!response.ok) {
@@ -42,24 +37,8 @@ export const fetchVidhanSabhas = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== FETCH VIDHAN SABHAS API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Response Data:', data);
-      console.log('====================================');
-
-      const vidhanSabhas = data.vidhan_sabhas || data.data || [];
-      const pagination = data.pagination || data.meta || {
-        current_page: page,
-        last_page: 1,
-        per_page: 10,
-        total: Array.isArray(vidhanSabhas) ? vidhanSabhas.length : 0,
-        from: 1,
-        to: Array.isArray(vidhanSabhas) ? vidhanSabhas.length : 0
-      };
-
-      return { vidhanSabhas, pagination };
+      return data;
     } catch (error) {
-      console.error('Error fetching Vidhan Sabhas:', error);
       return rejectWithValue(error.message);
     }
   }
@@ -72,14 +51,6 @@ export const fetchVidhanSabhaById = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.VIDHAN_SABHA)}/${id}`;
       
-      console.log('=== FETCH VIDHAN SABHA BY ID API CALL ===');
-      console.log('Method: GET');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('Headers:', getAuthHeaders(token));
-      console.log('ID:', id);
-      console.log('=====================================');
-      
       const response = await fetch(url, {
         method: 'GET',
         headers: getAuthHeaders(token),
@@ -90,15 +61,9 @@ export const fetchVidhanSabhaById = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== FETCH VIDHAN SABHA BY ID API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Response Data:', data);
-      console.log('========================================');
-
       // Extract vidhan_sabha from the response
       return data.vidhan_sabha || data;
     } catch (error) {
-      console.error('Error fetching Vidhan Sabha by ID:', error);
       return rejectWithValue(error.message);
     }
   }
@@ -111,14 +76,6 @@ export const fetchVidhanSabhasByLokSabha = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.VIDHAN_SABHA)}/lok-sabha/${loksabhaId}`;
       
-      console.log('=== FETCH VIDHAN SABHAS BY LOK SABHA API CALL ===');
-      console.log('Method: GET');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('Headers:', getAuthHeaders(token));
-      console.log('Lok Sabha ID:', loksabhaId);
-      console.log('==============================================');
-      
       const response = await fetch(url, {
         method: 'GET',
         headers: getAuthHeaders(token),
@@ -129,14 +86,8 @@ export const fetchVidhanSabhasByLokSabha = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== FETCH VIDHAN SABHAS BY LOK SABHA API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Response Data:', data);
-      console.log('==================================================');
-
       return data.vidhan_sabhas || data.data || [];
     } catch (error) {
-      console.error('Error fetching Vidhan Sabhas by Lok Sabha:', error);
       return rejectWithValue(error.message);
     }
   }
@@ -149,16 +100,6 @@ export const createVidhanSabha = createAsyncThunk(
       const token = getToken(getState);
       const url = getApiUrl(API_CONFIG.ENDPOINTS.VIDHAN_SABHA);
       
-      console.log('=== CREATE VIDHAN SABHA API CALL ===');
-      console.log('Method: POST');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('Token Value:', token);
-      console.log('Headers:', getAuthHeaders(token));
-      console.log('Request Data:', vidhanSabhaData);
-      console.log('Request Body (JSON):', JSON.stringify(vidhanSabhaData, null, 2));
-      console.log('================================');
-      
       const headers = getAuthHeaders(token);
       
       const response = await fetch(url, {
@@ -167,13 +108,9 @@ export const createVidhanSabha = createAsyncThunk(
         body: JSON.stringify(vidhanSabhaData),
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
       if (!response.ok) {
         // Check if response is HTML (error page) or JSON
         const contentType = response.headers.get('content-type');
-        console.log('Response content-type:', contentType);
         
         if (contentType && contentType.includes('text/html')) {
           // Laravel returned an HTML error page
@@ -189,15 +126,9 @@ export const createVidhanSabha = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== CREATE VIDHAN SABHA API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Response Data:', data);
-      console.log('===================================');
-
       // Extract vidhan_sabha from the response
       return data.vidhan_sabha || data;
     } catch (error) {
-      console.error('Error creating Vidhan Sabha:', error);
       return rejectWithValue(error.message);
     }
   }
@@ -209,16 +140,6 @@ export const updateVidhanSabha = createAsyncThunk(
     try {
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.VIDHAN_SABHA)}/${id}`;
-      
-      console.log('=== UPDATE VIDHAN SABHA API CALL ===');
-      console.log('Method: PUT');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('Headers:', getAuthHeaders(token));
-      console.log('ID:', id);
-      console.log('Request Data:', vidhanSabhaData);
-      console.log('Request Body (JSON):', JSON.stringify(vidhanSabhaData, null, 2));
-      console.log('================================');
       
       const response = await fetch(url, {
         method: 'PUT',
@@ -232,15 +153,9 @@ export const updateVidhanSabha = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== UPDATE VIDHAN SABHA API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Response Data:', data);
-      console.log('===================================');
-
       // Extract vidhan_sabha from the response
       return data.vidhan_sabha || data;
     } catch (error) {
-      console.error('Error updating Vidhan Sabha:', error);
       return rejectWithValue(error.message);
     }
   }
@@ -252,14 +167,6 @@ export const deleteVidhanSabha = createAsyncThunk(
     try {
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.VIDHAN_SABHA)}/${id}`;
-      
-      console.log('=== DELETE VIDHAN SABHA API CALL ===');
-      console.log('Method: DELETE');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('Headers:', getAuthHeaders(token));
-      console.log('ID:', id);
-      console.log('================================');
       
       const response = await fetch(url, {
         method: 'DELETE',
@@ -281,7 +188,6 @@ export const deleteVidhanSabha = createAsyncThunk(
       console.log('==================================');
       return id;
     } catch (error) {
-      console.error('Error deleting Vidhan Sabha:', error);
       return rejectWithValue(error.message);
     }
   }
@@ -341,7 +247,7 @@ const vidhanSabhaSlice = createSlice({
       })
       .addCase(fetchVidhanSabhas.fulfilled, (state, action) => {
         state.loading = false;
-        state.vidhanSabhas = Array.isArray(action.payload.vidhanSabhas) ? action.payload.vidhanSabhas : [];
+        state.vidhanSabhas = Array.isArray(action.payload.vidhan_sabhas) ? action.payload.vidhan_sabhas : [];
         state.pagination = action.payload.pagination;
       })
       .addCase(fetchVidhanSabhas.rejected, (state, action) => {

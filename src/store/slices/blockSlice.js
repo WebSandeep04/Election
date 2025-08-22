@@ -13,20 +13,19 @@ const getToken = (getState) => {
 // Async thunks
 export const fetchBlocks = createAsyncThunk(
   'block/fetchBlocks',
-  async (params = {}, { rejectWithValue, getState }) => {
+  async (params = {}, { getState, rejectWithValue }) => {
     try {
-      const token = getToken(getState);
+      const { token } = getState().auth;
       const { page = 1, search = '' } = params;
-      const qp = new URLSearchParams({ page: String(page) });
-      if (search && String(search).trim().length > 0) qp.set('search', String(search).trim());
-      const url = `${getApiUrl(API_CONFIG.ENDPOINTS.BLOCK)}?${qp.toString()}`;
       
-      console.log('=== FETCH BLOCKS API CALL ===');
-      console.log('Method: GET, URL:', url, 'Token:', token ? 'Present' : 'Missing');
-      
+      let url = `${getApiUrl(API_CONFIG.ENDPOINTS.BLOCK)}?page=${page}`;
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+
       const response = await fetch(url, {
         method: 'GET',
-        headers: getAuthHeaders(token),
+        headers: getAuthHeaders(token)
       });
 
       if (!response.ok) {
@@ -34,17 +33,8 @@ export const fetchBlocks = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== FETCH BLOCKS API RESPONSE ===');
-      console.log('Status:', response.status, 'Data:', data);
-
-      const blocks = data.blocks || data.data || [];
-      const pagination = data.pagination || data.meta || {
-        current_page: page, last_page: 1, per_page: 10, total: blocks.length, from: 1, to: blocks.length
-      };
-
-      return { blocks, pagination };
+      return data;
     } catch (error) {
-      console.error('Error fetching Blocks:', error);
       return rejectWithValue(error.message);
     }
   }
@@ -56,9 +46,6 @@ export const createBlock = createAsyncThunk(
     try {
       const token = getToken(getState);
       const url = getApiUrl(API_CONFIG.ENDPOINTS.BLOCK);
-      
-      console.log('=== CREATE BLOCK API CALL ===');
-      console.log('Method: POST, URL:', url, 'Data:', blockData);
       
       const response = await fetch(url, {
         method: 'POST',
@@ -78,9 +65,6 @@ export const createBlock = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== CREATE BLOCK API RESPONSE ===');
-      console.log('Status:', response.status, 'Data:', data);
-
       return data.block || data;
     } catch (error) {
       console.error('Error creating Block:', error);
@@ -96,9 +80,6 @@ export const updateBlock = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.BLOCK)}/${id}`;
       
-      console.log('=== UPDATE BLOCK API CALL ===');
-      console.log('Method: PUT, URL:', url, 'ID:', id, 'Data:', blockData);
-      
       const response = await fetch(url, {
         method: 'PUT',
         headers: getAuthHeaders(token),
@@ -111,9 +92,6 @@ export const updateBlock = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== UPDATE BLOCK API RESPONSE ===');
-      console.log('Status:', response.status, 'Data:', data);
-
       return data.block || data;
     } catch (error) {
       console.error('Error updating Block:', error);
@@ -129,9 +107,6 @@ export const deleteBlock = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.BLOCK)}/${id}`;
       
-      console.log('=== DELETE BLOCK API CALL ===');
-      console.log('Method: DELETE, URL:', url, 'ID:', id);
-      
       const response = await fetch(url, {
         method: 'DELETE',
         headers: getAuthHeaders(token),
@@ -142,8 +117,6 @@ export const deleteBlock = createAsyncThunk(
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
-      console.log('=== DELETE BLOCK API SUCCESS ===');
-      console.log('Status:', response.status, 'Deleted ID:', id);
       return id;
     } catch (error) {
       console.error('Error deleting Block:', error);
@@ -159,9 +132,6 @@ export const fetchBlocksByVidhanSabha = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.BLOCK)}/vidhan-sabha/${vidhansabhaId}`;
       
-      console.log('=== FETCH BLOCKS BY VIDHAN SABHA API CALL ===');
-      console.log('Method: GET, URL:', url, 'Vidhan Sabha ID:', vidhansabhaId, 'Token:', token ? 'Present' : 'Missing');
-      
       const response = await fetch(url, {
         method: 'GET',
         headers: getAuthHeaders(token),
@@ -172,11 +142,7 @@ export const fetchBlocksByVidhanSabha = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== FETCH BLOCKS BY VIDHAN SABHA API RESPONSE ===');
-      console.log('Status:', response.status, 'Data:', data);
-
-      const blocks = data.blocks || data.data || [];
-      return blocks;
+      return data.blocks || data.data || [];
     } catch (error) {
       console.error('Error fetching Blocks by Vidhan Sabha:', error);
       return rejectWithValue(error.message);

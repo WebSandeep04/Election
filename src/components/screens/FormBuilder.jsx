@@ -450,6 +450,17 @@ const FormBuilder = () => {
               onChange={(e) => setFormName(e.target.value)}
               className="form-name-input"
             />
+
+                         <label className="recording-checkbox-label" style={{ display: "flex", alignItems: "center", gap: "0.5em" }}>
+                           <input
+                             type="checkbox"
+                              checked={!!formResponses.recording}
+                             onChange={e => setFormResponses({ ...formResponses, recording: e.target.checked })}
+                             className="recording-checkbox"
+                           />
+                           Recording
+                         </label>
+
                          <div className="editor-actions">
                <button 
                  onClick={() => setShowPreview(!showPreview)}

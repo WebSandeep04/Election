@@ -158,14 +158,37 @@ export const deleteBooth = createAsyncThunk(
         }
       }
       
-      const data = await response.json();
-      console.log('=== DELETE BOOTH API RESPONSE ===');
-      console.log('Status:', response.status, 'Data:', data);
-      
-      return { id, message: data.message || 'Booth deleted successfully' };
+      console.log('=== DELETE BOOTH API SUCCESS ===');
+      console.log('Status:', response.status, 'Deleted ID:', id);
+      return id;
     } catch (error) {
       console.error('=== DELETE BOOTH API ERROR ===');
       console.error('Error:', error.message);
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const fetchBoothsByVillage = createAsyncThunk(
+  'booth/fetchBoothsByVillage',
+  async (villageId, { rejectWithValue, getState }) => {
+    const token = getToken(getState);
+    const url = `${getApiUrl(API_CONFIG.ENDPOINTS.BOOTH)}/village/${villageId}`;
+    
+    try {
+      const response = await fetch(url, { 
+        method: 'GET', 
+        headers: getAuthHeaders(token) 
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.data || data.booths || [];
+    } catch (error) {
+      console.error('Error fetching Booths by Village:', error);
       return rejectWithValue(error.message);
     }
   }
@@ -277,12 +300,27 @@ const boothSlice = createSlice({
       .addCase(deleteBooth.fulfilled, (state, action) => {
         state.loading = false;
         // Don't update state immediately - let the component refresh the list
-        state.success = action.payload.message;
+        state.success = 'Booth deleted successfully';
         state.pagination.total -= 1;
       })
       .addCase(deleteBooth.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || 'Failed to delete booth';
+      });
+
+    // Fetch booths by village
+    builder
+      .addCase(fetchBoothsByVillage.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchBoothsByVillage.fulfilled, (state, action) => {
+        state.loading = false;
+        // This is for filtered data, don't update the main booths array
+      })
+      .addCase(fetchBoothsByVillage.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to fetch booths by village';
       });
   }
 });

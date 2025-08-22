@@ -58,10 +58,6 @@ const AddBlock = () => {
   const { vidhanSabhas } = useSelector((state) => state.vidhanSabha);
   const token = useSelector((state) => state.auth.token);
   
-  // Debug authentication state
-  console.log('Auth token:', token ? 'Present' : 'Missing');
-  console.log('Auth state:', useSelector((state) => state.auth));
-  
   const [success, setSuccess] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -96,7 +92,6 @@ const AddBlock = () => {
   // Handle Lok Sabha selection and fetch related Vidhan Sabhas
   const handleLokSabhaChange = async (e) => {
     const loksabhaId = e.target.value;
-    console.log('Lok Sabha selected:', loksabhaId);
     
     setFormData(prev => ({
       ...prev,
@@ -106,13 +101,10 @@ const AddBlock = () => {
 
     if (loksabhaId) {
       try {
-        console.log('Fetching Vidhan Sabhas for Lok Sabha ID:', loksabhaId);
         const result = await dispatch(fetchVidhanSabhasByLokSabha(loksabhaId));
-        console.log('Vidhan Sabhas fetch result:', result);
         
         if (result.payload) {
           setFilteredVidhanSabhas(result.payload);
-          console.log('Filtered Vidhan Sabhas set:', result.payload);
         }
       } catch (error) {
         console.error('Error fetching Vidhan Sabhas by Lok Sabha:', error);
@@ -120,7 +112,6 @@ const AddBlock = () => {
       }
     } else {
       setFilteredVidhanSabhas([]);
-      console.log('No Lok Sabha selected, cleared filtered Vidhan Sabhas');
     }
   };
 
@@ -242,26 +233,6 @@ const AddBlock = () => {
     setEditingId(null);
   };
 
-  // Test API connection
-  const testApiConnection = async () => {
-    try {
-      console.log('Testing Block API connection...');
-      const response = await fetch('http://localhost:8000/api/blocks', {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      console.log('Test response status:', response.status);
-      console.log('Test response headers:', Object.fromEntries(response.headers.entries()));
-      const data = await response.text();
-      console.log('Test response data:', data);
-    } catch (error) {
-      console.error('Test API error:', error);
-    }
-  };
-
   const handleAddNew = () => {
     resetForm();
     setShowModal(true);
@@ -329,13 +300,6 @@ const AddBlock = () => {
           <p>Manage administrative blocks and their relationships</p>
         </div>
         <div className="header-buttons">
-          <button 
-            className="btn btn-secondary test-btn"
-            onClick={testApiConnection}
-            disabled={loading}
-          >
-            Test API
-          </button>
           <button 
             className="btn btn-primary add-btn"
             onClick={handleAddNew}
@@ -643,25 +607,6 @@ const AddBlock = () => {
           </div>
         </div>
       )}
-
-      {/* API Information */}
-      <div className="api-info">
-        <h3>API Endpoints Used:</h3>
-        <ul>
-          <li><strong>GET</strong> /api/blocks?page={pagination.current_page} - Fetch blocks (paginated)</li>
-          <li><strong>GET</strong> /api/blocks/{'{id}'} - Get specific block</li>
-          <li><strong>GET</strong> /api/blocks/lok-sabha/{'{loksabhaId}'} - Get blocks by Lok Sabha ID</li>
-          <li><strong>GET</strong> /api/blocks/vidhan-sabha/{'{vidhansabhaId}'} - Get blocks by Vidhan Sabha ID</li>
-          <li><strong>POST</strong> /api/blocks - Create new block</li>
-          <li><strong>PUT</strong> /api/blocks/{'{id}'} - Update block</li>
-          <li><strong>DELETE</strong> /api/blocks/{'{id}'} - Delete block</li>
-        </ul>
-        <p><strong>Current Page:</strong> {pagination.current_page} of {pagination.last_page}</p>
-        <p><strong>Total Records:</strong> {pagination.total}</p>
-        <p><strong>API Base URL:</strong> {import.meta.env.VITE_API_URL || 'http://localhost:8000'}</p>
-        <p><strong>Authentication:</strong> {token ? '✅ Token Present' : '❌ Token Missing'}</p>
-        <p><strong>Token Preview:</strong> {token ? `${token.substring(0, 20)}...` : 'None'}</p>
-      </div>
     </div>
   );
 };

@@ -85,13 +85,6 @@ const AddPanchayat = () => {
     return status;
   };
   
-     // Debug authentication state
-   console.log('Auth token:', token ? 'Present' : 'Missing');
-   console.log('Auth state:', useSelector((state) => state.auth));
-   console.log('Panchayat choosings from Redux:', panchayatChoosings);
-   console.log('Panchayat choosings is array:', Array.isArray(panchayatChoosings));
-   console.log('Panchayat choosings length:', Array.isArray(panchayatChoosings) ? panchayatChoosings.length : 0);
-  
   const [success, setSuccess] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -118,7 +111,6 @@ const AddPanchayat = () => {
       dispatch(fetchVidhanSabhas(1)); // Fetch all Vidhan Sabhas for dropdown
       dispatch(fetchBlocks(1)); // Fetch all Blocks for dropdown
       dispatch(fetchPanchayatChoosings()).then(result => {
-        console.log('Panchayat choosings fetch result:', result);
         if (result.error) {
           console.error('Failed to fetch panchayat choosings:', result.error);
         }
@@ -137,7 +129,6 @@ const AddPanchayat = () => {
   // Handle Lok Sabha selection and fetch related Vidhan Sabhas
   const handleLokSabhaChange = async (e) => {
     const loksabhaId = e.target.value;
-    console.log('Lok Sabha selected:', loksabhaId);
     
     setFormData(prev => ({
       ...prev,
@@ -148,13 +139,10 @@ const AddPanchayat = () => {
 
     if (loksabhaId) {
       try {
-        console.log('Fetching Vidhan Sabhas for Lok Sabha ID:', loksabhaId);
         const result = await dispatch(fetchVidhanSabhasByLokSabha(loksabhaId));
-        console.log('Vidhan Sabhas fetch result:', result);
         
         if (result.payload) {
           setFilteredVidhanSabhas(result.payload);
-          console.log('Filtered Vidhan Sabhas set:', result.payload);
         }
       } catch (error) {
         console.error('Error fetching Vidhan Sabhas by Lok Sabha:', error);
@@ -163,14 +151,12 @@ const AddPanchayat = () => {
     } else {
       setFilteredVidhanSabhas([]);
       setFilteredBlocks([]);
-      console.log('No Lok Sabha selected, cleared filtered Vidhan Sabhas and Blocks');
     }
   };
 
   // Handle Vidhan Sabha selection and fetch related Blocks
   const handleVidhanSabhaChange = async (e) => {
     const vidhansabhaId = e.target.value;
-    console.log('Vidhan Sabha selected:', vidhansabhaId);
     
     setFormData(prev => ({
       ...prev,
@@ -180,13 +166,10 @@ const AddPanchayat = () => {
 
     if (vidhansabhaId) {
       try {
-        console.log('Fetching Blocks for Vidhan Sabha ID:', vidhansabhaId);
         const result = await dispatch(fetchBlocksByVidhanSabha(vidhansabhaId));
-        console.log('Blocks fetch result:', result);
         
         if (result.payload) {
           setFilteredBlocks(result.payload);
-          console.log('Filtered Blocks set:', result.payload);
         }
       } catch (error) {
         console.error('Error fetching Blocks by Vidhan Sabha:', error);
@@ -194,7 +177,6 @@ const AddPanchayat = () => {
       }
     } else {
       setFilteredBlocks([]);
-      console.log('No Vidhan Sabha selected, cleared filtered Blocks');
     }
   };
 
@@ -225,19 +207,7 @@ const AddPanchayat = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    console.log('=== PANCHAYAT FORM SUBMISSION ===');
-    console.log('Form Data:', formData);
-    console.log('Is Editing:', isEditing);
-    console.log('Editing ID:', editingId);
-    
     if (!formData.panchayat_name.trim() || !formData.loksabha_id || !formData.vidhansabha_id || !formData.block_id || !formData.panchayat_choosing) {
-      console.error('Form validation failed:', {
-        panchayat_name: formData.panchayat_name,
-        loksabha_id: formData.loksabha_id,
-        vidhansabha_id: formData.vidhansabha_id,
-        block_id: formData.block_id,
-        panchayat_choosing: formData.panchayat_choosing
-      });
       return;
     }
 
@@ -262,23 +232,11 @@ const AddPanchayat = () => {
        updated_at: now
      };
 
-    console.log('Submit Data:', submitData);
-    console.log('Data types:', {
-      loksabha_id: typeof submitData.loksabha_id,
-      vidhansabha_id: typeof submitData.vidhansabha_id,
-      block_id: typeof submitData.block_id,
-      panchayat_choosing: typeof submitData.panchayat_choosing,
-      panchayat_name: typeof submitData.panchayat_name,
-      panchayat_status: typeof submitData.panchayat_status
-    });
-
     try {
       if (isEditing) {
-        console.log('Updating panchayat with ID:', editingId);
         await dispatch(updatePanchayat({ id: editingId, panchayatData: submitData })).unwrap();
         setSuccess('Panchayat updated successfully');
       } else {
-        console.log('Creating new panchayat');
         await dispatch(createPanchayat(submitData)).unwrap();
         setSuccess('Panchayat created successfully');
       }
@@ -289,11 +247,6 @@ const AddPanchayat = () => {
       setShowModal(false);
     } catch (error) {
       console.error('Error submitting form:', error);
-      console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
-        response: error.response
-      });
     }
   };
 
@@ -377,96 +330,6 @@ const AddPanchayat = () => {
     setEditingId(null);
   };
 
-  // Test API connection
-  const testApiConnection = async () => {
-    try {
-      console.log('Testing Panchayat API connection...');
-      const response = await fetch('http://localhost:8000/api/panchayats', {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      console.log('Test response status:', response.status);
-      console.log('Test response headers:', Object.fromEntries(response.headers.entries()));
-      const data = await response.text();
-      console.log('Test response data:', data);
-    } catch (error) {
-      console.error('Test API error:', error);
-    }
-  };
-
-  // Test Panchayat Choosing API connection
-  const testPanchayatChoosingApi = async () => {
-    try {
-      console.log('Testing Panchayat Choosing API connection...');
-      const response = await fetch('http://localhost:8000/api/panchayat-choosings', {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      console.log('Panchayat Choosing Test response status:', response.status);
-      console.log('Panchayat Choosing Test response headers:', Object.fromEntries(response.headers.entries()));
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Panchayat Choosing Test response data:', data);
-        alert('✅ Panchayat Choosing API Test Successful! Check console for details.');
-      } else {
-        const errorText = await response.text();
-        console.error('Panchayat Choosing Test API Error Response:', errorText);
-        alert(`❌ Panchayat Choosing API Test Failed! Status: ${response.status}. Check console for details.`);
-      }
-    } catch (error) {
-      console.error('Panchayat Choosing Test API error:', error);
-      alert(`❌ Panchayat Choosing API Test Error: ${error.message}`);
-    }
-  };
-
-  // Test Panchayat creation with sample data
-  const testPanchayatCreation = async () => {
-    try {
-      console.log('Testing Panchayat creation with sample data...');
-      const sampleData = {
-        loksabha_id: 1,
-        vidhansabha_id: 1,
-        block_id: 1,
-        panchayat_choosing: '1',
-        panchayat_name: 'Test Panchayat',
-        panchayat_status: '1'
-      };
-      
-      console.log('Sample data:', sampleData);
-      
-      const response = await fetch('http://localhost:8000/api/panchayats', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(sampleData)
-      });
-      
-      console.log('Test creation response status:', response.status);
-      console.log('Test creation response headers:', Object.fromEntries(response.headers.entries()));
-      
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        const data = await response.json();
-        console.log('Test creation response data:', data);
-      } else {
-        const data = await response.text();
-        console.log('Test creation response text:', data);
-      }
-    } catch (error) {
-      console.error('Test creation error:', error);
-    }
-  };
-
   const handleAddNew = () => {
     resetForm();
     setShowModal(true);
@@ -534,34 +397,6 @@ const AddPanchayat = () => {
           <p>Manage local panchayats and their administrative structure</p>
         </div>
                  <div className="header-buttons">
-           <button 
-             className="btn btn-secondary test-btn"
-             onClick={testApiConnection}
-             disabled={loading}
-           >
-             Test API
-           </button>
-           <button 
-             className="btn btn-secondary test-btn"
-             onClick={testPanchayatChoosingApi}
-             disabled={loading}
-           >
-             Test Choosing API
-           </button>
-           <button 
-             className="btn btn-secondary test-btn"
-             onClick={() => dispatch(fetchPanchayatChoosings())}
-             disabled={loading}
-           >
-             Refresh Choosing Options
-           </button>
-           <button 
-             className="btn btn-secondary test-btn"
-             onClick={testPanchayatCreation}
-             disabled={loading}
-           >
-             Test Create
-           </button>
            <button 
              className="btn btn-primary add-btn"
              onClick={handleAddNew}
@@ -924,30 +759,6 @@ const AddPanchayat = () => {
           </div>
         </div>
       )}
-
-      {/* API Information */}
-      <div className="api-info">
-        <h3>API Endpoints Used:</h3>
-                 <ul>
-           <li><strong>GET</strong> /api/panchayats?page={pagination.current_page} - Fetch panchayats (paginated)</li>
-           <li><strong>GET</strong> /api/panchayats/{'{id}'} - Get specific panchayat</li>
-           <li><strong>GET</strong> /api/panchayats/lok-sabha/{'{loksabhaId}'} - Get panchayats by Lok Sabha ID</li>
-           <li><strong>GET</strong> /api/panchayats/vidhan-sabha/{'{vidhansabhaId}'} - Get panchayats by Vidhan Sabha ID</li>
-           <li><strong>GET</strong> /api/panchayats/block/{'{blockId}'} - Get panchayats by Block ID</li>
-           <li><strong>GET</strong> /api/vidhan-sabhas/lok-sabha/{'{loksabhaId}'} - Get Vidhan Sabhas by Lok Sabha ID</li>
-           <li><strong>GET</strong> /api/blocks/vidhan-sabha/{'{vidhansabhaId}'} - Get Blocks by Vidhan Sabha ID</li>
-           <li><strong>POST</strong> /api/panchayats - Create new panchayat</li>
-           <li><strong>PUT</strong> /api/panchayats/{'{id}'} - Update panchayat</li>
-           <li><strong>DELETE</strong> /api/panchayats/{'{id}'} - Delete panchayat</li>
-         </ul>
-        <p><strong>Current Page:</strong> {pagination.current_page} of {pagination.last_page}</p>
-        <p><strong>Total Records:</strong> {pagination.total}</p>
-        <p><strong>API Base URL:</strong> {import.meta.env.VITE_API_URL || 'http://localhost:8000'}</p>
-        <p><strong>Authentication:</strong> {token ? '✅ Token Present' : '❌ Token Missing'}</p>
-        <p><strong>Token Preview:</strong> {token ? `${token.substring(0, 20)}...` : 'None'}</p>
-                 <p><strong>Panchayat Choosings:</strong> {Array.isArray(panchayatChoosings) ? panchayatChoosings.length : 0} options loaded</p>
-         <p><strong>Choosing Options:</strong> {Array.isArray(panchayatChoosings) ? panchayatChoosings.map(opt => opt.name).join(', ') : 'None'}</p>
-      </div>
     </div>
   );
 };

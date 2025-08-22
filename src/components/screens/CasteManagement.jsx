@@ -439,18 +439,6 @@ const CasteManagement = () => {
           </div>
         </div>
       )}
-
-      {/* API Information */}
-      <div className="api-info">
-        <h3>API Endpoints Used:</h3>
-        <ul>
-          <li><strong>GET</strong> /api/castes?page=1&limit=10 - Fetch castes with pagination</li>
-          <li><strong>GET</strong> /api/castes/:id - Fetch specific caste</li>
-          <li><strong>POST</strong> /api/castes - Create new caste</li>
-          <li><strong>PUT</strong> /api/castes/:id - Update caste</li>
-          <li><strong>DELETE</strong> /api/castes/:id - Delete caste</li>
-        </ul>
-      </div>
     </div>
   );
 };

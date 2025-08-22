@@ -304,26 +304,6 @@ const VillageDescription = () => {
            <div style={{ fontSize: '12px', color: '#666', marginRight: '8px' }}>
              Data: LS({lokSabhas?.length || 0}) VS({vidhanSabhas?.length || 0}) B({blocks?.length || 0}) P({panchayats?.length || 0}) V({villages?.length || 0})
            </div>
-           <button 
-             className="btn btn-secondary" 
-             onClick={() => {
-               console.log('=== MANUAL TEST API CALLS ===');
-               dispatch(fetchLokSabhas(1));
-               dispatch(fetchVidhanSabhas(1));
-               dispatch(fetchBlocks(1));
-               dispatch(fetchPanchayats(1));
-               dispatch(fetchVillages(1));
-             }} 
-             disabled={loading}
-           >
-             Test API Calls
-           </button>
-           {canManage && (
-             <button className="btn btn-primary add-btn" onClick={openCreate} disabled={loading}>
-               <PlusIcon />
-               Add New Description
-             </button>
-           )}
          </div>
       </div>
 

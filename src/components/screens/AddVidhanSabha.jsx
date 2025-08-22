@@ -56,10 +56,6 @@ const AddVidhanSabha = () => {
   const { lokSabhas } = useSelector((state) => state.lokSabha);
   const token = useSelector((state) => state.auth.token);
   
-  // Debug authentication state
-  console.log('Auth token:', token ? 'Present' : 'Missing');
-  console.log('Auth state:', useSelector((state) => state.auth));
-  
   const [success, setSuccess] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -169,30 +165,12 @@ const AddVidhanSabha = () => {
     setFormData({
       loksabha_id: '',
       vidhansabha_name: '',
-      vidhan_status: '1'
+      vidhan_status: '1',
+      created_at: '',
+      updated_at: ''
     });
     setIsEditing(false);
     setEditingId(null);
-  };
-
-  // Test API connection
-  const testApiConnection = async () => {
-    try {
-      console.log('Testing Vidhan Sabha API connection...');
-      const response = await fetch('http://localhost:8000/api/vidhan-sabhas', {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      console.log('Test response status:', response.status);
-      console.log('Test response headers:', Object.fromEntries(response.headers.entries()));
-      const data = await response.text();
-      console.log('Test response data:', data);
-    } catch (error) {
-      console.error('Test API error:', error);
-    }
   };
 
   const handleAddNew = () => {
@@ -262,13 +240,6 @@ const AddVidhanSabha = () => {
           <p>Manage Vidhan Sabha constituencies and MLA information</p>
         </div>
         <div className="header-buttons">
-          <button 
-            className="btn btn-secondary test-btn"
-            onClick={testApiConnection}
-            disabled={loading}
-          >
-            Test API
-          </button>
           <button 
             className="btn btn-primary add-btn"
             onClick={handleAddNew}
@@ -521,24 +492,6 @@ const AddVidhanSabha = () => {
           </div>
         </div>
       )}
-
-      {/* API Information */}
-      <div className="api-info">
-        <h3>API Endpoints Used:</h3>
-        <ul>
-          <li><strong>GET</strong> /api/vidhan-sabhas?page={pagination.current_page} - Fetch Vidhan Sabha constituencies (paginated)</li>
-          <li><strong>GET</strong> /api/vidhan-sabhas/{'{id}'} - Get specific Vidhan Sabha</li>
-          <li><strong>GET</strong> /api/vidhan-sabhas/lok-sabha/{'{loksabhaId}'} - Get Vidhan Sabhas by Lok Sabha ID</li>
-          <li><strong>POST</strong> /api/vidhan-sabhas - Create new Vidhan Sabha</li>
-          <li><strong>PUT</strong> /api/vidhan-sabhas/{'{id}'} - Update Vidhan Sabha</li>
-          <li><strong>DELETE</strong> /api/vidhan-sabhas/{'{id}'} - Delete Vidhan Sabha</li>
-        </ul>
-        <p><strong>Current Page:</strong> {pagination.current_page} of {pagination.last_page}</p>
-        <p><strong>Total Records:</strong> {pagination.total}</p>
-        <p><strong>API Base URL:</strong> {import.meta.env.VITE_API_URL || 'http://localhost:8000'}</p>
-        <p><strong>Authentication:</strong> {token ? '✅ Token Present' : '❌ Token Missing'}</p>
-        <p><strong>Token Preview:</strong> {token ? `${token.substring(0, 20)}...` : 'None'}</p>
-      </div>
     </div>
   );
 };

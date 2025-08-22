@@ -142,32 +142,6 @@ const UserManagement = () => {
     }
   }, [dispatch, token]);
 
-  // Test API connection
-  const testApiConnection = async () => {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/users?page=1`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        }
-      });
-      console.log('API Test Response:', response.status, response.ok);
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('API Test Error:', errorData);
-      }
-    } catch (error) {
-      console.error('API Test Failed:', error);
-    }
-  };
-
-  // Test API on component mount
-  useEffect(() => {
-    if (token) {
-      testApiConnection();
-    }
-  }, [token]);
-
   // Auto-clear success and error messages
   useEffect(() => {
     if (success) {
@@ -266,7 +240,6 @@ const UserManagement = () => {
 
     try {
       if (isEditing) {
-        console.log('Updating user with data:', finalFormData);
         await dispatch(updateUser({ id: editingId, userData: finalFormData })).unwrap();
       } else {
         // For create, password is required
@@ -274,7 +247,6 @@ const UserManagement = () => {
           alert('Password is required for new users');
           return;
         }
-        console.log('Creating user with data:', finalFormData);
         await dispatch(createUser(finalFormData)).unwrap();
       }
       
@@ -602,14 +574,6 @@ const UserManagement = () => {
             </div>
           </div>
           <div className="header-actions">
-            <button 
-              className="btn btn-secondary" 
-              onClick={testApiConnection}
-              disabled={loading}
-              title="Test API Connection"
-            >
-              🔧 Test API
-            </button>
             <button 
               className="btn btn-secondary refresh-btn" 
               onClick={handleRefresh} 

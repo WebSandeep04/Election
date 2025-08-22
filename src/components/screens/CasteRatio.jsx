@@ -14,11 +14,13 @@ import {
 } from '../../store/slices/casteRatioSlice';
 import { fetchCastes } from '../../store/slices/casteSlice';
 import { fetchLokSabhas } from '../../store/slices/lokSabhaSlice';
-import { fetchVidhanSabhas } from '../../store/slices/vidhanSabhaSlice';
-import { fetchBlocks } from '../../store/slices/blockSlice';
-import { fetchPanchayats } from '../../store/slices/panchayatSlice';
-import { fetchVillages } from '../../store/slices/villageSlice';
-import { fetchBooths } from '../../store/slices/boothSlice';
+import { fetchVidhanSabhas, fetchVidhanSabhasByLokSabha } from '../../store/slices/vidhanSabhaSlice';
+import { fetchBlocks, fetchBlocksByVidhanSabha } from '../../store/slices/blockSlice';
+import { fetchPanchayats, fetchPanchayatsByBlock } from '../../store/slices/panchayatSlice';
+import { fetchVillages, fetchVillagesByPanchayat } from '../../store/slices/villageSlice';
+import { fetchBooths, fetchBoothsByVillage } from '../../store/slices/boothSlice';
+import { fetchPanchayatChoosings } from '../../store/slices/panchayatChoosingSlice';
+import { fetchVillageChoosings } from '../../store/slices/villageChoosingSlice';
 import { hasPermission } from '../../utils/permissions';
 import './css/CasteRatio.css';
 
@@ -96,8 +98,25 @@ const CasteRatio = () => {
   const { panchayats } = useSelector((state) => state.panchayat);
   const { villages } = useSelector((state) => state.village);
   const { booths } = useSelector((state) => state.booth);
+  const { panchayatChoosings } = useSelector((state) => state.panchayatChoosing);
+  const { villageChoosings } = useSelector((state) => state.villageChoosing);
   const { user } = useSelector((state) => state.auth);
   const { token } = useSelector((state) => state.auth);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('CasteRatio Redux State:', {
+      castes: castes?.length || 0,
+      lokSabhas: lokSabhas?.length || 0,
+      vidhanSabhas: vidhanSabhas?.length || 0,
+      blocks: blocks?.length || 0,
+      panchayats: panchayats?.length || 0,
+      villages: villages?.length || 0,
+      booths: booths?.length || 0,
+      panchayatChoosings: panchayatChoosings?.length || 0,
+      villageChoosings: villageChoosings?.length || 0
+    });
+  }, [castes, lokSabhas, vidhanSabhas, blocks, panchayats, villages, booths, panchayatChoosings, villageChoosings]);
 
   // Filtered data for hierarchical dropdowns
   const [filteredVidhanSabhas, setFilteredVidhanSabhas] = useState([]);
@@ -111,13 +130,40 @@ const CasteRatio = () => {
     loksabha_id: '',
     vidhansabha_id: '',
     block_id: '',
+    panchayat_choosing_id: '',
     panchayat_id: '',
-    village_choosing: '',
+    village_choosing_id: '',
     village_id: '',
     booth_id: '',
     caste_id: '',
     caste_ratio: ''
   });
+
+  // Helper function to get panchayat type display text
+  const getPanchayatTypeText = (type) => {
+    if (Array.isArray(panchayatChoosings)) {
+      const choosingOption = panchayatChoosings.find(option => option.id == type);
+      if (choosingOption) {
+        return choosingOption.name;
+      }
+    }
+    if (type == 1) return 'Mahanagar Pallika';
+    if (type == 2) return 'Gram Panchayat';
+    return type;
+  };
+
+  // Helper function to get village type display text
+  const getVillageTypeText = (type) => {
+    if (Array.isArray(villageChoosings)) {
+      const choosingOption = villageChoosings.find(option => option.id == type);
+      if (choosingOption) {
+        return choosingOption.name;
+      }
+    }
+    if (type == 1) return 'Ward';
+    if (type == 2) return 'Village';
+    return type;
+  };
 
   // UI state
   const [isEditing, setIsEditing] = useState(false);
@@ -143,6 +189,7 @@ const CasteRatio = () => {
   // Fetch data on component mount
   useEffect(() => {
     if (token) {
+      console.log('CasteRatio: Loading initial data...');
       dispatch(fetchCasteRatios({ page: pagination.current_page, search, ...filters }));
       dispatch(fetchCastes(1));
       dispatch(fetchLokSabhas(1));
@@ -151,6 +198,8 @@ const CasteRatio = () => {
       dispatch(fetchPanchayats(1));
       dispatch(fetchVillages(1));
       dispatch(fetchBooths(1));
+      dispatch(fetchPanchayatChoosings());
+      dispatch(fetchVillageChoosings());
     }
   }, [dispatch, token, pagination.current_page]);
 
@@ -184,23 +233,27 @@ const CasteRatio = () => {
   // Handle Lok Sabha selection and fetch related Vidhan Sabhas
   const handleLokSabhaChange = async (e) => {
     const loksabhaId = e.target.value;
+    console.log('CasteRatio: Lok Sabha changed to:', loksabhaId);
     
     setFormData(prev => ({
       ...prev,
       loksabha_id: loksabhaId,
       vidhansabha_id: '',
       block_id: '',
+      panchayat_choosing_id: '',
       panchayat_id: '',
-      village_choosing: '',
+      village_choosing_id: '',
       village_id: '',
       booth_id: ''
     }));
 
     if (loksabhaId) {
       try {
-        const result = await dispatch(fetchVidhanSabhas({ loksabha_id: loksabhaId }));
+        console.log('CasteRatio: Fetching Vidhan Sabhas for Lok Sabha:', loksabhaId);
+        const result = await dispatch(fetchVidhanSabhasByLokSabha(loksabhaId));
+        console.log('CasteRatio: Vidhan Sabhas result:', result);
         if (result.payload) {
-          setFilteredVidhanSabhas(result.payload.vidhanSabhas || []);
+          setFilteredVidhanSabhas(result.payload);
         }
       } catch (error) {
         console.error('Error fetching Vidhan Sabhas by Lok Sabha:', error);
@@ -223,17 +276,18 @@ const CasteRatio = () => {
       ...prev,
       vidhansabha_id: vidhansabhaId,
       block_id: '',
+      panchayat_choosing_id: '',
       panchayat_id: '',
-      village_choosing: '',
+      village_choosing_id: '',
       village_id: '',
       booth_id: ''
     }));
 
     if (vidhansabhaId) {
       try {
-        const result = await dispatch(fetchBlocks({ vidhansabha_id: vidhansabhaId }));
+        const result = await dispatch(fetchBlocksByVidhanSabha(vidhansabhaId));
         if (result.payload) {
-          setFilteredBlocks(result.payload.blocks || []);
+          setFilteredBlocks(result.payload);
         }
       } catch (error) {
         console.error('Error fetching Blocks by Vidhan Sabha:', error);
@@ -254,17 +308,18 @@ const CasteRatio = () => {
     setFormData(prev => ({
       ...prev,
       block_id: blockId,
+      panchayat_choosing_id: '',
       panchayat_id: '',
-      village_choosing: '',
+      village_choosing_id: '',
       village_id: '',
       booth_id: ''
     }));
 
     if (blockId) {
       try {
-        const result = await dispatch(fetchPanchayats({ block_id: blockId }));
+        const result = await dispatch(fetchPanchayatsByBlock(blockId));
         if (result.payload) {
-          setFilteredPanchayats(result.payload.panchayats || []);
+          setFilteredPanchayats(result.payload);
         }
       } catch (error) {
         console.error('Error fetching Panchayats by Block:', error);
@@ -284,16 +339,31 @@ const CasteRatio = () => {
     setFormData(prev => ({
       ...prev,
       panchayat_id: panchayatId,
-      village_choosing: '',
+      village_choosing_id: '',
       village_id: '',
       booth_id: ''
     }));
 
     if (panchayatId) {
       try {
-        const result = await dispatch(fetchVillages({ panchayat_id: panchayatId }));
+        const result = await dispatch(fetchVillagesByPanchayat(panchayatId));
         if (result.payload) {
-          setFilteredVillages(result.payload.villages || []);
+          setFilteredVillages(result.payload);
+        }
+
+        // Auto-select panchayat choosing based on selected panchayat
+        const selectedPanchayat = Array.isArray(filteredPanchayats) 
+          ? filteredPanchayats.find(p => p.id == panchayatId)
+          : null;
+        
+        console.log('CasteRatio: Selected panchayat:', selectedPanchayat);
+        
+        if (selectedPanchayat && selectedPanchayat.panchayat_choosing_id) {
+          console.log('CasteRatio: Auto-setting panchayat_choosing_id to:', selectedPanchayat.panchayat_choosing_id);
+          setFormData(prev => ({
+            ...prev,
+            panchayat_choosing_id: selectedPanchayat.panchayat_choosing_id.toString()
+          }));
         }
       } catch (error) {
         console.error('Error fetching Villages by Panchayat:', error);
@@ -317,9 +387,24 @@ const CasteRatio = () => {
 
     if (villageId) {
       try {
-        const result = await dispatch(fetchBooths({ village_id: villageId }));
+        const result = await dispatch(fetchBoothsByVillage(villageId));
         if (result.payload) {
-          setFilteredBooths(result.payload.booths || []);
+          setFilteredBooths(result.payload);
+        }
+
+        // Auto-select village choosing based on selected village
+        const selectedVillage = Array.isArray(filteredVillages) 
+          ? filteredVillages.find(v => v.id == villageId)
+          : null;
+        
+        console.log('CasteRatio: Selected village:', selectedVillage);
+        
+        if (selectedVillage && selectedVillage.village_choosing_id) {
+          console.log('CasteRatio: Auto-setting village_choosing_id to:', selectedVillage.village_choosing_id);
+          setFormData(prev => ({
+            ...prev,
+            village_choosing_id: selectedVillage.village_choosing_id.toString()
+          }));
         }
       } catch (error) {
         console.error('Error fetching Booths by Village:', error);
@@ -347,11 +432,29 @@ const CasteRatio = () => {
       return;
     }
 
+    // Prepare the data with choosing fields
+    const selectedPanchayatChoosing = Array.isArray(panchayatChoosings)
+      ? panchayatChoosings.find(option => option.id == formData.panchayat_choosing_id)
+      : null;
+    
+    const selectedVillageChoosing = Array.isArray(villageChoosings)
+      ? villageChoosings.find(option => option.id == formData.village_choosing_id)
+      : null;
+
+    const submitData = {
+      ...formData,
+      panchayat_choosing_id: parseInt(formData.panchayat_choosing_id) || formData.panchayat_choosing_id,
+      panchayat_choosing: selectedPanchayatChoosing ? selectedPanchayatChoosing.name : formData.panchayat_choosing_id,
+      village_choosing_id: parseInt(formData.village_choosing_id) || formData.village_choosing_id,
+      village_choosing: selectedVillageChoosing ? selectedVillageChoosing.name : formData.village_choosing_id,
+      caste_ratio: parseInt(formData.caste_ratio)
+    };
+
     try {
       if (isEditing) {
-        await dispatch(updateCasteRatio({ id: editingId, casteRatioData: formData }));
+        await dispatch(updateCasteRatio({ id: editingId, casteRatioData: submitData }));
       } else {
-        await dispatch(createCasteRatio(formData));
+        await dispatch(createCasteRatio(submitData));
       }
       
       setShowModal(false);
@@ -362,13 +465,72 @@ const CasteRatio = () => {
     }
   };
 
+  // Load hierarchical data for editing (without clearing form)
+  const loadHierarchicalDataForEdit = async (casteRatio) => {
+    if (casteRatio.loksabha_id) {
+      try {
+        const result = await dispatch(fetchVidhanSabhasByLokSabha(casteRatio.loksabha_id));
+        if (result.payload) {
+          setFilteredVidhanSabhas(result.payload);
+        }
+      } catch (error) {
+        console.error('Error loading Vidhan Sabhas for edit:', error);
+      }
+    }
+
+    if (casteRatio.vidhansabha_id) {
+      try {
+        const result = await dispatch(fetchBlocksByVidhanSabha(casteRatio.vidhansabha_id));
+        if (result.payload) {
+          setFilteredBlocks(result.payload);
+        }
+      } catch (error) {
+        console.error('Error loading Blocks for edit:', error);
+      }
+    }
+
+    if (casteRatio.block_id) {
+      try {
+        const result = await dispatch(fetchPanchayatsByBlock(casteRatio.block_id));
+        if (result.payload) {
+          setFilteredPanchayats(result.payload);
+        }
+      } catch (error) {
+        console.error('Error loading Panchayats for edit:', error);
+      }
+    }
+
+    if (casteRatio.panchayat_id) {
+      try {
+        const result = await dispatch(fetchVillagesByPanchayat(casteRatio.panchayat_id));
+        if (result.payload) {
+          setFilteredVillages(result.payload);
+        }
+      } catch (error) {
+        console.error('Error loading Villages for edit:', error);
+      }
+    }
+
+    if (casteRatio.village_id) {
+      try {
+        const result = await dispatch(fetchBoothsByVillage(casteRatio.village_id));
+        if (result.payload) {
+          setFilteredBooths(result.payload);
+        }
+      } catch (error) {
+        console.error('Error loading Booths for edit:', error);
+      }
+    }
+  };
+
   const handleEdit = (casteRatio) => {
     setFormData({
       loksabha_id: casteRatio.loksabha_id || '',
       vidhansabha_id: casteRatio.vidhansabha_id || '',
       block_id: casteRatio.block_id || '',
+      panchayat_choosing_id: casteRatio.panchayat_choosing_id || casteRatio.panchayat_choosing || '',
       panchayat_id: casteRatio.panchayat_id || '',
-      village_choosing: casteRatio.village_choosing || '',
+      village_choosing_id: casteRatio.village_choosing_id || casteRatio.village_choosing || '',
       village_id: casteRatio.village_id || '',
       booth_id: casteRatio.booth_id || '',
       caste_id: casteRatio.caste_id || '',
@@ -377,6 +539,9 @@ const CasteRatio = () => {
     setIsEditing(true);
     setEditingId(casteRatio.caste_ratio_id);
     setShowModal(true);
+
+    // Load hierarchical data for editing
+    loadHierarchicalDataForEdit(casteRatio);
   };
 
   const handleDelete = async (id) => {
@@ -395,8 +560,9 @@ const CasteRatio = () => {
       loksabha_id: '',
       vidhansabha_id: '',
       block_id: '',
+      panchayat_choosing_id: '',
       panchayat_id: '',
-      village_choosing: '',
+      village_choosing_id: '',
       village_id: '',
       booth_id: '',
       caste_id: '',
@@ -781,6 +947,8 @@ const CasteRatio = () => {
                   <th>Caste</th>
                   <th>Ratio (%)</th>
                   <th>Location</th>
+                  <th>Panchayat Type</th>
+                  <th>Village Type</th>
                   <th>Created</th>
                   <th>Updated</th>
                   {canManageCastRatios && <th>Actions</th>}
@@ -799,6 +967,12 @@ const CasteRatio = () => {
                       <span className="ratio-badge">{casteRatio.caste_ratio}%</span>
                     </td>
                     <td className="location-cell">{getLocationDisplay(casteRatio)}</td>
+                    <td className="panchayat-type-cell">
+                      {casteRatio.panchayat_choosing_data?.name || getPanchayatTypeText(casteRatio.panchayat_choosing_id || casteRatio.panchayat_choosing)}
+                    </td>
+                    <td className="village-type-cell">
+                      {casteRatio.village_choosing_data?.name || getVillageTypeText(casteRatio.village_choosing_id || casteRatio.village_choosing)}
+                    </td>
                     <td className="created-cell">{formatDate(casteRatio.created_at)}</td>
                     <td className="updated-cell">{formatDate(casteRatio.updated_at)}</td>
                     {canManageCastRatios && (
@@ -991,6 +1165,31 @@ const CasteRatio = () => {
                 </div>
                 
                 <div className="form-group">
+                  <label htmlFor="panchayat_choosing_id">Panchayat Choosing</label>
+                  <select
+                    id="panchayat_choosing_id"
+                    name="panchayat_choosing_id"
+                    value={formData.panchayat_choosing_id}
+                    onChange={handleInputChange}
+                    disabled={loading}
+                  >
+                    <option value="">Select Panchayat Choosing (Optional)</option>
+                    {Array.isArray(panchayatChoosings) && panchayatChoosings.map((choosing) => (
+                      <option key={choosing.id} value={choosing.id}>
+                        {choosing.name}
+                      </option>
+                    ))}
+                  </select>
+                  {(!Array.isArray(panchayatChoosings) || panchayatChoosings.length === 0) && (
+                    <small style={{color: 'orange'}}>
+                      Loading panchayat types from database...
+                    </small>
+                  )}
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
                   <label htmlFor="panchayat_id">Panchayat</label>
                   <select
                     id="panchayat_id"
@@ -1012,24 +1211,32 @@ const CasteRatio = () => {
                     ))}
                   </select>
                 </div>
-              </div>
-
-              <div className="form-row">
+                
                 <div className="form-group">
-                  <label htmlFor="village_choosing">Village Choosing</label>
+                  <label htmlFor="village_choosing_id">Village Choosing</label>
                   <select
-                    id="village_choosing"
-                    name="village_choosing"
-                    value={formData.village_choosing}
+                    id="village_choosing_id"
+                    name="village_choosing_id"
+                    value={formData.village_choosing_id}
                     onChange={handleInputChange}
                     disabled={loading}
                   >
                     <option value="">Select Village Choosing (Optional)</option>
-                    <option value="1">Yes</option>
-                    <option value="0">No</option>
+                    {Array.isArray(villageChoosings) && villageChoosings.map((choosing) => (
+                      <option key={choosing.id} value={choosing.id}>
+                        {choosing.name}
+                      </option>
+                    ))}
                   </select>
+                  {(!Array.isArray(villageChoosings) || villageChoosings.length === 0) && (
+                    <small style={{color: 'orange'}}>
+                      Loading village types from database...
+                    </small>
+                  )}
                 </div>
-                
+              </div>
+
+              <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="village_id">Village</label>
                   <select
