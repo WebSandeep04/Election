@@ -49,8 +49,7 @@ export const fetchCasteRatios = createAsyncThunk(
       
              const url = `${getApiUrl('/api/cast-ratios')}?${qp.toString()}`;
       
-      console.log('=== FETCH CASTE RATIOS API CALL ===');
-      console.log('Method: GET, URL:', url, 'Token:', token ? 'Present' : 'Missing');
+      
       
       const response = await fetch(url, {
         method: 'GET',
@@ -62,8 +61,7 @@ export const fetchCasteRatios = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== FETCH CASTE RATIOS API RESPONSE ===');
-      console.log('Status:', response.status, 'Data:', data);
+
 
       const castRatios = data.cast_ratios || data.data || [];
       const pagination = data.pagination || data.meta || {
@@ -77,7 +75,7 @@ export const fetchCasteRatios = createAsyncThunk(
 
       return { castRatios, pagination };
     } catch (error) {
-      console.error('Error fetching Caste Ratios:', error);
+
       return rejectWithValue(error.message);
     }
   }
@@ -90,8 +88,7 @@ export const fetchCasteRatioById = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl('/api/cast-ratios')}/${id}`;
       
-      console.log('=== FETCH CASTE RATIO BY ID API CALL ===');
-      console.log('Method: GET, URL:', url, 'Token:', token ? 'Present' : 'Missing');
+      
       
       const response = await fetch(url, {
         method: 'GET',
@@ -103,8 +100,7 @@ export const fetchCasteRatioById = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== FETCH CASTE RATIO BY ID API RESPONSE ===');
-      console.log('Status:', response.status, 'Data:', data);
+
 
       return data.data || data;
     } catch (error) {
@@ -121,8 +117,7 @@ export const createCasteRatio = createAsyncThunk(
       const token = getToken(getState);
       const url = getApiUrl('/api/cast-ratios');
       
-      console.log('=== CREATE CASTE RATIO API CALL ===');
-      console.log('Method: POST, URL:', url, 'Data:', casteRatioData);
+      
       
       const response = await fetch(url, {
         method: 'POST',
@@ -142,8 +137,7 @@ export const createCasteRatio = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== CREATE CASTE RATIO API RESPONSE ===');
-      console.log('Status:', response.status, 'Data:', data);
+
 
       return data.data || data;
     } catch (error) {
@@ -160,8 +154,7 @@ export const updateCasteRatio = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl('/api/cast-ratios')}/${id}`;
       
-      console.log('=== UPDATE CASTE RATIO API CALL ===');
-      console.log('Method: PUT, URL:', url, 'Data:', casteRatioData);
+      
       
       const response = await fetch(url, {
         method: 'PUT',
@@ -181,8 +174,7 @@ export const updateCasteRatio = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== UPDATE CASTE RATIO API RESPONSE ===');
-      console.log('Status:', response.status, 'Data:', data);
+
 
       return data.data || data;
     } catch (error) {
@@ -199,8 +191,7 @@ export const deleteCasteRatio = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl('/api/cast-ratios')}/${id}`;
       
-      console.log('=== DELETE CASTE RATIO API CALL ===');
-      console.log('Method: DELETE, URL:', url, 'Token:', token ? 'Present' : 'Missing');
+      
       
       const response = await fetch(url, {
         method: 'DELETE',
@@ -212,8 +203,7 @@ export const deleteCasteRatio = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== DELETE CASTE RATIO API RESPONSE ===');
-      console.log('Status:', response.status, 'Data:', data);
+
 
       return { id, message: data.message || 'Caste ratio deleted successfully' };
     } catch (error) {

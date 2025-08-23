@@ -19,8 +19,7 @@ export const fetchBooths = createAsyncThunk(
     const qp = new URLSearchParams({ page: String(page) });
     if (search && String(search).trim().length > 0) qp.set('search', String(search).trim());
     const url = `${getApiUrl(API_CONFIG.ENDPOINTS.BOOTH)}?${qp.toString()}`;
-    console.log('=== FETCH BOOTHS API CALL ===');
-    console.log('Method: GET, URL:', url, 'Token:', token ? 'Present' : 'Missing');
+
     
     try {
       const response = await fetch(url, { 
@@ -33,8 +32,7 @@ export const fetchBooths = createAsyncThunk(
       }
       
       const data = await response.json();
-      console.log('=== FETCH BOOTHS API RESPONSE ===');
-      console.log('Status:', response.status, 'Data:', data);
+
       
       const booths = data.booths || data.data || [];
       const pagination = data.pagination || data.meta || { 
@@ -60,8 +58,7 @@ export const createBooth = createAsyncThunk(
   async (boothData, { rejectWithValue, getState }) => {
     const token = getToken(getState);
     const url = getApiUrl(API_CONFIG.ENDPOINTS.BOOTH);
-    console.log('=== CREATE BOOTH API CALL ===');
-    console.log('Method: POST, URL:', url, 'Data:', boothData);
+
     
     try {
       const response = await fetch(url, { 
@@ -82,8 +79,7 @@ export const createBooth = createAsyncThunk(
       }
       
       const data = await response.json();
-      console.log('=== CREATE BOOTH API RESPONSE ===');
-      console.log('Status:', response.status, 'Data:', data);
+
       
       return data.booth || data;
     } catch (error) {
@@ -99,8 +95,7 @@ export const updateBooth = createAsyncThunk(
   async ({ id, boothData }, { rejectWithValue, getState }) => {
     const token = getToken(getState);
     const url = `${getApiUrl(API_CONFIG.ENDPOINTS.BOOTH)}/${id}`;
-    console.log('=== UPDATE BOOTH API CALL ===');
-    console.log('Method: PUT, URL:', url, 'ID:', id, 'Data:', boothData);
+
     
     try {
       const response = await fetch(url, { 
@@ -121,8 +116,7 @@ export const updateBooth = createAsyncThunk(
       }
       
       const data = await response.json();
-      console.log('=== UPDATE BOOTH API RESPONSE ===');
-      console.log('Status:', response.status, 'Data:', data);
+
       
       return data.booth || data;
     } catch (error) {
@@ -138,8 +132,7 @@ export const deleteBooth = createAsyncThunk(
   async (id, { rejectWithValue, getState }) => {
     const token = getToken(getState);
     const url = `${getApiUrl(API_CONFIG.ENDPOINTS.BOOTH)}/${id}`;
-    console.log('=== DELETE BOOTH API CALL ===');
-    console.log('Method: DELETE, URL:', url, 'ID:', id);
+
     
     try {
       const response = await fetch(url, { 
@@ -158,8 +151,7 @@ export const deleteBooth = createAsyncThunk(
         }
       }
       
-      console.log('=== DELETE BOOTH API SUCCESS ===');
-      console.log('Status:', response.status, 'Deleted ID:', id);
+
       return id;
     } catch (error) {
       console.error('=== DELETE BOOTH API ERROR ===');

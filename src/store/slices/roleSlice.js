@@ -22,13 +22,7 @@ export const fetchRoles = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.ROLES)}?page=${page}`;
       
-      console.log('=== FETCH ROLES API CALL ===');
-      console.log('Method: GET');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('Headers:', getAuthHeaders(token));
-      console.log('Page:', page);
-      console.log('================================');
+      
       
       const response = await fetch(url, {
         method: 'GET',
@@ -40,10 +34,7 @@ export const fetchRoles = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== FETCH ROLES API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Response Data:', data);
-      console.log('====================================');
+
 
       // Extract roles and pagination from the response
       const roles = data.roles || data.data || [];
@@ -71,13 +62,7 @@ export const fetchRoleById = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.ROLES)}/${id}`;
       
-      console.log('=== FETCH ROLE BY ID API CALL ===');
-      console.log('Method: GET');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('Headers:', getAuthHeaders(token));
-      console.log('ID:', id);
-      console.log('=====================================');
+      
       
       const response = await fetch(url, {
         method: 'GET',
@@ -89,10 +74,7 @@ export const fetchRoleById = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== FETCH ROLE BY ID API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Response Data:', data);
-      console.log('========================================');
+
 
       // Extract role from the response
       return data.role || data;
@@ -110,14 +92,7 @@ export const createRole = createAsyncThunk(
       const token = getToken(getState);
       const url = getApiUrl(API_CONFIG.ENDPOINTS.ROLES);
       
-      console.log('=== CREATE ROLE API CALL ===');
-      console.log('Method: POST');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('Headers:', getAuthHeaders(token));
-      console.log('Request Data:', roleData);
-      console.log('Request Body (JSON):', JSON.stringify(roleData, null, 2));
-      console.log('================================');
+      
       
       const headers = getAuthHeaders(token);
       
@@ -127,13 +102,9 @@ export const createRole = createAsyncThunk(
         body: JSON.stringify(roleData),
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
       if (!response.ok) {
         // Check if response is HTML (error page) or JSON
         const contentType = response.headers.get('content-type');
-        console.log('Response content-type:', contentType);
         
         if (contentType && contentType.includes('text/html')) {
           // Laravel returned an HTML error page
@@ -149,10 +120,6 @@ export const createRole = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== CREATE ROLE API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Response Data:', data);
-      console.log('===================================');
 
       // Extract role from the response
       return data.role || data;
@@ -170,15 +137,7 @@ export const updateRole = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.ROLES)}/${id}`;
       
-      console.log('=== UPDATE ROLE API CALL ===');
-      console.log('Method: PUT');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('Headers:', getAuthHeaders(token));
-      console.log('ID:', id);
-      console.log('Request Data:', roleData);
-      console.log('Request Body (JSON):', JSON.stringify(roleData, null, 2));
-      console.log('================================');
+
       
       const response = await fetch(url, {
         method: 'PUT',
@@ -192,10 +151,6 @@ export const updateRole = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== UPDATE ROLE API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Response Data:', data);
-      console.log('===================================');
 
       // Extract role from the response
       return data.role || data;
@@ -213,13 +168,7 @@ export const deleteRole = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.ROLES)}/${id}`;
       
-      console.log('=== DELETE ROLE API CALL ===');
-      console.log('Method: DELETE');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('Headers:', getAuthHeaders(token));
-      console.log('ID:', id);
-      console.log('================================');
+
       
       const response = await fetch(url, {
         method: 'DELETE',
@@ -228,17 +177,11 @@ export const deleteRole = createAsyncThunk(
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.log('=== DELETE ROLE API ERROR ===');
-        console.log('Status:', response.status);
-        console.log('Error Data:', errorData);
-        console.log('================================');
+
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
-      console.log('=== DELETE ROLE API SUCCESS ===');
-      console.log('Status:', response.status);
-      console.log('Deleted ID:', id);
-      console.log('==================================');
+
       return id;
     } catch (error) {
       console.error('Error deleting role:', error);
@@ -254,13 +197,7 @@ export const activateRole = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.ROLES)}/${id}/activate`;
       
-      console.log('=== ACTIVATE ROLE API CALL ===');
-      console.log('Method: POST');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('Headers:', getAuthHeaders(token));
-      console.log('ID:', id);
-      console.log('================================');
+
       
       const response = await fetch(url, {
         method: 'POST',
@@ -273,10 +210,6 @@ export const activateRole = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== ACTIVATE ROLE API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Response Data:', data);
-      console.log('===================================');
 
       return data.role || data;
     } catch (error) {
@@ -293,13 +226,7 @@ export const deactivateRole = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.ROLES)}/${id}/deactivate`;
       
-      console.log('=== DEACTIVATE ROLE API CALL ===');
-      console.log('Method: POST');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('Headers:', getAuthHeaders(token));
-      console.log('ID:', id);
-      console.log('================================');
+
       
       const response = await fetch(url, {
         method: 'POST',
@@ -312,10 +239,6 @@ export const deactivateRole = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== DEACTIVATE ROLE API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Response Data:', data);
-      console.log('===================================');
 
       return data.role || data;
     } catch (error) {

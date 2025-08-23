@@ -24,7 +24,7 @@ export const fetchCastes = createAsyncThunk(
       }
 
       // Handle Laravel API response format with pagination
-      console.log('API Response:', data);
+      
       
       // Extract castes array and pagination info
       const castes = data && Array.isArray(data.castes) ? data.castes : 
@@ -72,13 +72,10 @@ export const fetchCasteById = createAsyncThunk(
       }
 
       // Handle Laravel API response format
-      console.log('API Response (fetchCasteById):', data);
       
       if (data && data.caste) {
-        console.log('Returning caste object:', data.caste);
         return data.caste;
       } else {
-        console.log('Returning direct data:', data);
         return data;
       }
     } catch (error) {
@@ -110,13 +107,10 @@ export const createCaste = createAsyncThunk(
       }
 
       // Handle Laravel API response format
-      console.log('API Response (createCaste):', data);
       
       if (data && data.caste) {
-        console.log('Returning caste object:', data.caste);
         return data.caste;
       } else {
-        console.log('Returning direct data:', data);
         return data;
       }
     } catch (error) {
@@ -148,13 +142,10 @@ export const updateCaste = createAsyncThunk(
       }
 
       // Handle Laravel API response format
-      console.log('API Response (updateCaste):', data);
       
       if (data && data.caste) {
-        console.log('Returning caste object with id:', { id, ...data.caste });
         return { id, ...data.caste };
       } else {
-        console.log('Returning direct data with id:', { id, ...data });
         return { id, ...data };
       }
     } catch (error) {

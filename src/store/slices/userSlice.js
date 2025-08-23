@@ -87,12 +87,7 @@ export const fetchUserById = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.USERS)}/${id}`;
       
-      console.log('=== FETCH USER BY ID API CALL ===');
-      console.log('Method: GET');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('ID:', id);
-      console.log('=====================================');
+      
       
       const response = await fetch(url, {
         method: 'GET',
@@ -105,10 +100,7 @@ export const fetchUserById = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== FETCH USER BY ID API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Response Data:', data);
-      console.log('========================================');
+
 
       // Extract user from the response
       return data.data || data;
@@ -126,13 +118,7 @@ export const createUser = createAsyncThunk(
       const token = getToken(getState);
       const url = getApiUrl(API_CONFIG.ENDPOINTS.USERS);
       
-      console.log('=== CREATE USER API CALL ===');
-      console.log('Method: POST');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('Request Data:', userData);
-      console.log('Request Body (JSON):', JSON.stringify(userData, null, 2));
-      console.log('================================');
+      
       
       const response = await fetch(url, {
         method: 'POST',
@@ -141,10 +127,7 @@ export const createUser = createAsyncThunk(
       });
 
       const data = await response.json();
-      console.log('=== CREATE USER API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Response Data:', data);
-      console.log('================================');
+
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to create user');
@@ -166,14 +149,7 @@ export const updateUser = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.USERS)}/${id}`;
       
-      console.log('=== UPDATE USER API CALL ===');
-      console.log('Method: PUT');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('ID:', id);
-      console.log('Request Data:', userData);
-      console.log('Request Body (JSON):', JSON.stringify(userData, null, 2));
-      console.log('================================');
+      
       
       const response = await fetch(url, {
         method: 'PUT',
@@ -182,10 +158,7 @@ export const updateUser = createAsyncThunk(
       });
 
       const data = await response.json();
-      console.log('=== UPDATE USER API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Response Data:', data);
-      console.log('================================');
+
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to update user');
@@ -207,33 +180,17 @@ export const deleteUser = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.USERS)}/${id}`;
       
-      console.log('=== DELETE USER API CALL ===');
-      console.log('Method: DELETE');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('ID:', id);
-      console.log('================================');
+      
       
       const response = await fetch(url, {
         method: 'DELETE',
         headers: getAuthHeaders(token),
       });
 
-      console.log('=== DELETE USER API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('================================');
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.log('=== DELETE USER API ERROR ===');
-        console.log('Error Data:', errorData);
-        console.log('================================');
         throw new Error(errorData.message || 'Failed to delete user');
       }
-
-      console.log('=== DELETE USER API SUCCESS ===');
-      console.log('User deleted successfully');
-      console.log('================================');
 
       return { id };
     } catch (error) {
@@ -250,12 +207,7 @@ export const activateUser = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.USERS)}/${id}/activate`;
       
-      console.log('=== ACTIVATE USER API CALL ===');
-      console.log('Method: POST');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('ID:', id);
-      console.log('================================');
+
       
       const response = await fetch(url, {
         method: 'POST',
@@ -263,10 +215,6 @@ export const activateUser = createAsyncThunk(
       });
 
       const data = await response.json();
-      console.log('=== ACTIVATE USER API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Response Data:', data);
-      console.log('================================');
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to activate user');
@@ -287,12 +235,7 @@ export const deactivateUser = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.USERS)}/${id}/deactivate`;
       
-      console.log('=== DEACTIVATE USER API CALL ===');
-      console.log('Method: POST');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('ID:', id);
-      console.log('================================');
+
       
       const response = await fetch(url, {
         method: 'POST',
@@ -300,10 +243,6 @@ export const deactivateUser = createAsyncThunk(
       });
 
       const data = await response.json();
-      console.log('=== DEACTIVATE USER API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Response Data:', data);
-      console.log('================================');
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to deactivate user');
@@ -324,13 +263,7 @@ export const assignRoleToUser = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.USERS)}/${userId}/roles`;
       
-      console.log('=== ASSIGN ROLE TO USER API CALL ===');
-      console.log('Method: POST');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('User ID:', userId);
-      console.log('Role ID:', roleId);
-      console.log('========================================');
+
       
       const response = await fetch(url, {
         method: 'POST',
@@ -339,10 +272,6 @@ export const assignRoleToUser = createAsyncThunk(
       });
 
       const data = await response.json();
-      console.log('=== ASSIGN ROLE TO USER API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Response Data:', data);
-      console.log('========================================');
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to assign role to user');
@@ -363,13 +292,7 @@ export const removeRoleFromUser = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.USERS)}/${userId}/roles/${roleId}`;
       
-      console.log('=== REMOVE ROLE FROM USER API CALL ===');
-      console.log('Method: DELETE');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('User ID:', userId);
-      console.log('Role ID:', roleId);
-      console.log('==========================================');
+
       
       const response = await fetch(url, {
         method: 'DELETE',
@@ -377,10 +300,6 @@ export const removeRoleFromUser = createAsyncThunk(
       });
 
       const data = await response.json();
-      console.log('=== REMOVE ROLE FROM USER API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Response Data:', data);
-      console.log('==========================================');
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to remove role from user');

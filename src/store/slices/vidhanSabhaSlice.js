@@ -175,17 +175,11 @@ export const deleteVidhanSabha = createAsyncThunk(
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.log('=== DELETE VIDHAN SABHA API ERROR ===');
-        console.log('Status:', response.status);
-        console.log('Error Data:', errorData);
-        console.log('================================');
+
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
-      console.log('=== DELETE VIDHAN SABHA API SUCCESS ===');
-      console.log('Status:', response.status);
-      console.log('Deleted ID:', id);
-      console.log('==================================');
+
       return id;
     } catch (error) {
       return rejectWithValue(error.message);

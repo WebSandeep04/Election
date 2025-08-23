@@ -10,10 +10,13 @@ import {
   setVillageDescPage,
 } from '../../store/slices/villageDescriptionSlice';
 import { fetchLokSabhas } from '../../store/slices/lokSabhaSlice';
-import { fetchVidhanSabhas } from '../../store/slices/vidhanSabhaSlice';
-import { fetchBlocks } from '../../store/slices/blockSlice';
-import { fetchPanchayats } from '../../store/slices/panchayatSlice';
-import { fetchVillages } from '../../store/slices/villageSlice';
+import { fetchVidhanSabhas, fetchVidhanSabhasByLokSabha } from '../../store/slices/vidhanSabhaSlice';
+import { fetchBlocks, fetchBlocksByVidhanSabha } from '../../store/slices/blockSlice';
+import { fetchPanchayats, fetchPanchayatsByBlock } from '../../store/slices/panchayatSlice';
+import { fetchVillages, fetchVillagesByPanchayat } from '../../store/slices/villageSlice';
+import { fetchBooths, fetchBoothsByVillage } from '../../store/slices/boothSlice';
+import { fetchPanchayatChoosings } from '../../store/slices/panchayatChoosingSlice';
+import { fetchVillageChoosings } from '../../store/slices/villageChoosingSlice';
 import { hasPermission } from '../../utils/permissions';
 import './css/VillageDescription.css';
 
@@ -23,6 +26,7 @@ const DeleteIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="
 const RefreshIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23,4 23,10 17,10"/><polyline points="1,20 1,14 7,14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>);
 const SearchIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>);
 const FilterIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46"/></svg>);
+const CloseIcon = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>);
 
 const VillageDescription = () => {
   const dispatch = useDispatch();
@@ -33,6 +37,16 @@ const VillageDescription = () => {
   const { blocks = [] } = useSelector((s) => s.block || {});
   const { panchayats = [] } = useSelector((s) => s.panchayat || {});
   const { villages = [] } = useSelector((s) => s.village || {});
+  const { booths = [] } = useSelector((s) => s.booth || {});
+  const { panchayatChoosings = [] } = useSelector((s) => s.panchayatChoosing || {});
+  const { villageChoosings = [] } = useSelector((s) => s.villageChoosing || {});
+
+  // Filtered data for hierarchical dropdowns
+  const [filteredVidhanSabhas, setFilteredVidhanSabhas] = useState([]);
+  const [filteredBlocks, setFilteredBlocks] = useState([]);
+  const [filteredPanchayats, setFilteredPanchayats] = useState([]);
+  const [filteredVillages, setFilteredVillages] = useState([]);
+  const [filteredBooths, setFilteredBooths] = useState([]);
 
   // Resolve display labels across varying backend field names
   const getLabel = (item, type) => {
@@ -52,26 +66,40 @@ const VillageDescription = () => {
         return item.name || item.panchayat_name || `#${item.id}`;
       case 'village':
         return item.name || item.village_name || `#${item.id}`;
+      case 'booth':
+        return item.name || item.booth_name || `#${item.id}`;
       default:
         return item.name || item.title || `#${item.id}`;
     }
   };
 
-  // Debug logging
-  useEffect(() => {
-    console.log('=== VILLAGE DESCRIPTION DATA STATE ===');
-    console.log('Lok Sabhas:', lokSabhas);
-    console.log('Lok Sabhas type:', typeof lokSabhas);
-    console.log('Lok Sabhas length:', lokSabhas?.length);
-    console.log('First Lok Sabha:', lokSabhas?.[0]);
-    console.log('Vidhan Sabhas:', vidhanSabhas);
-    console.log('Blocks:', blocks);
-    console.log('Panchayats:', panchayats);
-    console.log('Villages:', villages);
-    console.log('=====================================');
-  }, [lokSabhas, vidhanSabhas, blocks, panchayats, villages]);
+  // Helper function to get panchayat type display text
+  const getPanchayatTypeText = (type) => {
+    if (Array.isArray(panchayatChoosings)) {
+      const choosingOption = panchayatChoosings.find(option => option.id == type);
+      if (choosingOption) {
+        return choosingOption.name;
+      }
+    }
+    if (type == 1) return 'Mahanagar Pallika';
+    if (type == 2) return 'Gram Panchayat';
+    return type;
+  };
+
+  // Helper function to get village type display text
+  const getVillageTypeText = (type) => {
+    if (Array.isArray(villageChoosings)) {
+      const choosingOption = villageChoosings.find(option => option.id == type);
+      if (choosingOption) {
+        return choosingOption.name;
+      }
+    }
+    if (type == 1) return 'Ward';
+    if (type == 2) return 'Village';
+    return type;
+  };
   
-  const canManage = user && hasPermission(user, 'manage_village_descriptions');
+  const canManageVillageDescription = user && hasPermission(user, 'manage_village_descriptions');
 
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -90,20 +118,16 @@ const VillageDescription = () => {
     loksabha_id: '',
     vidhansabha_id: '',
     block_id: '',
+    panchayat_choosing_id: '',
     panchayat_id: '',
-    village_choosing: '',
+    village_choosing_id: '',
     village_id: '',
+    booth_id: '',
     description: ''
   });
 
   // Fetch data on component mount
   useEffect(() => {
-    console.log('=== VILLAGE DESCRIPTION COMPONENT MOUNT ===');
-    console.log('Fetching all administrative data...');
-    console.log('User:', user);
-    console.log('Auth token:', localStorage.getItem('auth_token'));
-    
-    // Only fetch if user is authenticated
     if (user || localStorage.getItem('auth_token')) {
       dispatch(fetchVillageDescriptions({ page: 1, search, ...filters }));
       dispatch(fetchLokSabhas(1));
@@ -111,8 +135,9 @@ const VillageDescription = () => {
       dispatch(fetchBlocks(1));
       dispatch(fetchPanchayats(1));
       dispatch(fetchVillages(1));
-    } else {
-      console.log('User not authenticated, skipping data fetch');
+      dispatch(fetchBooths(1));
+      dispatch(fetchPanchayatChoosings());
+      dispatch(fetchVillageChoosings());
     }
   }, [dispatch, user]);
 
@@ -125,25 +150,184 @@ const VillageDescription = () => {
     if (error) setTimeout(() => dispatch(clearVillageDescError()), 3000);
   }, [error, dispatch]);
 
-  // Filter villages based on selected panchayat
-  const filteredVillages = (villages || []).filter(village => 
-    !filters.panchayat_id || village.panchayat_id == filters.panchayat_id
-  );
+  // Handle Lok Sabha selection and fetch related Vidhan Sabhas
+  const handleLokSabhaChange = async (e) => {
+    const loksabhaId = e.target.value;
+    
+    setFormData(prev => ({
+      ...prev,
+      loksabha_id: loksabhaId,
+      vidhansabha_id: '',
+      block_id: '',
+      panchayat_choosing_id: '',
+      panchayat_id: '',
+      village_choosing_id: '',
+      village_id: '',
+      booth_id: ''
+    }));
 
-  // Filter panchayats based on selected block
-  const filteredPanchayats = (panchayats || []).filter(panchayat => 
-    !filters.block_id || panchayat.block_id == filters.block_id
-  );
+    if (loksabhaId) {
+      try {
+        const result = await dispatch(fetchVidhanSabhasByLokSabha(loksabhaId));
+        if (result.payload) {
+          setFilteredVidhanSabhas(result.payload);
+        }
+      } catch (error) {
+        setFilteredVidhanSabhas([]);
+      }
+    } else {
+      setFilteredVidhanSabhas([]);
+      setFilteredBlocks([]);
+      setFilteredPanchayats([]);
+      setFilteredVillages([]);
+      setFilteredBooths([]);
+    }
+  };
 
-  // Filter blocks based on selected vidhan sabha
-  const filteredBlocks = (blocks || []).filter(block => 
-    !filters.vidhansabha_id || block.vidhansabha_id == filters.vidhansabha_id
-  );
+  // Handle Vidhan Sabha selection and fetch related Blocks
+  const handleVidhanSabhaChange = async (e) => {
+    const vidhansabhaId = e.target.value;
+    
+    setFormData(prev => ({
+      ...prev,
+      vidhansabha_id: vidhansabhaId,
+      block_id: '',
+      panchayat_choosing_id: '',
+      panchayat_id: '',
+      village_choosing_id: '',
+      village_id: '',
+      booth_id: ''
+    }));
 
-  // Filter vidhan sabhas based on selected lok sabha
-  const filteredVidhanSabhas = (vidhanSabhas || []).filter(vidhanSabha => 
-    !filters.loksabha_id || vidhanSabha.loksabha_id == filters.loksabha_id
-  );
+    if (vidhansabhaId) {
+      try {
+        const result = await dispatch(fetchBlocksByVidhanSabha(vidhansabhaId));
+        if (result.payload) {
+          setFilteredBlocks(result.payload);
+        }
+      } catch (error) {
+        setFilteredBlocks([]);
+      }
+    } else {
+      setFilteredBlocks([]);
+      setFilteredPanchayats([]);
+      setFilteredVillages([]);
+      setFilteredBooths([]);
+    }
+  };
+
+  // Handle Block selection and fetch related Panchayats
+  const handleBlockChange = async (e) => {
+    const blockId = e.target.value;
+    
+    setFormData(prev => ({
+      ...prev,
+      block_id: blockId,
+      panchayat_choosing_id: '',
+      panchayat_id: '',
+      village_choosing_id: '',
+      village_id: '',
+      booth_id: ''
+    }));
+
+    if (blockId) {
+      try {
+        const result = await dispatch(fetchPanchayatsByBlock(blockId));
+        if (result.payload) {
+          setFilteredPanchayats(result.payload);
+        }
+      } catch (error) {
+        setFilteredPanchayats([]);
+      }
+    } else {
+      setFilteredPanchayats([]);
+      setFilteredVillages([]);
+      setFilteredBooths([]);
+    }
+  };
+
+  // Handle Panchayat selection and fetch related Villages
+  const handlePanchayatChange = async (e) => {
+    const panchayatId = e.target.value;
+    
+    setFormData(prev => ({
+      ...prev,
+      panchayat_id: panchayatId,
+      village_choosing_id: '',
+      village_id: '',
+      booth_id: ''
+    }));
+
+    if (panchayatId) {
+      try {
+        const result = await dispatch(fetchVillagesByPanchayat(panchayatId));
+        if (result.payload) {
+          setFilteredVillages(result.payload);
+        }
+
+        // Auto-select panchayat choosing based on selected panchayat
+        const selectedPanchayat = Array.isArray(filteredPanchayats) 
+          ? filteredPanchayats.find(p => p.id == panchayatId)
+          : null;
+        
+        if (selectedPanchayat && selectedPanchayat.panchayat_choosing_id) {
+          setFormData(prev => ({
+            ...prev,
+            panchayat_choosing_id: selectedPanchayat.panchayat_choosing_id.toString()
+          }));
+        }
+      } catch (error) {
+        setFilteredVillages([]);
+      }
+    } else {
+      setFilteredVillages([]);
+      setFilteredBooths([]);
+    }
+  };
+
+  // Handle Village selection and fetch related Booths
+  const handleVillageChange = async (e) => {
+    const villageId = e.target.value;
+    
+    setFormData(prev => ({
+      ...prev,
+      village_id: villageId,
+      booth_id: ''
+    }));
+
+    if (villageId) {
+      try {
+        const result = await dispatch(fetchBoothsByVillage(villageId));
+        if (result.payload) {
+          setFilteredBooths(result.payload);
+        }
+
+        // Auto-select village choosing based on selected village
+        const selectedVillage = Array.isArray(filteredVillages) 
+          ? filteredVillages.find(v => v.id == villageId)
+          : null;
+        
+        if (selectedVillage && selectedVillage.village_choosing_id) {
+          setFormData(prev => ({
+            ...prev,
+            village_choosing_id: selectedVillage.village_choosing_id.toString()
+          }));
+        }
+      } catch (error) {
+        setFilteredBooths([]);
+      }
+    } else {
+      setFilteredBooths([]);
+    }
+  };
+
+  // Handle form field changes
+  const handleFormFieldChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
 
   const openCreate = () => {
     setIsEditing(false);
@@ -152,52 +336,19 @@ const VillageDescription = () => {
       loksabha_id: '',
       vidhansabha_id: '',
       block_id: '',
+      panchayat_choosing_id: '',
       panchayat_id: '',
-      village_choosing: '',
+      village_choosing_id: '',
       village_id: '',
+      booth_id: '',
       description: ''
     });
+    setFilteredVidhanSabhas([]);
+    setFilteredBlocks([]);
+    setFilteredPanchayats([]);
+    setFilteredVillages([]);
+    setFilteredBooths([]);
     setShowModal(true);
-  };
-
-  // Handle form field changes with hierarchical reset
-  const handleFormFieldChange = (field, value) => {
-    let newFormData = { ...formData, [field]: value };
-    
-    // Reset child fields when parent changes
-    if (field === 'loksabha_id') {
-      newFormData = {
-        ...newFormData,
-        vidhansabha_id: '',
-        block_id: '',
-        panchayat_id: '',
-        village_choosing: '',
-        village_id: ''
-      };
-    } else if (field === 'vidhansabha_id') {
-      newFormData = {
-        ...newFormData,
-        block_id: '',
-        panchayat_id: '',
-        village_choosing: '',
-        village_id: ''
-      };
-    } else if (field === 'block_id') {
-      newFormData = {
-        ...newFormData,
-        panchayat_id: '',
-        village_choosing: '',
-        village_id: ''
-      };
-    } else if (field === 'panchayat_id') {
-      newFormData = {
-        ...newFormData,
-        village_choosing: '',
-        village_id: ''
-      };
-    }
-    
-    setFormData(newFormData);
   };
 
   const openEdit = (row) => {
@@ -207,12 +358,75 @@ const VillageDescription = () => {
       loksabha_id: row.loksabha_id || '',
       vidhansabha_id: row.vidhansabha_id || '',
       block_id: row.block_id || '',
+      panchayat_choosing_id: row.panchayat_choosing_id || '',
       panchayat_id: row.panchayat_id || '',
-      village_choosing: row.village_choosing || '',
+      village_choosing_id: row.village_choosing_id || '',
       village_id: row.village_id || '',
+      booth_id: row.booth_id || '',
       description: row.description || ''
     });
     setShowModal(true);
+    
+    // Load hierarchical data for editing
+    loadHierarchicalDataForEdit(row);
+  };
+
+  // Load hierarchical data for editing
+  const loadHierarchicalDataForEdit = async (villageDescription) => {
+    if (villageDescription.loksabha_id) {
+      try {
+        const result = await dispatch(fetchVidhanSabhasByLokSabha(villageDescription.loksabha_id));
+        if (result.payload) {
+          setFilteredVidhanSabhas(result.payload);
+        }
+      } catch (error) {
+        setFilteredVidhanSabhas([]);
+      }
+    }
+
+    if (villageDescription.vidhansabha_id) {
+      try {
+        const result = await dispatch(fetchBlocksByVidhanSabha(villageDescription.vidhansabha_id));
+        if (result.payload) {
+          setFilteredBlocks(result.payload);
+        }
+      } catch (error) {
+        setFilteredBlocks([]);
+      }
+    }
+
+    if (villageDescription.block_id) {
+      try {
+        const result = await dispatch(fetchPanchayatsByBlock(villageDescription.block_id));
+        if (result.payload) {
+          setFilteredPanchayats(result.payload);
+        }
+      } catch (error) {
+        setFilteredPanchayats([]);
+      }
+    }
+
+    if (villageDescription.panchayat_id) {
+      try {
+        const result = await dispatch(fetchVillagesByPanchayat(villageDescription.panchayat_id));
+        if (result.payload) {
+          setFilteredVillages(result.payload);
+        }
+      } catch (error) {
+        setFilteredVillages([]);
+      }
+    }
+
+    if (villageDescription.village_id) {
+      try {
+        const result = await dispatch(fetchBoothsByVillage(villageDescription.village_id));
+        if (result.payload) {
+          setFilteredBooths(result.payload);
+        }
+      } catch (error) {
+        setFilteredBooths([]);
+      }
+    }
   };
 
   const submitForm = async (e) => {
@@ -298,13 +512,18 @@ const VillageDescription = () => {
       <div className="vd-header">
         <div className="header-content">
           <h1>Village Description Management</h1>
-          <p>Manage village descriptions and information</p>
+          <p>Manage village descriptions and information across different administrative levels</p>
         </div>
-                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-           <div style={{ fontSize: '12px', color: '#666', marginRight: '8px' }}>
-             Data: LS({lokSabhas?.length || 0}) VS({vidhanSabhas?.length || 0}) B({blocks?.length || 0}) P({panchayats?.length || 0}) V({villages?.length || 0})
-           </div>
-         </div>
+        {canManageVillageDescription && (
+          <button 
+            className="btn btn-primary add-btn"
+            onClick={openCreate}
+            disabled={loading}
+          >
+            <PlusIcon />
+            Add Village Description
+          </button>
+        )}
       </div>
 
       {success && <div className="alert alert-success">{success}</div>}
@@ -355,7 +574,7 @@ const VillageDescription = () => {
                 disabled={loading}
               >
                 <option value="">All Vidhan Sabhas</option>
-                {(filteredVidhanSabhas || []).map(vs => (
+                {(vidhanSabhas || []).map(vs => (
                   <option key={vs.id} value={vs.id}>{getLabel(vs, 'vidhan')}</option>
                 ))}
               </select>
@@ -368,7 +587,7 @@ const VillageDescription = () => {
                 disabled={loading}
               >
                 <option value="">All Blocks</option>
-                {(filteredBlocks || []).map(block => (
+                {(blocks || []).map(block => (
                   <option key={block.id} value={block.id}>{getLabel(block, 'block')}</option>
                 ))}
               </select>
@@ -381,7 +600,7 @@ const VillageDescription = () => {
                 disabled={loading}
               >
                 <option value="">All Panchayats</option>
-                {(filteredPanchayats || []).map(panchayat => (
+                {(panchayats || []).map(panchayat => (
                   <option key={panchayat.id} value={panchayat.id}>{getLabel(panchayat, 'panchayat')}</option>
                 ))}
               </select>
@@ -394,7 +613,7 @@ const VillageDescription = () => {
                 disabled={loading}
               >
                 <option value="">All Villages</option>
-                {(filteredVillages || []).map(village => (
+                {(villages || []).map(village => (
                   <option key={village.id} value={village.id}>{getLabel(village, 'village')}</option>
                 ))}
               </select>
@@ -461,9 +680,10 @@ const VillageDescription = () => {
                 <th>Block</th>
                 <th>Panchayat</th>
                 <th>Village</th>
+                <th>Booth</th>
                 <th>Description</th>
                 <th>Created</th>
-                {canManage && <th>Actions</th>}
+                {canManageVillageDescription && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -475,6 +695,7 @@ const VillageDescription = () => {
                   <td>{row.block?.block_name || row.block?.name || '-'}</td>
                   <td>{row.panchayat?.panchayat_name || row.panchayat?.name || '-'}</td>
                   <td>{row.village_data?.village_name || row.village?.name || '-'}</td>
+                  <td>{row.booth_data?.booth_name || row.booth?.name || '-'}</td>
                   <td className="description-cell">
                     <div className="description-text">
                       {row.description?.length > 100 
@@ -484,7 +705,7 @@ const VillageDescription = () => {
                     </div>
                   </td>
                   <td>{new Date(row.created_at).toLocaleString()}</td>
-                  {canManage && (
+                  {canManageVillageDescription && (
                     <td className="actions-cell">
                       <button 
                         className="btn btn-icon btn-edit" 
@@ -551,111 +772,194 @@ const VillageDescription = () => {
               <button className="close-btn" onClick={() => setShowModal(false)}>×</button>
             </div>
             <form className="modal-form" onSubmit={submitForm}>
+              {/* Parliamentary Hierarchy Section */}
+              <div className="hierarchy-section">
+                <h3>Parliamentary Hierarchy (Optional)</h3>
+                <p className="section-description">
+                  Select the administrative levels where this village description will apply.
+                </p>
+              </div>
+
+              <div className="hierarchy-note">
+                <p><strong>Note:</strong> Select the parliamentary hierarchy below to specify where this description applies. All fields are optional - you can select any combination of levels.</p>
+              </div>
+
               <div className="form-row">
                 <div className="form-group">
-                  <label>Lok Sabha *</label>
+                  <label htmlFor="loksabha_id">Lok Sabha</label>
                   <select 
-                     value={formData.loksabha_id} 
-                     onChange={(e) => handleFormFieldChange('loksabha_id', e.target.value)} 
-                     required
-                   >
-                     <option value="">Select Lok Sabha</option>
-                     {lokSabhas && lokSabhas.length > 0 ? (
-                       lokSabhas.map(ls => (
-                         <option key={ls.id} value={ls.id}>{getLabel(ls, 'lok')}</option>
-                       ))
-                     ) : (
-                       <option value="" disabled>No Lok Sabhas available</option>
-                     )}
-                   </select>
+                    id="loksabha_id"
+                    value={formData.loksabha_id} 
+                    onChange={handleLokSabhaChange} 
+                  >
+                    <option value="">Select Lok Sabha (Optional)</option>
+                    {lokSabhas && lokSabhas.length > 0 ? (
+                      lokSabhas.map(ls => (
+                        <option key={ls.id} value={ls.id}>{getLabel(ls, 'lok')}</option>
+                      ))
+                    ) : (
+                      <option value="" disabled>No Lok Sabhas available</option>
+                    )}
+                  </select>
                 </div>
                 <div className="form-group">
-                  <label>Vidhan Sabha *</label>
+                  <label htmlFor="vidhansabha_id">Vidhan Sabha</label>
                   <select 
+                    id="vidhansabha_id"
                     value={formData.vidhansabha_id} 
-                    onChange={(e) => handleFormFieldChange('vidhansabha_id', e.target.value)} 
-                    required
+                    onChange={handleVidhanSabhaChange} 
                     disabled={!formData.loksabha_id}
                   >
-                    <option value="">Select Vidhan Sabha</option>
-                    {(vidhanSabhas || []).filter(vs => vs.loksabha_id == formData.loksabha_id).map(vs => (
+                    <option value="">
+                      {!formData.loksabha_id ? 'Select Lok Sabha first' : 
+                       loading ? 'Loading Vidhan Sabhas...' : 
+                       filteredVidhanSabhas.length === 0 ? 'No Vidhan Sabhas found' : 
+                       'Select Vidhan Sabha (Optional)'}
+                    </option>
+                    {filteredVidhanSabhas.map(vs => (
                       <option key={vs.id} value={vs.id}>{getLabel(vs, 'vidhan')}</option>
                     ))}
                   </select>
                 </div>
               </div>
+              
               <div className="form-row">
                 <div className="form-group">
-                  <label>Block *</label>
+                  <label htmlFor="block_id">Block</label>
                   <select 
+                    id="block_id"
                     value={formData.block_id} 
-                    onChange={(e) => handleFormFieldChange('block_id', e.target.value)} 
-                    required
+                    onChange={handleBlockChange} 
                     disabled={!formData.vidhansabha_id}
                   >
-                    <option value="">Select Block</option>
-                    {(blocks || []).filter(block => block.vidhansabha_id == formData.vidhansabha_id).map(block => (
+                    <option value="">
+                      {!formData.vidhansabha_id ? 'Select Vidhan Sabha first' : 
+                       loading ? 'Loading Blocks...' : 
+                       filteredBlocks.length === 0 ? 'No Blocks found' : 
+                       'Select Block (Optional)'}
+                    </option>
+                    {filteredBlocks.map(block => (
                       <option key={block.id} value={block.id}>{getLabel(block, 'block')}</option>
                     ))}
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Panchayat *</label>
+                  <label htmlFor="panchayat_choosing_id">Panchayat Choosing</label>
                   <select 
+                    id="panchayat_choosing_id"
+                    value={formData.panchayat_choosing_id} 
+                    onChange={(e) => handleFormFieldChange('panchayat_choosing_id', e.target.value)} 
+                  >
+                    <option value="">Select Panchayat Choosing (Optional)</option>
+                    {panchayatChoosings.map(choosing => (
+                      <option key={choosing.id} value={choosing.id}>
+                        {choosing.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="panchayat_id">Panchayat</label>
+                  <select 
+                    id="panchayat_id"
                     value={formData.panchayat_id} 
-                    onChange={(e) => handleFormFieldChange('panchayat_id', e.target.value)} 
-                    required
+                    onChange={handlePanchayatChange} 
                     disabled={!formData.block_id}
                   >
-                    <option value="">Select Panchayat</option>
-                    {(panchayats || []).filter(panchayat => panchayat.block_id == formData.block_id).map(panchayat => (
+                    <option value="">
+                      {!formData.block_id ? 'Select Block first' : 
+                       loading ? 'Loading Panchayats...' : 
+                       filteredPanchayats.length === 0 ? 'No Panchayats found' : 
+                       'Select Panchayat (Optional)'}
+                    </option>
+                    {filteredPanchayats.map(panchayat => (
                       <option key={panchayat.id} value={panchayat.id}>{getLabel(panchayat, 'panchayat')}</option>
                     ))}
                   </select>
                 </div>
+                <div className="form-group">
+                  <label htmlFor="village_choosing_id">Village Choosing</label>
+                  <select 
+                    id="village_choosing_id"
+                    value={formData.village_choosing_id} 
+                    onChange={(e) => handleFormFieldChange('village_choosing_id', e.target.value)} 
+                  >
+                    <option value="">Select Village Choosing (Optional)</option>
+                    {villageChoosings.map(choosing => (
+                      <option key={choosing.id} value={choosing.id}>
+                        {choosing.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
+              
               <div className="form-row">
                 <div className="form-group">
-                  <label>Village Choosing *</label>
+                  <label htmlFor="village_id">Village</label>
                   <select 
-                    value={formData.village_choosing} 
-                    onChange={(e) => handleFormFieldChange('village_choosing', e.target.value)} 
-                    required
+                    id="village_id"
+                    value={formData.village_id} 
+                    onChange={handleVillageChange} 
                     disabled={!formData.panchayat_id}
                   >
-                    <option value="">Select Village</option>
-                    {(villages || []).filter(village => village.panchayat_id == formData.panchayat_id).map(village => (
+                    <option value="">
+                      {!formData.panchayat_id ? 'Select Panchayat first' : 
+                       loading ? 'Loading Villages...' : 
+                       filteredVillages.length === 0 ? 'No Villages found' : 
+                       'Select Village (Optional)'}
+                    </option>
+                    {filteredVillages.map(village => (
                       <option key={village.id} value={village.id}>{getLabel(village, 'village')}</option>
                     ))}
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Village *</label>
+                  <label htmlFor="booth_id">Booth</label>
                   <select 
-                    value={formData.village_id} 
-                    onChange={(e) => handleFormFieldChange('village_id', e.target.value)} 
-                    required
-                    disabled={!formData.panchayat_id}
+                    id="booth_id"
+                    value={formData.booth_id} 
+                    onChange={(e) => handleFormFieldChange('booth_id', e.target.value)} 
+                    disabled={!formData.village_id}
                   >
-                    <option value="">Select Village</option>
-                    {(villages || []).filter(village => village.panchayat_id == formData.panchayat_id).map(village => (
-                      <option key={village.id} value={village.id}>{getLabel(village, 'village')}</option>
+                    <option value="">
+                      {!formData.village_id ? 'Select Village first' : 
+                       loading ? 'Loading Booths...' : 
+                       filteredBooths.length === 0 ? 'No Booths found' : 
+                       'Select Booth (Optional)'}
+                    </option>
+                    {filteredBooths.map(booth => (
+                      <option key={booth.id} value={booth.id}>{getLabel(booth, 'booth')}</option>
                     ))}
                   </select>
                 </div>
               </div>
-              <div className="form-group">
-                <label>Description *</label>
-                <textarea 
-                  value={formData.description} 
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })} 
-                  required 
-                  rows={4}
-                  maxLength={1000}
-                  placeholder="Enter village description..."
-                />
-                <div className="char-count">{formData.description.length}/1000</div>
+
+              {/* Description Section */}
+              <div className="description-section">
+                <h3>Village Description</h3>
+                <p className="section-description">
+                  Enter the description for the selected location.
+                </p>
+                
+                <div className="form-group">
+                  <label htmlFor="description">Description *</label>
+                  <textarea 
+                    id="description"
+                    value={formData.description} 
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })} 
+                    required 
+                    rows={4}
+                    maxLength={1000}
+                    placeholder="Enter village description..."
+                  />
+                  <div className="char-count">{formData.description.length}/1000</div>
+                </div>
               </div>
+
               <div className="form-actions">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
                   Cancel

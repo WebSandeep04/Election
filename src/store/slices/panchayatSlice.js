@@ -21,8 +21,7 @@ export const fetchPanchayats = createAsyncThunk(
       if (search && String(search).trim().length > 0) qp.set('search', String(search).trim());
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.PANCHAYAT)}?${qp.toString()}`;
       
-      console.log('=== FETCH PANCHAYATS API CALL ===');
-      console.log('Method: GET, URL:', url, 'Token:', token ? 'Present' : 'Missing');
+      
       
       const response = await fetch(url, {
         method: 'GET',
@@ -34,8 +33,7 @@ export const fetchPanchayats = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== FETCH PANCHAYATS API RESPONSE ===');
-      console.log('Status:', response.status, 'Data:', data);
+
 
       const panchayats = data.panchayats || data.data || [];
       const pagination = data.pagination || data.meta || {
@@ -57,11 +55,7 @@ export const createPanchayat = createAsyncThunk(
       const token = getToken(getState);
       const url = getApiUrl(API_CONFIG.ENDPOINTS.PANCHAYAT);
       
-      console.log('=== CREATE PANCHAYAT API CALL ===');
-      console.log('Method: POST, URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('Data:', panchayatData);
-      console.log('Headers:', getAuthHeaders(token));
+      
       
       const response = await fetch(url, {
         method: 'POST',
@@ -69,28 +63,19 @@ export const createPanchayat = createAsyncThunk(
         body: JSON.stringify(panchayatData),
       });
 
-      console.log('=== CREATE PANCHAYAT API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Status Text:', response.statusText);
-      console.log('Headers:', Object.fromEntries(response.headers.entries()));
-
       if (!response.ok) {
         const contentType = response.headers.get('content-type');
-        console.log('Content-Type:', contentType);
         
         if (contentType && contentType.includes('text/html')) {
           const errorText = await response.text();
-          console.log('HTML Error Response:', errorText);
           throw new Error(`Server Error (${response.status}): Laravel returned HTML error page.`);
         } else {
           const errorData = await response.json().catch(() => ({}));
-          console.log('JSON Error Response:', errorData);
           throw new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`);
         }
       }
 
       const data = await response.json();
-      console.log('Success Response Data:', data);
 
       return data.panchayat || data;
     } catch (error) {
@@ -108,8 +93,7 @@ export const updatePanchayat = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.PANCHAYAT)}/${id}`;
       
-      console.log('=== UPDATE PANCHAYAT API CALL ===');
-      console.log('Method: PUT, URL:', url, 'ID:', id, 'Data:', panchayatData);
+
       
       const response = await fetch(url, {
         method: 'PUT',
@@ -123,8 +107,6 @@ export const updatePanchayat = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== UPDATE PANCHAYAT API RESPONSE ===');
-      console.log('Status:', response.status, 'Data:', data);
 
       return data.panchayat || data;
     } catch (error) {
@@ -141,8 +123,7 @@ export const deletePanchayat = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.PANCHAYAT)}/${id}`;
       
-      console.log('=== DELETE PANCHAYAT API CALL ===');
-      console.log('Method: DELETE, URL:', url, 'ID:', id);
+
       
       const response = await fetch(url, {
         method: 'DELETE',
@@ -154,8 +135,7 @@ export const deletePanchayat = createAsyncThunk(
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
-      console.log('=== DELETE PANCHAYAT API SUCCESS ===');
-      console.log('Status:', response.status, 'Deleted ID:', id);
+
       return id;
     } catch (error) {
       console.error('Error deleting Panchayat:', error);
@@ -171,8 +151,7 @@ export const fetchPanchayatsByBlock = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.PANCHAYAT)}/block/${blockId}`;
       
-      console.log('=== FETCH PANCHAYATS BY BLOCK API CALL ===');
-      console.log('Method: GET, URL:', url, 'Block ID:', blockId, 'Token:', token ? 'Present' : 'Missing');
+
       
       const response = await fetch(url, {
         method: 'GET',
@@ -184,8 +163,6 @@ export const fetchPanchayatsByBlock = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== FETCH PANCHAYATS BY BLOCK API RESPONSE ===');
-      console.log('Status:', response.status, 'Data:', data);
 
       const panchayats = data.panchayats || data.data || [];
       return panchayats;

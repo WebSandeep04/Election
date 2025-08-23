@@ -3,7 +3,7 @@ import { createSlice } from '@reduxjs/toolkit';
 const initialState = {
   sidebarCollapsed: false,
   activeScreen: 'dashboard',
-  expandedCategories: ['dashboard'],
+  expandedCategories: ['dashboard', 'master-data', 'parliament', 'software-setup'], // Add important categories to be expanded by default
   theme: 'light',
   notifications: [],
   loading: false,

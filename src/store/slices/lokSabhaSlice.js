@@ -22,13 +22,7 @@ export const fetchLokSabhas = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.LOK_SABHA)}?page=${page}`;
       
-      console.log('=== FETCH LOK SABHAS API CALL ===');
-      console.log('Method: GET');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('Headers:', getAuthHeaders(token));
-      console.log('Page:', page);
-      console.log('================================');
+      
       
       const response = await fetch(url, {
         method: 'GET',
@@ -40,10 +34,7 @@ export const fetchLokSabhas = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== FETCH LOK SABHAS API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Response Data:', data);
-      console.log('====================================');
+
 
       // Extract lok_sabhas and pagination from the response
       const lokSabhas = data.lok_sabhas || data.data || [];
@@ -71,13 +62,7 @@ export const fetchLokSabhaById = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.LOK_SABHA)}/${id}`;
       
-      console.log('=== FETCH LOK SABHA BY ID API CALL ===');
-      console.log('Method: GET');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('Headers:', getAuthHeaders(token));
-      console.log('ID:', id);
-      console.log('=====================================');
+      
       
       const response = await fetch(url, {
         method: 'GET',
@@ -89,10 +74,7 @@ export const fetchLokSabhaById = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== FETCH LOK SABHA BY ID API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Response Data:', data);
-      console.log('========================================');
+
 
       // Extract lok_sabha from the response
       return data.lok_sabha || data;
@@ -110,15 +92,7 @@ export const createLokSabha = createAsyncThunk(
       const token = getToken(getState);
       const url = getApiUrl(API_CONFIG.ENDPOINTS.LOK_SABHA);
       
-      console.log('=== CREATE LOK SABHA API CALL ===');
-      console.log('Method: POST');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('Token Value:', token);
-      console.log('Headers:', getAuthHeaders(token));
-      console.log('Request Data:', lokSabhaData);
-      console.log('Request Body (JSON):', JSON.stringify(lokSabhaData, null, 2));
-      console.log('================================');
+      
       
       const headers = getAuthHeaders(token);
       
@@ -128,13 +102,9 @@ export const createLokSabha = createAsyncThunk(
         body: JSON.stringify(lokSabhaData),
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
       if (!response.ok) {
         // Check if response is HTML (error page) or JSON
         const contentType = response.headers.get('content-type');
-        console.log('Response content-type:', contentType);
         
         if (contentType && contentType.includes('text/html')) {
           // Laravel returned an HTML error page
@@ -150,10 +120,6 @@ export const createLokSabha = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== CREATE LOK SABHA API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Response Data:', data);
-      console.log('===================================');
 
       // Extract lok_sabha from the response
       return data.lok_sabha || data;
@@ -171,15 +137,7 @@ export const updateLokSabha = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.LOK_SABHA)}/${id}`;
       
-      console.log('=== UPDATE LOK SABHA API CALL ===');
-      console.log('Method: PUT');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('Headers:', getAuthHeaders(token));
-      console.log('ID:', id);
-      console.log('Request Data:', lokSabhaData);
-      console.log('Request Body (JSON):', JSON.stringify(lokSabhaData, null, 2));
-      console.log('================================');
+
       
       const response = await fetch(url, {
         method: 'PUT',
@@ -193,10 +151,6 @@ export const updateLokSabha = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log('=== UPDATE LOK SABHA API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Response Data:', data);
-      console.log('===================================');
 
       // Extract lok_sabha from the response
       return data.lok_sabha || data;
@@ -214,13 +168,7 @@ export const deleteLokSabha = createAsyncThunk(
       const token = getToken(getState);
       const url = `${getApiUrl(API_CONFIG.ENDPOINTS.LOK_SABHA)}/${id}`;
       
-      console.log('=== DELETE LOK SABHA API CALL ===');
-      console.log('Method: DELETE');
-      console.log('URL:', url);
-      console.log('Token:', token ? 'Present' : 'Missing');
-      console.log('Headers:', getAuthHeaders(token));
-      console.log('ID:', id);
-      console.log('================================');
+
       
       const response = await fetch(url, {
         method: 'DELETE',
@@ -229,17 +177,11 @@ export const deleteLokSabha = createAsyncThunk(
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.log('=== DELETE LOK SABHA API ERROR ===');
-        console.log('Status:', response.status);
-        console.log('Error Data:', errorData);
-        console.log('================================');
+
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
-      console.log('=== DELETE LOK SABHA API SUCCESS ===');
-      console.log('Status:', response.status);
-      console.log('Deleted ID:', id);
-      console.log('==================================');
+
       return id;
     } catch (error) {
       console.error('Error deleting Lok Sabha:', error);

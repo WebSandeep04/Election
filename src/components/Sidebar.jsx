@@ -18,16 +18,24 @@ const Sidebar = () => {
 
   const isAdminRole = () => {
     const roleId = user?.role?.id ?? user?.role_id ?? null;
+    const roleName = user?.role?.name ?? user?.role_name ?? '';
     // Support array roles as well
     const rolesArray = Array.isArray(user?.roles) ? user.roles : [];
     const hasAdminInArray = rolesArray.some((r) => (r?.id ?? r) === 1);
-    return roleId === 1 || hasAdminInArray;
+    const hasAdminByName = roleName.toLowerCase().includes('admin') || roleName.toLowerCase().includes('super');
+    
+    return roleId === 1 || hasAdminInArray || hasAdminByName;
   };
 
   const hasPermission = (perm) => {
-    if (isAdminRole()) return true; // role id 1 sees all
+    // Force admin to see everything
+    if (isAdminRole()) {
+      return true;
+    }
+    
     if (!perm) return true; // no perm requirement -> visible
     const perms = user?.role?.permissions || user?.permissions || [];
+    
     return perms.some((p) => (p?.name || p) === perm);
   };
 
@@ -45,15 +53,11 @@ const Sidebar = () => {
       label: 'Master Data',
       icon: '📋',
       description: 'Setup & Configuration',
-      perm: 'view_employee_management',
+      perm: null, // Remove permission requirement for category
       subItems: [
         { id: 'employee-management', label: 'Employee Management', icon: '👥', perm: 'view_employee_management' },
-        { id: 'add-caste', label: 'Add Caste', icon: '🏷️', perm: 'view_caste_management' },
         { id: 'caste-ratio', label: 'Caste Ratio', icon: '📊', perm: 'view_caste_ratio' },
-        { id: 'village-description', label: 'Village Description', icon: '🏘️', perm: 'view_village_description' },
-        { id: 'education-management', label: 'Education Management', icon: '🎓', perm: 'view_education_management' },
-        { id: 'category', label: 'Expense Category', icon: '📂', perm: 'view_category_management' },
-        { id: 'employee-types', label: 'Employee Types', icon: '🏷️', perm: 'view_employee_types' }
+        { id: 'village-description', label: 'Village Description', icon: '🏘️', perm: 'view_village_description' }
       ]
     },
     {
@@ -108,11 +112,27 @@ const Sidebar = () => {
         { id: 'analysis', label: 'Analysis', icon: '🔍', perm: 'view_analysis' },
         { id: 'cache-clear', label: 'Cache Clear', icon: '🗑️', perm: 'view_cache_clear' }
       ]
+    },
+    {
+      id: 'software-setup',
+      label: 'Software Setup',
+      icon: '⚙️',
+      description: 'System Configuration',
+      perm: 'view_software_setup',
+      subItems: [
+        { id: 'education-management', label: 'Add Education', icon: '🎓', perm: 'view_education_management' },
+        { id: 'add-caste', label: 'Add Caste', icon: '🏷️', perm: 'view_caste_management' },
+        { id: 'employee-types', label: 'Add Employee Types', icon: '🏷️', perm: 'view_employee_types' },
+        { id: 'category', label: 'Add Expense', icon: '📂', perm: 'view_category_management' }
+      ]
     }
   ];
 
   const filterByPermissions = (items) => {
-    if (isAdminRole()) return items; // Admin sees all categories and items
+    if (isAdminRole()) {
+      return items; // Admin sees all categories and items
+    }
+    
     return items
       .filter(cat => hasPermission(cat.perm))
       .map(cat => {

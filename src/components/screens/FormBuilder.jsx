@@ -23,6 +23,8 @@ const FormBuilder = () => {
   const [questions, setQuestions] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
   const [formResponses, setFormResponses] = useState({});
+  const [showFormBuilder, setShowFormBuilder] = useState(false);
+  const [showQuestionTypeSelector, setShowQuestionTypeSelector] = useState(false);
 
   // Fetch forms on component mount
   useEffect(() => {
@@ -49,6 +51,7 @@ const FormBuilder = () => {
       setFormName(currentForm.name || "");
       setQuestions(Array.isArray(currentForm.questions) ? currentForm.questions : []);
       setShowPreview(false);
+      setShowFormBuilder(true);
     }
   }, [currentForm]);
 
@@ -57,6 +60,15 @@ const FormBuilder = () => {
     { id: "multiple_choice", label: "Multiple Choice", icon: "☑️" },
     { id: "long_text", label: "Long Text", icon: "📝" }
   ];
+
+  const handleCreateForm = () => {
+    setShowFormBuilder(true);
+    setFormName("");
+    setQuestions([]);
+    setShowPreview(false);
+    setShowQuestionTypeSelector(false);
+    dispatch(clearCurrentForm());
+  };
 
   const addQuestion = (type) => {
     const newQuestion = {
@@ -73,6 +85,11 @@ const FormBuilder = () => {
       }
     };
     setQuestions([...questions, newQuestion]);
+    setShowQuestionTypeSelector(false);
+  };
+
+  const showQuestionTypeSelectorForNewQuestion = () => {
+    setShowQuestionTypeSelector(true);
   };
 
   const updateQuestion = (id, field, value) => {
@@ -110,6 +127,7 @@ const FormBuilder = () => {
       return q;
     }));
   };
+
   const removeQuestion = (id) => {
     setQuestions(questions.filter(q => q.id !== id));
   };
@@ -198,6 +216,8 @@ const FormBuilder = () => {
     setFormName("");
     setQuestions([]);
     setShowPreview(false);
+    setShowFormBuilder(false);
+    setShowQuestionTypeSelector(false);
   };
 
   const loadForm = (form) => {
@@ -209,6 +229,8 @@ const FormBuilder = () => {
         setFormName(fullForm.name || "");
         setQuestions(fullForm.questions || []);
         setShowPreview(false);
+        setShowFormBuilder(true);
+        setShowQuestionTypeSelector(false);
       })
       .catch(() => {
         // Fallback to available data
@@ -216,6 +238,8 @@ const FormBuilder = () => {
         setFormName(form.name || "");
         setQuestions(Array.isArray(form.questions) ? form.questions : []);
         setShowPreview(false);
+        setShowFormBuilder(true);
+        setShowQuestionTypeSelector(false);
       });
   };
 
@@ -226,6 +250,8 @@ const FormBuilder = () => {
         dispatch(clearCurrentForm());
         setFormName("");
         setQuestions([]);
+        setShowFormBuilder(false);
+        setShowQuestionTypeSelector(false);
       }
     }
   };
@@ -274,57 +300,57 @@ const FormBuilder = () => {
             className="question-input"
           />
 
-                                           <div className="question-settings">
-              <label className="required-checkbox">
-                <input
-                  type="checkbox"
-                  checked={question.required}
-                  onChange={(e) => updateQuestion(question.id, "required", e.target.checked)}
-                />
-                Required
-              </label>
+          <div className="question-settings">
+            <label className="required-checkbox">
+              <input
+                type="checkbox"
+                checked={question.required}
+                onChange={(e) => updateQuestion(question.id, "required", e.target.checked)}
+              />
+              Required
+            </label>
 
-              {(question.type === "long_text") && (
-                <input
-                  type="text"
-                  placeholder="Placeholder text (optional)"
-                  value={question.placeholder}
-                  onChange={(e) => updateQuestion(question.id, "placeholder", e.target.value)}
-                  className="placeholder-input"
-                />
-              )}
+            {(question.type === "long_text") && (
+              <input
+                type="text"
+                placeholder="Placeholder text (optional)"
+                value={question.placeholder}
+                onChange={(e) => updateQuestion(question.id, "placeholder", e.target.value)}
+                className="placeholder-input"
+              />
+            )}
 
-              {(question.type === "single_choice" || question.type === "multiple_choice") && (
-                <div className="options-container">
-                  <label>Options:</label>
-                  {question.options.map((option, index) => (
-                    <div key={index} className="option-row">
-                      <input
-                        type="text"
-                        placeholder={`Option ${index + 1}`}
-                        value={option}
-                        onChange={(e) => updateQuestionOption(question.id, index, e.target.value)}
-                        className="option-input"
-                      />
-                      {question.options.length > 1 && (
-                        <button 
-                          onClick={() => removeOption(question.id, index)}
-                          className="remove-option-btn"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button 
-                    onClick={() => addOption(question.id)}
-                    className="add-option-btn"
-                  >
-                    + Add Option
-                  </button>
-                </div>
-              )}
-            </div>
+            {(question.type === "single_choice" || question.type === "multiple_choice") && (
+              <div className="options-container">
+                <label>Options:</label>
+                {question.options.map((option, index) => (
+                  <div key={index} className="option-row">
+                    <input
+                      type="text"
+                      placeholder={`Option ${index + 1}`}
+                      value={option}
+                      onChange={(e) => updateQuestionOption(question.id, index, e.target.value)}
+                      className="option-input"
+                    />
+                    {question.options.length > 1 && (
+                      <button 
+                        onClick={() => removeOption(question.id, index)}
+                        className="remove-option-btn"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button 
+                  onClick={() => addOption(question.id)}
+                  className="add-option-btn"
+                >
+                  + Add Option
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -387,6 +413,70 @@ const FormBuilder = () => {
     );
   };
 
+  // Show initial create form screen
+  if (!showFormBuilder) {
+    return (
+      <div className="form-builder-container">
+        <div className="form-builder-header">
+          <h1>Form Builder</h1>
+          <p>Create dynamic forms with different question types</p>
+        </div>
+        
+        <div className="create-form-screen">
+          <div className="create-form-content">
+            <h2>Welcome to Form Builder</h2>
+            <p>Start building your form by clicking the button below</p>
+            <button 
+              onClick={handleCreateForm}
+              className="create-form-btn"
+            >
+              + Create New Form
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show question type selector
+  if (showQuestionTypeSelector) {
+    return (
+      <div className="form-builder-container">
+        <div className="form-builder-header">
+          <h1>Form Builder</h1>
+          <p>Create dynamic forms with different question types</p>
+        </div>
+        
+        <div className="question-type-selector">
+          <div className="selector-content">
+            <h2>Select Question Type</h2>
+            <p>Choose the type of question you want to add:</p>
+            
+            <div className="question-types-grid">
+              {questionTypes.map(type => (
+                <button
+                  key={type.id}
+                  onClick={() => addQuestion(type.id)}
+                  className="question-type-btn large"
+                >
+                  <span className="type-icon">{type.icon}</span>
+                  <span className="type-label">{type.label}</span>
+                </button>
+              ))}
+            </div>
+            
+            <button 
+              onClick={() => setShowQuestionTypeSelector(false)}
+              className="back-btn"
+            >
+              ← Back to Form
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="form-builder-container">
       <div className="form-builder-header">
@@ -394,128 +484,83 @@ const FormBuilder = () => {
         <p>Create dynamic forms with different question types</p>
       </div>
 
-      <div className="form-builder-content">
-        <div className="forms-sidebar">
-          <div className="forms-header">
-            <h3>My Forms</h3>
-                         <button 
-               onClick={() => {
-                 dispatch(clearCurrentForm());
-                 setFormName("");
-                 setQuestions([]);
-                 setShowPreview(false);
-               }}
-               className="new-form-btn"
-             >
-              + New Form
+      <div className="form-editor">
+        <div className="editor-header">
+          <input
+            type="text"
+            placeholder="Enter form name..."
+            value={formName}
+            onChange={(e) => setFormName(e.target.value)}
+            className="form-name-input"
+          />
+
+          <label className="recording-checkbox-label" style={{ display: "flex", alignItems: "center", gap: "0.5em" }}>
+            <input
+              type="checkbox"
+              checked={!!formResponses.recording}
+              onChange={e => setFormResponses({ ...formResponses, recording: e.target.checked })}
+              className="recording-checkbox"
+            />
+            Recording
+          </label>
+
+          <div className="editor-actions">
+            <button 
+              onClick={() => setShowPreview(!showPreview)}
+              className="preview-btn"
+              disabled={loading}
+            >
+              {showPreview ? "Edit" : "Preview"}
+            </button>
+            <button 
+              onClick={saveForm} 
+              className="save-btn"
+              disabled={loading}
+            >
+              {loading ? "Saving..." : "Save Form"}
             </button>
           </div>
-          
-                     <div className="forms-list">
-             {loading ? (
-               <div className="loading-state">
-                 <p>Loading forms...</p>
-               </div>
-             ) : formsList.length === 0 ? (
-               <div className="empty-forms-state">
-                 <p>No forms created yet. Create your first form!</p>
-               </div>
-             ) : (
-               formsList.map(form => (
-                 <div key={form.id} className="form-item">
-                   <div className="form-item-content" onClick={() => loadForm(form)}>
-                     <h4>{form.name}</h4>
-                     <p>{Array.isArray(form.questions) ? `${form.questions.length} questions` : (typeof form.questions_count === 'number' ? `${form.questions_count} questions` : '')}</p>
-                     <small>{new Date(form.updated_at || form.updatedAt).toLocaleDateString()}</small>
-                   </div>
-                   <button 
-                     onClick={() => deleteForm(form.id)}
-                     className="delete-form-btn"
-                     disabled={loading}
-                   >
-                     🗑️
-                   </button>
-                 </div>
-               ))
-             )}
-           </div>
         </div>
 
-        <div className="form-editor">
-          <div className="editor-header">
-            <input
-              type="text"
-              placeholder="Enter form name..."
-              value={formName}
-              onChange={(e) => setFormName(e.target.value)}
-              className="form-name-input"
-            />
-
-                         <label className="recording-checkbox-label" style={{ display: "flex", alignItems: "center", gap: "0.5em" }}>
-                           <input
-                             type="checkbox"
-                              checked={!!formResponses.recording}
-                             onChange={e => setFormResponses({ ...formResponses, recording: e.target.checked })}
-                             className="recording-checkbox"
-                           />
-                           Recording
-                         </label>
-
-                         <div className="editor-actions">
-               <button 
-                 onClick={() => setShowPreview(!showPreview)}
-                 className="preview-btn"
-                 disabled={loading}
-               >
-                 {showPreview ? "Edit" : "Preview"}
-               </button>
-               <button 
-                 onClick={saveForm} 
-                 className="save-btn"
-                 disabled={loading}
-               >
-                 {loading ? "Saving..." : "Save Form"}
-               </button>
-             </div>
+        {showPreview ? (
+          <div className="form-preview">
+            <h2>{formName || "Untitled Form"}</h2>
+            {questions.map(renderQuestionPreview)}
+            <button className="submit-btn">Submit Form</button>
           </div>
-
-          {showPreview ? (
-            <div className="form-preview">
-              <h2>{formName || "Untitled Form"}</h2>
-              {questions.map(renderQuestionPreview)}
-              <button className="submit-btn">Submit Form</button>
-            </div>
-          ) : (
-            <div className="form-builder">
-              <div className="question-types">
-                <h3>Add Questions</h3>
-                <div className="question-types-grid">
-                  {questionTypes.map(type => (
-                    <button
-                      key={type.id}
-                      onClick={() => addQuestion(type.id)}
-                      className="question-type-btn"
-                    >
-                      <span className="type-icon">{type.icon}</span>
-                      <span className="type-label">{type.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="questions-container">
+        ) : (
+          <div className="form-builder">
+            <div className="questions-container">
+              <div className="questions-header">
                 <h3>Questions ({questions.length})</h3>
-                {questions.length === 0 ? (
-                  <div className="empty-state">
-                    <p>No questions added yet. Click on a question type above to get started!</p>
-                  </div>
-                ) : (
-                  questions.map(renderQuestionBuilder)
-                )}
+                <button 
+                  onClick={showQuestionTypeSelectorForNewQuestion}
+                  className="add-question-btn"
+                >
+                  + Add Question
+                </button>
               </div>
+              
+              {questions.length === 0 ? (
+                <div className="empty-state">
+                  <p>No questions added yet. Click "Add Question" to get started!</p>
+                </div>
+              ) : (
+                <>
+                  {questions.map(renderQuestionBuilder)}
+                  <div className="add-question-below">
+                    <button 
+                      onClick={showQuestionTypeSelectorForNewQuestion}
+                      className="add-question-below-btn"
+                    >
+                      + Add Another Question
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

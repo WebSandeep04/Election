@@ -103,20 +103,7 @@ const CasteRatio = () => {
   const { user } = useSelector((state) => state.auth);
   const { token } = useSelector((state) => state.auth);
 
-  // Debug logging
-  useEffect(() => {
-    console.log('CasteRatio Redux State:', {
-      castes: castes?.length || 0,
-      lokSabhas: lokSabhas?.length || 0,
-      vidhanSabhas: vidhanSabhas?.length || 0,
-      blocks: blocks?.length || 0,
-      panchayats: panchayats?.length || 0,
-      villages: villages?.length || 0,
-      booths: booths?.length || 0,
-      panchayatChoosings: panchayatChoosings?.length || 0,
-      villageChoosings: villageChoosings?.length || 0
-    });
-  }, [castes, lokSabhas, vidhanSabhas, blocks, panchayats, villages, booths, panchayatChoosings, villageChoosings]);
+
 
   // Filtered data for hierarchical dropdowns
   const [filteredVidhanSabhas, setFilteredVidhanSabhas] = useState([]);
@@ -194,7 +181,6 @@ const CasteRatio = () => {
   // Fetch data on component mount
   useEffect(() => {
     if (token) {
-      console.log('CasteRatio: Loading initial data...');
       dispatch(fetchCasteRatios({ page: pagination.current_page, search, ...filters }));
       dispatch(fetchCastes(1));
       dispatch(fetchLokSabhas(1));
@@ -238,7 +224,6 @@ const CasteRatio = () => {
   // Handle Lok Sabha selection and fetch related Vidhan Sabhas
   const handleLokSabhaChange = async (e) => {
     const loksabhaId = e.target.value;
-    console.log('CasteRatio: Lok Sabha changed to:', loksabhaId);
     
     setFormData(prev => ({
       ...prev,
@@ -254,14 +239,11 @@ const CasteRatio = () => {
 
     if (loksabhaId) {
       try {
-        console.log('CasteRatio: Fetching Vidhan Sabhas for Lok Sabha:', loksabhaId);
         const result = await dispatch(fetchVidhanSabhasByLokSabha(loksabhaId));
-        console.log('CasteRatio: Vidhan Sabhas result:', result);
         if (result.payload) {
           setFilteredVidhanSabhas(result.payload);
         }
       } catch (error) {
-        console.error('Error fetching Vidhan Sabhas by Lok Sabha:', error);
         setFilteredVidhanSabhas([]);
       }
     } else {
@@ -361,10 +343,7 @@ const CasteRatio = () => {
           ? filteredPanchayats.find(p => p.id == panchayatId)
           : null;
         
-        console.log('CasteRatio: Selected panchayat:', selectedPanchayat);
-        
         if (selectedPanchayat && selectedPanchayat.panchayat_choosing_id) {
-          console.log('CasteRatio: Auto-setting panchayat_choosing_id to:', selectedPanchayat.panchayat_choosing_id);
           setFormData(prev => ({
             ...prev,
             panchayat_choosing_id: selectedPanchayat.panchayat_choosing_id.toString()
@@ -402,10 +381,7 @@ const CasteRatio = () => {
           ? filteredVillages.find(v => v.id == villageId)
           : null;
         
-        console.log('CasteRatio: Selected village:', selectedVillage);
-        
         if (selectedVillage && selectedVillage.village_choosing_id) {
-          console.log('CasteRatio: Auto-setting village_choosing_id to:', selectedVillage.village_choosing_id);
           setFormData(prev => ({
             ...prev,
             village_choosing_id: selectedVillage.village_choosing_id.toString()

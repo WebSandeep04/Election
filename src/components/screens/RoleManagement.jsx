@@ -210,7 +210,7 @@ const RoleManagement = () => {
   };
 
   const openPermissionsModal = async (role) => {
-    console.log('Opening permissions modal for role:', role);
+
     
     if (!role || !role.id) {
       console.error('Invalid role data:', role);
@@ -223,14 +223,14 @@ const RoleManagement = () => {
     
     try {
       // Fetch permissions first
-      console.log('Fetching permissions...');
+  
       await dispatch(fetchPermissions({ page: 1 })).unwrap();
       
       // Fetch assigned permissions for the role from backend to ensure correctness
       const result = await dispatch(fetchRolePermissions(role.id)).unwrap();
       const assigned = Array.isArray(result.permissions) ? result.permissions : [];
       const existingPermissionIds = assigned.map(p => (typeof p === 'object' ? p.id : p)).filter(Boolean);
-      console.log('Assigned permissions from backend:', assigned);
+      
       setSelectedPermissionIds(existingPermissionIds);
       
     } catch (error) {
@@ -278,7 +278,7 @@ const RoleManagement = () => {
   useEffect(() => {
     if (showPermsModal && selectedRoleForPerms && permissions.length > 0) {
       const existingPermissionIds = (selectedRoleForPerms.permissions || []).map(p => p.id);
-      console.log('useEffect - Setting selected permissions:', existingPermissionIds);
+  
       setSelectedPermissionIds(existingPermissionIds);
     }
   }, [permissions, showPermsModal, selectedRoleForPerms]);
