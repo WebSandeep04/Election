@@ -1118,112 +1118,16 @@ const CasteRatio = () => {
             </div>
             
             <form onSubmit={handleSubmit} className="modal-form">
-              {/* Instructions Section */}
-              <div className="instructions-section">
-                <h3>How to Add Multiple Caste Ratios</h3>
-                <ol className="instructions-list">
-                  <li>Select a caste from the dropdown</li>
-                  <li>Enter the ratio value (any positive number)</li>
-                  <li>Click "Add" to add it to the list</li>
-                  <li>Repeat for all castes you want to add</li>
-                  <li>Optionally select parliamentary hierarchy levels</li>
-                  <li>Click "Create Caste Ratios" to submit</li>
-                </ol>
-              </div>
-
-              {/* Multiple Caste Ratios Section */}
-              <div className="caste-ratios-section">
-                <h3>Add Caste Ratios</h3>
-                <p className="section-description">
-                  Select castes and enter their ratios. You can add multiple castes one by one.
-                </p>
-                
-                <div className="caste-ratio-input-row">
-                  <div className="form-group">
-                    <label htmlFor="selected_caste">Select Caste</label>
-                    <select
-                      id="selected_caste"
-                      value={selectedCaste}
-                      onChange={(e) => setSelectedCaste(e.target.value)}
-                      disabled={loading}
-                    >
-                      <option value="">Choose a caste</option>
-                      {Array.isArray(castes) && castes.map((caste) => (
-                        <option key={caste.id} value={caste.id}>
-                          {caste.caste}
-                        </option>
-                      ))}
-                    </select>
-                    {(!Array.isArray(castes) || castes.length === 0) && (
-                      <small className="input-hint" style={{color: 'orange'}}>
-                        Loading castes from database...
-                      </small>
-                    )}
-                  </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor="caste_ratio_input">Ratio</label>
-                    <input
-                      type="number"
-                      id="caste_ratio_input"
-                      value={casteRatio}
-                      onChange={(e) => setCasteRatio(e.target.value)}
-                      min="0"
-                      disabled={loading}
-                      placeholder="Enter ratio value"
-                    />
-                    <small className="input-hint">Enter ratio value (any positive number)</small>
-                  </div>
-                  
-                  <button
-                    type="button"
-                    onClick={handleAddCasteRatio}
-                    className="btn btn-primary add-caste-btn"
-                    disabled={loading || !selectedCaste || !casteRatio}
-                  >
-                    <PlusIcon />
-                    Add
-                  </button>
-                </div>
-
-                {/* Caste Ratios List */}
-                {casteRatios.length > 0 && (
-                  <div className="caste-ratios-list">
-                    <h4>Added Caste Ratios</h4>
-                    <div className="caste-ratios-grid">
-                      {casteRatios.map((cr) => (
-                        <div key={cr.caste_id} className="caste-ratio-item">
-                          <span className="caste-name">{cr.caste_name}</span>
-                          <span className="ratio-value">{cr.caste_ratio}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveCasteRatio(cr.caste_id)}
-                            className="btn btn-icon btn-remove"
-                            title="Remove"
-                          >
-                            <DeleteIcon />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    
-                    <div className="total-ratio">
-                      <strong>Total: {totalRatio}</strong>
-                    </div>
-                    
-                  </div>
-                )}
-              </div>
-
-              <div className="hierarchy-note">
-                <p><strong>Note:</strong> Select the parliamentary hierarchy below to specify where these caste ratios apply. All fields are optional - you can select any combination of levels.</p>
-              </div>
-
+              {/* Parliamentary Hierarchy Section */}
               <div className="hierarchy-section">
                 <h3>Parliamentary Hierarchy (Optional)</h3>
                 <p className="section-description">
                   Select the administrative levels where these caste ratios will apply.
                 </p>
+              </div>
+
+              <div className="hierarchy-note">
+                <p><strong>Note:</strong> Select the parliamentary hierarchy below to specify where these caste ratios apply. All fields are optional - you can select any combination of levels.</p>
               </div>
 
               <div className="form-row">
@@ -1413,6 +1317,90 @@ const CasteRatio = () => {
                     ))}
                   </select>
                 </div>
+              </div>
+
+              {/* Multiple Caste Ratios Section */}
+              <div className="caste-ratios-section">
+                <h3>Add Caste Ratios</h3>
+                <p className="section-description">
+                  Select castes and enter their ratios. You can add multiple castes one by one.
+                </p>
+                
+                <div className="caste-ratio-input-row">
+                  <div className="form-group">
+                    <label htmlFor="selected_caste">Select Caste</label>
+                    <select
+                      id="selected_caste"
+                      value={selectedCaste}
+                      onChange={(e) => setSelectedCaste(e.target.value)}
+                      disabled={loading}
+                    >
+                      <option value="">Choose a caste</option>
+                      {Array.isArray(castes) && castes.map((caste) => (
+                        <option key={caste.id} value={caste.id}>
+                          {caste.caste}
+                        </option>
+                      ))}
+                    </select>
+                    {(!Array.isArray(castes) || castes.length === 0) && (
+                      <small className="input-hint" style={{color: 'orange'}}>
+                        Loading castes from database...
+                      </small>
+                    )}
+                  </div>
+                  
+                  <div className="form-group">
+                    <label htmlFor="caste_ratio_input">Ratio</label>
+                    <input
+                      type="number"
+                      id="caste_ratio_input"
+                      value={casteRatio}
+                      onChange={(e) => setCasteRatio(e.target.value)}
+                      min="0"
+                      disabled={loading}
+                      placeholder="Enter ratio value"
+                    />
+                    <small className="input-hint">Enter ratio value (any positive number)</small>
+                  </div>
+                  
+                  <button
+                    type="button"
+                    onClick={handleAddCasteRatio}
+                    className="btn btn-primary add-caste-btn"
+                    disabled={loading || !selectedCaste || !casteRatio}
+                  >
+                    <PlusIcon />
+                    Add
+                  </button>
+                </div>
+
+                {/* Caste Ratios List */}
+                {casteRatios.length > 0 && (
+                  <div className="caste-ratios-list">
+                    <h4>Added Caste Ratios</h4>
+                    <div className="caste-ratios-grid">
+                      {casteRatios.map((cr) => (
+                        <div key={cr.caste_id} className="caste-ratio-item">
+                          <span className="caste-name">{cr.caste_name}</span>
+                          <span className="ratio-value">{cr.caste_ratio}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCasteRatio(cr.caste_id)}
+                            className="btn btn-icon btn-remove"
+                            title="Remove"
+                          >
+                            <DeleteIcon />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="total-ratio">
+                      <strong>Total: {totalRatio}</strong>
+                    </div>
+                    
+                  </div>
+                )}
               </div>
 
               <div className="form-actions">
