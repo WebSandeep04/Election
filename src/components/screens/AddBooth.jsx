@@ -793,7 +793,7 @@ const AddBooth = () => {
             <div className="modal-header">
               <div className="modal-header-content">
                 <h2>{isEditing ? 'Edit Booth' : 'Add New Booth'}</h2>
-                {navigationParams && navigationParams.selectedVillageName && (
+                {/* {navigationParams && navigationParams.selectedVillageName && (
                   <div className="selected-village-indicator">
                     <span className="indicator-label">Selected Village:</span>
                     <span className="indicator-value">{navigationParams.selectedVillageName}</span>
@@ -822,7 +822,7 @@ const AddBooth = () => {
                     <span className="indicator-label">Selected Lok Sabha:</span>
                     <span className="indicator-value">{navigationParams.selectedLokSabhaName}</span>
                   </div>
-                )}
+                )} */}
                 {multipleNames && (
                   <div className="multiple-names-indicator">
                     <span className="indicator-label">Multiple Booths:</span>
@@ -1038,7 +1038,7 @@ const AddBooth = () => {
                     </div>
                   )}
                 </div>
-                <div className="form-group">
+                {/* <div className="form-group">
                   <label htmlFor="booth_status">Status</label>
                   <select
                     id="booth_status"
@@ -1050,10 +1050,10 @@ const AddBooth = () => {
                     <option value="1">Active</option>
                     <option value="0">Inactive</option>
                   </select>
-                </div>
+                </div> */}
               </div>
 
-              <div className="form-row">
+              {/* <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="created_at">Created At</label>
                   <input
@@ -1078,7 +1078,7 @@ const AddBooth = () => {
                     placeholder="Auto-updated on save"
                   />
                 </div>
-              </div>
+              </div> */}
 
               <div className="modal-actions">
                 <button 

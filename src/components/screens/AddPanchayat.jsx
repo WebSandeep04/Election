@@ -673,7 +673,7 @@ const AddPanchayat = () => {
             <div className="modal-header">
               <div className="modal-header-content">
                 <h2>{isEditing ? 'Edit Panchayat' : 'Add New Panchayat'}</h2>
-                {navigationParams && navigationParams.selectedBlockName && (
+                {/* {navigationParams && navigationParams.selectedBlockName && (
                   <div className="selected-block-indicator">
                     <span className="indicator-label">Selected Block:</span>
                     <span className="indicator-value">{navigationParams.selectedBlockName}</span>
@@ -690,7 +690,7 @@ const AddPanchayat = () => {
                     <span className="indicator-label">Lok Sabha:</span>
                     <span className="indicator-value">{navigationParams.selectedLokSabhaName}</span>
                   </div>
-                )}
+                )} */}
                 {multipleNames && (
                   <div className="multiple-names-indicator">
                     <span className="indicator-label">Multiple Panchayats:</span>
@@ -776,6 +776,29 @@ const AddPanchayat = () => {
                   ))}
                 </select>
               </div>
+
+              <div className="form-group">
+                 <label htmlFor="panchayat_choosing">Panchayat Type</label>
+                 <select
+                   id="panchayat_choosing"
+                   name="panchayat_choosing"
+                   value={formData.panchayat_choosing}
+                   onChange={handleInputChange}
+                   disabled={loading}
+                 >
+                   <option value="">Select Panchayat Type</option>
+                   {Array.isArray(panchayatChoosings) && panchayatChoosings.map((option) => (
+                     <option key={option.id} value={option.id}>
+                       {option.name}
+                     </option>
+                   ))}
+                 </select>
+                 {(!Array.isArray(panchayatChoosings) || panchayatChoosings.length === 0) && (
+                   <small style={{color: 'orange'}}>
+                     Loading panchayat types from database...
+                   </small>
+                 )}
+               </div>
               
               <div className="form-group">
                 <label htmlFor="panchayat_name">Panchayat Name *</label>
@@ -814,30 +837,9 @@ const AddPanchayat = () => {
                 )}
               </div>
               
-                             <div className="form-group">
-                 <label htmlFor="panchayat_choosing">Panchayat Type</label>
-                 <select
-                   id="panchayat_choosing"
-                   name="panchayat_choosing"
-                   value={formData.panchayat_choosing}
-                   onChange={handleInputChange}
-                   disabled={loading}
-                 >
-                   <option value="">Select Panchayat Type</option>
-                   {Array.isArray(panchayatChoosings) && panchayatChoosings.map((option) => (
-                     <option key={option.id} value={option.id}>
-                       {option.name}
-                     </option>
-                   ))}
-                 </select>
-                 {(!Array.isArray(panchayatChoosings) || panchayatChoosings.length === 0) && (
-                   <small style={{color: 'orange'}}>
-                     Loading panchayat types from database...
-                   </small>
-                 )}
-               </div>
+                             
               
-              <div className="form-group">
+              {/* <div className="form-group">
                 <label htmlFor="panchayat_status">Status</label>
                 <select
                   id="panchayat_status"
@@ -876,7 +878,7 @@ const AddPanchayat = () => {
                     placeholder="Auto-updated on save"
                   />
                 </div>
-              </div>
+              </div> */}
               
               <div className="modal-actions">
                 <button 

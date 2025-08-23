@@ -554,18 +554,18 @@ const AddBlock = () => {
             <div className="modal-header">
               <div className="modal-header-content">
                 <h2>{isEditing ? 'Edit Block' : 'Add New Block'}</h2>
-                {navigationParams && navigationParams.selectedVidhanSabhaName && (
+                {/* {navigationParams && navigationParams.selectedVidhanSabhaName && (
                   <div className="selected-vidhan-sabha-indicator">
                     <span className="indicator-label">Selected Vidhan Sabha:</span>
                     <span className="indicator-value">{navigationParams.selectedVidhanSabhaName}</span>
                   </div>
-                )}
-                {navigationParams && navigationParams.selectedLokSabhaName && (
+                )} */}
+                {/* {navigationParams && navigationParams.selectedLokSabhaName && (
                   <div className="selected-lok-sabha-indicator">
                     <span className="indicator-label">Lok Sabha:</span>
                     <span className="indicator-value">{navigationParams.selectedLokSabhaName}</span>
                   </div>
-                )}
+                )} */}
                 {multipleNames && (
                   <div className="multiple-names-indicator">
                     <span className="indicator-label">Multiple Blocks:</span>
@@ -665,7 +665,7 @@ const AddBlock = () => {
                 )}
               </div>
               
-              <div className="form-group">
+              {/* <div className="form-group">
                 <label htmlFor="block_status">Status</label>
                 <select
                   id="block_status"
@@ -677,9 +677,9 @@ const AddBlock = () => {
                   <option value="1">Active</option>
                   <option value="0">Inactive</option>
                 </select>
-              </div>
+              </div> */}
               
-              <div className="form-row">
+              {/* <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="created_at">Created At</label>
                   <input
@@ -704,7 +704,7 @@ const AddBlock = () => {
                     placeholder="Auto-updated on save"
                   />
                 </div>
-              </div>
+              </div> */}
               
               <div className="modal-actions">
                 <button 

@@ -689,7 +689,7 @@ const AddVillage = () => {
             <div className="modal-header">
               <div className="modal-header-content">
                 <h2>{isEditing ? 'Edit Village' : 'Add New Village'}</h2>
-                {navigationParams && navigationParams.selectedPanchayatName && (
+                {/* {navigationParams && navigationParams.selectedPanchayatName && (
                   <div className="selected-panchayat-indicator">
                     <span className="indicator-label">Selected Panchayat:</span>
                     <span className="indicator-value">{navigationParams.selectedPanchayatName}</span>
@@ -712,7 +712,7 @@ const AddVillage = () => {
                     <span className="indicator-label">Lok Sabha:</span>
                     <span className="indicator-value">{navigationParams.selectedLokSabhaName}</span>
                   </div>
-                )}
+                )} */}
                 {multipleNames && (
                   <div className="multiple-names-indicator">
                     <span className="indicator-label">Multiple Villages:</span>
@@ -849,7 +849,7 @@ const AddVillage = () => {
                     </small>
                   )}
                 </div>
-                <div className="form-group">
+                {/* <div className="form-group">
                   <label htmlFor="village_status">Status</label>
                   <select
                     id="village_status"
@@ -861,7 +861,7 @@ const AddVillage = () => {
                     <option value="1">Active</option>
                     <option value="0">Inactive</option>
                   </select>
-                </div>
+                </div> */}
               </div>
 
               <div className="form-row">
@@ -897,7 +897,7 @@ const AddVillage = () => {
                 </div>
               </div>
 
-              <div className="form-row">
+              {/* <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="created_at">Created At</label>
                   <input
@@ -922,7 +922,7 @@ const AddVillage = () => {
                     placeholder="Auto-updated on save"
                   />
                 </div>
-              </div>
+              </div> */}
 
               <div className="modal-actions">
                 <button 

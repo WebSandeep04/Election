@@ -472,12 +472,12 @@ const AddVidhanSabha = () => {
             <div className="modal-header">
               <div className="modal-header-content">
                 <h2>{isEditing ? 'Edit Vidhan Sabha Constituency' : 'Add New Vidhan Sabha Constituency'}</h2>
-                                 {navigationParams && navigationParams.selectedLokSabhaName && (
+                                 {/* {navigationParams && navigationParams.selectedLokSabhaName && (
                    <div className="selected-lok-sabha-indicator">
                      <span className="indicator-label">Selected Lok Sabha:</span>
                      <span className="indicator-value">{navigationParams.selectedLokSabhaName}</span>
                    </div>
-                 )}
+                 )} */}
                  {multipleNames && (
                    <div className="multiple-names-indicator">
                      <span className="indicator-label">Multiple Constituencies:</span>
@@ -553,7 +553,7 @@ const AddVidhanSabha = () => {
                  )}
                </div>
               
-              <div className="form-group">
+              {/* <div className="form-group">
                 <label htmlFor="vidhan_status">Status</label>
                 <select
                   id="vidhan_status"
@@ -565,7 +565,7 @@ const AddVidhanSabha = () => {
                   <option value="1">Active</option>
                   <option value="0">Inactive</option>
                 </select>
-              </div>
+              </div> */}
               
               <div className="modal-actions">
                 <button 
