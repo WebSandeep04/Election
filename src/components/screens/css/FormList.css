@@ -1,0 +1,163 @@
+/* Form List Container */
+.component-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.component-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.component-header h1 {
+  margin: 0 0 8px 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.component-header p {
+  margin: 0;
+  font-size: 18px;
+  color: #64748b;
+}
+
+.component-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.content-card {
+  padding: 24px;
+}
+
+/* Search and Refresh */
+.content-card input[type="text"] {
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  min-width: 260px;
+  font-size: 14px;
+}
+
+.content-card input[type="text"]:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Buttons */
+.save-btn, .preview-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.save-btn:hover, .preview-btn:hover {
+  background: #2563eb;
+}
+
+.save-btn:disabled, .preview-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.delete-form-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.delete-form-btn:hover {
+  background: #dc2626;
+}
+
+.delete-form-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Table Styles */
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+thead th {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #374151;
+  font-size: 14px;
+}
+
+tbody td {
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+  color: #374151;
+}
+
+tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+/* Loading and Empty States */
+.loading-state, .empty-forms-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
+}
+
+.loading-state p, .empty-forms-state p {
+  margin: 0;
+  font-size: 16px;
+}
+
+/* Error Message */
+.content-card > div[style*="color: #c0392b"] {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .content-card {
+    padding: 16px;
+  }
+  
+  .content-card input[type="text"] {
+    min-width: 200px;
+  }
+  
+  table {
+    font-size: 12px;
+  }
+  
+  thead th, tbody td {
+    padding: 8px;
+  }
+}

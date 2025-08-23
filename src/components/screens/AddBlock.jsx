@@ -203,7 +203,7 @@ const AddBlock = () => {
             ...submitData,
             block_name: names[0]
           })).unwrap();
-          setSuccess('Block created successfully');
+        setSuccess('Block created successfully');
         } else {
           // Multiple names - create multiple records
           const promises = names.map(name => 
@@ -553,7 +553,7 @@ const AddBlock = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-header-content">
-                <h2>{isEditing ? 'Edit Block' : 'Add New Block'}</h2>
+              <h2>{isEditing ? 'Edit Block' : 'Add New Block'}</h2>
                 {/* {navigationParams && navigationParams.selectedVidhanSabhaName && (
                   <div className="selected-vidhan-sabha-indicator">
                     <span className="indicator-label">Selected Vidhan Sabha:</span>

@@ -57,12 +57,12 @@ const Dashboard = () => {
 
   return (
     <div className="component-container">
-      <div className="component-header">
-        <h1>Dashboard</h1>
+    <div className="component-header">
+      <h1>Dashboard</h1>
         <p>Overview of your election management system</p>
-      </div>
-      
-      <div className="component-content">
+    </div>
+    
+    <div className="component-content">
         {/* Quick Stats Cards */}
         <div className="stats-grid">
           {quickStats.map((stat, index) => (
@@ -314,9 +314,9 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
-        </div>
       </div>
     </div>
+  </div>
   );
 };
 

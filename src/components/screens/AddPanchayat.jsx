@@ -296,7 +296,7 @@ const AddPanchayat = () => {
             ...submitData,
             panchayat_name: names[0]
           })).unwrap();
-          setSuccess('Panchayat created successfully');
+        setSuccess('Panchayat created successfully');
         } else {
           // Multiple names - create multiple records
           const promises = names.map(name => 
@@ -672,7 +672,7 @@ const AddPanchayat = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-header-content">
-                <h2>{isEditing ? 'Edit Panchayat' : 'Add New Panchayat'}</h2>
+              <h2>{isEditing ? 'Edit Panchayat' : 'Add New Panchayat'}</h2>
                 {/* {navigationParams && navigationParams.selectedBlockName && (
                   <div className="selected-block-indicator">
                     <span className="indicator-label">Selected Block:</span>
@@ -776,8 +776,8 @@ const AddPanchayat = () => {
                   ))}
                 </select>
               </div>
-
-              <div className="form-group">
+              
+                             <div className="form-group">
                  <label htmlFor="panchayat_choosing">Panchayat Type</label>
                  <select
                    id="panchayat_choosing"

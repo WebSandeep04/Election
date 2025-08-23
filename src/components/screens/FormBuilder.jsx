@@ -19,12 +19,12 @@ const FormBuilder = () => {
   const { isAuthenticated, token } = useSelector((state) => state.auth || {});
   const formsList = Array.isArray(forms) ? forms : (Array.isArray(forms?.data) ? forms.data : []);
   
+  // Form state matching the prompt requirements
   const [formName, setFormName] = useState("");
   const [questions, setQuestions] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
   const [formResponses, setFormResponses] = useState({});
   const [showFormBuilder, setShowFormBuilder] = useState(false);
-  const [showQuestionTypeSelector, setShowQuestionTypeSelector] = useState(false);
 
   // Fetch forms on component mount
   useEffect(() => {
@@ -45,59 +45,53 @@ const FormBuilder = () => {
     }
   }, [error, success, dispatch]);
 
-  // If a form is selected elsewhere (e.g., FormList → Open), hydrate local editor state
+    // If a form is selected elsewhere (e.g., FormList → Open), hydrate local editor state
   useEffect(() => {
     if (currentForm && (currentForm.name || Array.isArray(currentForm.questions))) {
       setFormName(currentForm.name || "");
-      setQuestions(Array.isArray(currentForm.questions) ? currentForm.questions : []);
+      // Transform backend data structure to frontend structure
+      const transformedQuestions = (currentForm.questions || []).map(q => ({
+        id: q.id || Date.now() + Math.random(),
+        questionText: q.question || q.questionText || "",
+        type: q.type === "single_choice" ? "single" : q.type === "multiple_choice" ? "multiple" : "long",
+        required: q.required || false,
+        options: q.type === "long_text" ? [] : (q.options || [""])
+      }));
+      console.log('Transformed questions from currentForm:', transformedQuestions);
+      setQuestions(transformedQuestions);
       setShowPreview(false);
       setShowFormBuilder(true);
     }
   }, [currentForm]);
-
-  const questionTypes = [
-    { id: "single_choice", label: "Single Choice", icon: "🔘" },
-    { id: "multiple_choice", label: "Multiple Choice", icon: "☑️" },
-    { id: "long_text", label: "Long Text", icon: "📝" }
-  ];
 
   const handleCreateForm = () => {
     setShowFormBuilder(true);
     setFormName("");
     setQuestions([]);
     setShowPreview(false);
-    setShowQuestionTypeSelector(false);
     dispatch(clearCurrentForm());
   };
 
-  const addQuestion = (type) => {
+  // Add new question with default values
+  const addQuestion = () => {
     const newQuestion = {
       id: Date.now() + Math.random(),
-      type: type,
-      question: "",
-      required: false,
-      options: type === "single_choice" || type === "multiple_choice" ? [""] : [],
-      placeholder: "",
-      validation: {
-        minLength: "",
-        maxLength: "",
-        pattern: ""
-      }
+      questionText: "",
+      type: "single", // Default to single choice
+      options: [""], // Start with one empty option
+      required: false
     };
     setQuestions([...questions, newQuestion]);
-    setShowQuestionTypeSelector(false);
   };
 
-  const showQuestionTypeSelectorForNewQuestion = () => {
-    setShowQuestionTypeSelector(true);
-  };
-
+  // Update question field
   const updateQuestion = (id, field, value) => {
     setQuestions(questions.map(q => 
       q.id === id ? { ...q, [field]: value } : q
     ));
   };
 
+  // Update question option
   const updateQuestionOption = (questionId, optionIndex, value) => {
     setQuestions(questions.map(q => {
       if (q.id === questionId) {
@@ -109,6 +103,7 @@ const FormBuilder = () => {
     }));
   };
 
+  // Add new option to a question
   const addOption = (questionId) => {
     setQuestions(questions.map(q => {
       if (q.id === questionId) {
@@ -118,6 +113,7 @@ const FormBuilder = () => {
     }));
   };
 
+  // Remove option from a question
   const removeOption = (questionId, optionIndex) => {
     setQuestions(questions.map(q => {
       if (q.id === questionId) {
@@ -128,10 +124,12 @@ const FormBuilder = () => {
     }));
   };
 
+  // Remove question
   const removeQuestion = (id) => {
     setQuestions(questions.filter(q => q.id !== id));
   };
 
+  // Move question up/down
   const moveQuestion = (id, direction) => {
     const index = questions.findIndex(q => q.id === id);
     if (index === -1) return;
@@ -145,6 +143,7 @@ const FormBuilder = () => {
     setQuestions(newQuestions);
   };
 
+  // Save form to database
   const saveForm = () => {
     const errors = [];
 
@@ -159,40 +158,22 @@ const FormBuilder = () => {
       errors.push("Add at least one question");
     }
 
-    // Sanitize and validate questions per API spec
-    const sanitizedQuestions = questions.map((q, index) => {
-      const questionText = (q.question || "").trim();
-      const type = q.type;
-      const required = !!q.required;
-      const isChoice = type === "single_choice" || type === "multiple_choice";
-      const isLongText = type === "long_text";
-
+    // Validate questions
+    questions.forEach((q, index) => {
+      const questionText = (q.questionText || "").trim();
       if (!questionText) {
-        errors.push(`Question ${index + 1}: question is required`);
+        errors.push(`Question ${index + 1}: question text is required`);
       } else if (questionText.length < 3) {
         errors.push(`Question ${index + 1}: must be at least 3 characters`);
       }
 
-      if (!["single_choice", "multiple_choice", "long_text"].includes(type)) {
-        errors.push(`Question ${index + 1}: invalid type`);
-      }
-
-      const payload = { question: questionText, type, required };
-
-      if (isLongText) {
-        const placeholder = (q.placeholder || "").trim();
-        if (placeholder) payload.placeholder = placeholder;
-      }
-
-      if (isChoice) {
-        const opts = (q.options || []).map(o => (o || "").trim()).filter(Boolean);
-        if (opts.length < 2) {
-          errors.push(`Question ${index + 1}: at least two non-empty options are required`);
+      // Validate options for choice questions
+      if (q.type === "single" || q.type === "multiple") {
+        const validOptions = (q.options || []).map(o => (o || "").trim()).filter(Boolean);
+        if (validOptions.length < 2) {
+          errors.push(`Question ${index + 1}: at least two non-empty options are required for choice questions`);
         }
-        payload.options = opts;
       }
-
-      return payload;
     });
 
     if (errors.length > 0) {
@@ -200,49 +181,70 @@ const FormBuilder = () => {
       return;
     }
 
+    // Prepare form data for database
     const formData = {
       name: trimmedName,
-      questions: sanitizedQuestions,
+      questions: questions.map(q => ({
+        question: q.questionText.trim(),
+        type: q.type === "single" ? "single_choice" : q.type === "multiple" ? "multiple_choice" : "long_text",
+        required: q.required,
+        options: q.type === "long" ? [] : q.options.map(o => o.trim()).filter(Boolean)
+      }))
     };
 
+    // Debug: Log the data being sent
+    console.log('Sending form data to backend:', formData);
+
+    // Save to database
     if (currentForm) {
       dispatch(updateForm({ id: currentForm.id, formData }));
     } else {
       dispatch(createForm(formData));
     }
 
-    // Reset form
-    dispatch(clearCurrentForm());
-    setFormName("");
-    setQuestions([]);
-    setShowPreview(false);
-    setShowFormBuilder(false);
-    setShowQuestionTypeSelector(false);
+    // Don't show alert immediately - wait for success/error from Redux
+    // The alert will be shown by the useEffect that handles success/error
   };
 
+  // Load form for editing
   const loadForm = (form) => {
-    // Prefer fetching full form from API to ensure questions are loaded
     dispatch(fetchFormById(form.id))
       .unwrap()
       .then((fullForm) => {
         dispatch(setCurrentForm(fullForm));
         setFormName(fullForm.name || "");
-        setQuestions(fullForm.questions || []);
+        // Transform backend data structure to frontend structure
+        const transformedQuestions = (fullForm.questions || []).map(q => ({
+          id: q.id || Date.now() + Math.random(),
+          questionText: q.question || q.questionText || "",
+          type: q.type === "single_choice" ? "single" : q.type === "multiple_choice" ? "multiple" : "long",
+          required: q.required || false,
+          options: q.type === "long_text" ? [] : (q.options || [""])
+        }));
+        console.log('Transformed questions from fullForm:', transformedQuestions);
+        setQuestions(transformedQuestions);
         setShowPreview(false);
         setShowFormBuilder(true);
-        setShowQuestionTypeSelector(false);
       })
       .catch(() => {
-        // Fallback to available data
         dispatch(setCurrentForm(form));
         setFormName(form.name || "");
-        setQuestions(Array.isArray(form.questions) ? form.questions : []);
+        // Transform backend data structure to frontend structure
+        const transformedQuestions = (form.questions || []).map(q => ({
+          id: q.id || Date.now() + Math.random(),
+          questionText: q.question || q.questionText || "",
+          type: q.type === "single_choice" ? "single" : q.type === "multiple_choice" ? "multiple" : "long",
+          required: q.required || false,
+          options: q.type === "long_text" ? [] : (q.options || [""])
+        }));
+        console.log('Transformed questions from form (fallback):', transformedQuestions);
+        setQuestions(transformedQuestions);
         setShowPreview(false);
         setShowFormBuilder(true);
-        setShowQuestionTypeSelector(false);
       });
   };
 
+  // Delete form
   const deleteForm = (formId) => {
     if (confirm("Are you sure you want to delete this form?")) {
       dispatch(deleteFormAction(formId));
@@ -251,11 +253,11 @@ const FormBuilder = () => {
         setFormName("");
         setQuestions([]);
         setShowFormBuilder(false);
-        setShowQuestionTypeSelector(false);
       }
     }
   };
 
+  // Handle form responses in preview
   const handleFormResponse = (questionId, value) => {
     setFormResponses({
       ...formResponses,
@@ -263,12 +265,39 @@ const FormBuilder = () => {
     });
   };
 
+  // Render question builder
   const renderQuestionBuilder = (question) => {
     return (
       <div key={question.id} className="question-builder">
         <div className="question-header">
-          <div className="question-type-badge">
-            {questionTypes.find(t => t.id === question.type)?.icon} {questionTypes.find(t => t.id === question.type)?.label}
+          <div className="question-type-selector">
+            <label>Answer Type:</label>
+            <select
+              value={question.type}
+              onChange={(e) => {
+                const newType = e.target.value;
+                
+                let newOptions = question.options;
+                
+                // Reset options based on type
+                if (newType === "long") {
+                  newOptions = [];
+                } else if (newType === "single" || newType === "multiple") {
+                  newOptions = question.options.length > 0 ? question.options : [""];
+                }
+                
+                // Update both type and options in a single state update
+                setQuestions(questions.map(q => 
+                  q.id === question.id ? { ...q, type: newType, options: newOptions } : q
+                ));
+              }}
+              className="question-type-dropdown"
+            >
+              <option value="single">Single Choice (Radio)</option>
+              <option value="multiple">Multiple Choice (Checkbox)</option>
+              <option value="long">Long Text (Textarea)</option>
+            </select>
+
           </div>
           <div className="question-actions">
             <button 
@@ -295,10 +324,63 @@ const FormBuilder = () => {
           <input
             type="text"
             placeholder="Enter your question here..."
-            value={question.question}
-            onChange={(e) => updateQuestion(question.id, "question", e.target.value)}
+            value={question.questionText}
+            onChange={(e) => updateQuestion(question.id, "questionText", e.target.value)}
             className="question-input"
           />
+
+          {/* Live Preview */}
+          {question.questionText && (
+            <div className="question-preview-live">
+              <h4>Live Preview:</h4>
+              <div className="preview-content">
+                <label className="question-label">
+                  {question.questionText}
+                  {question.required && <span className="required-mark">*</span>}
+                </label>
+
+                {question.type === "long" && (
+                  <textarea
+                    placeholder="Enter your answer..."
+                    className="preview-textarea"
+                    rows="4"
+                    disabled
+                  />
+                )}
+
+                {question.type === "single" && (
+                  <div className="radio-group">
+                    {question.options.map((option, index) => (
+                      <label key={index} className="radio-option">
+                        <input
+                          type="radio"
+                          name={`preview_${question.id}`}
+                          value={option}
+                          disabled
+                        />
+                        {option || `Option ${index + 1}`}
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                {question.type === "multiple" && (
+                  <div className="checkbox-group">
+                    {question.options.map((option, index) => (
+                      <label key={index} className="checkbox-option">
+                        <input
+                          type="checkbox"
+                          value={option}
+                          disabled
+                        />
+                        {option || `Option ${index + 1}`}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="question-settings">
             <label className="required-checkbox">
@@ -310,19 +392,9 @@ const FormBuilder = () => {
               Required
             </label>
 
-            {(question.type === "long_text") && (
-              <input
-                type="text"
-                placeholder="Placeholder text (optional)"
-                value={question.placeholder}
-                onChange={(e) => updateQuestion(question.id, "placeholder", e.target.value)}
-                className="placeholder-input"
-              />
-            )}
-
-            {(question.type === "single_choice" || question.type === "multiple_choice") && (
+            {(question.type === "single" || question.type === "multiple") && (
               <div className="options-container">
-                <label>Options:</label>
+                <label>Answer Options:</label>
                 {question.options.map((option, index) => (
                   <div key={index} className="option-row">
                     <input
@@ -356,24 +428,25 @@ const FormBuilder = () => {
     );
   };
 
+  // Render question preview (for respondents)
   const renderQuestionPreview = (question) => {
     return (
       <div key={question.id} className="question-preview">
         <label className="question-label">
-          {question.question}
+          {question.questionText}
           {question.required && <span className="required-mark">*</span>}
         </label>
 
-        {question.type === "long_text" && (
+        {question.type === "long" && (
           <textarea
-            placeholder={question.placeholder || "Enter your answer..."}
+            placeholder="Enter your answer..."
             onChange={(e) => handleFormResponse(question.id, e.target.value)}
             className="preview-textarea"
             rows="4"
           />
         )}
 
-        {question.type === "single_choice" && (
+        {question.type === "single" && (
           <div className="radio-group">
             {question.options.map((option, index) => (
               <label key={index} className="radio-option">
@@ -389,7 +462,7 @@ const FormBuilder = () => {
           </div>
         )}
 
-        {question.type === "multiple_choice" && (
+        {question.type === "multiple" && (
           <div className="checkbox-group">
             {question.options.map((option, index) => (
               <label key={index} className="checkbox-option">
@@ -418,14 +491,14 @@ const FormBuilder = () => {
     return (
       <div className="form-builder-container">
         <div className="form-builder-header">
-          <h1>Form Builder</h1>
-          <p>Create dynamic forms with different question types</p>
+          <h1>Dynamic Form Builder</h1>
+          <p>Create forms with different question types - Single Choice, Multiple Choice, and Long Text</p>
         </div>
         
         <div className="create-form-screen">
           <div className="create-form-content">
             <h2>Welcome to Form Builder</h2>
-            <p>Start building your form by clicking the button below</p>
+            <p>Start building your dynamic form by clicking the button below</p>
             <button 
               onClick={handleCreateForm}
               className="create-form-btn"
@@ -438,71 +511,22 @@ const FormBuilder = () => {
     );
   }
 
-  // Show question type selector
-  if (showQuestionTypeSelector) {
-    return (
-      <div className="form-builder-container">
-        <div className="form-builder-header">
-          <h1>Form Builder</h1>
-          <p>Create dynamic forms with different question types</p>
-        </div>
-        
-        <div className="question-type-selector">
-          <div className="selector-content">
-            <h2>Select Question Type</h2>
-            <p>Choose the type of question you want to add:</p>
-            
-            <div className="question-types-grid">
-              {questionTypes.map(type => (
-                <button
-                  key={type.id}
-                  onClick={() => addQuestion(type.id)}
-                  className="question-type-btn large"
-                >
-                  <span className="type-icon">{type.icon}</span>
-                  <span className="type-label">{type.label}</span>
-                </button>
-              ))}
-            </div>
-            
-            <button 
-              onClick={() => setShowQuestionTypeSelector(false)}
-              className="back-btn"
-            >
-              ← Back to Form
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="form-builder-container">
       <div className="form-builder-header">
-        <h1>Form Builder</h1>
-        <p>Create dynamic forms with different question types</p>
+        <h1>Dynamic Form Builder</h1>
+        <p>Create forms with different question types - Single Choice, Multiple Choice, and Long Text</p>
       </div>
 
       <div className="form-editor">
         <div className="editor-header">
           <input
             type="text"
-            placeholder="Enter form name..."
+            placeholder="Enter Form Name..."
             value={formName}
             onChange={(e) => setFormName(e.target.value)}
             className="form-name-input"
           />
-
-          <label className="recording-checkbox-label" style={{ display: "flex", alignItems: "center", gap: "0.5em" }}>
-            <input
-              type="checkbox"
-              checked={!!formResponses.recording}
-              onChange={e => setFormResponses({ ...formResponses, recording: e.target.checked })}
-              className="recording-checkbox"
-            />
-            Recording
-          </label>
 
           <div className="editor-actions">
             <button 
@@ -510,7 +534,7 @@ const FormBuilder = () => {
               className="preview-btn"
               disabled={loading}
             >
-              {showPreview ? "Edit" : "Preview"}
+              {showPreview ? "Edit Form" : "Preview Form"}
             </button>
             <button 
               onClick={saveForm} 
@@ -534,7 +558,7 @@ const FormBuilder = () => {
               <div className="questions-header">
                 <h3>Questions ({questions.length})</h3>
                 <button 
-                  onClick={showQuestionTypeSelectorForNewQuestion}
+                  onClick={addQuestion}
                   className="add-question-btn"
                 >
                   + Add Question
@@ -550,7 +574,7 @@ const FormBuilder = () => {
                   {questions.map(renderQuestionBuilder)}
                   <div className="add-question-below">
                     <button 
-                      onClick={showQuestionTypeSelectorForNewQuestion}
+                      onClick={addQuestion}
                       className="add-question-below-btn"
                     >
                       + Add Another Question

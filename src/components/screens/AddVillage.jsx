@@ -308,12 +308,12 @@ const AddVillage = () => {
       const names = formData.village_name.split(',')
         .map(name => name.trim())
         .filter(name => name.length > 0);
-      
-      // Get the village choosing name from the selected ID
-      const selectedChoosing = Array.isArray(villageChoosings) 
-        ? villageChoosings.find(option => option.id == formData.village_choosing)
-        : null;
-      
+    
+         // Get the village choosing name from the selected ID
+     const selectedChoosing = Array.isArray(villageChoosings) 
+       ? villageChoosings.find(option => option.id == formData.village_choosing)
+       : null;
+     
       try {
         // Create multiple villages using Promise.all
         await Promise.all(names.map(name => {
@@ -344,32 +344,32 @@ const AddVillage = () => {
         ? villageChoosings.find(option => option.id == formData.village_choosing)
         : null;
       
-      const submitData = {
-        loksabha_id: parseInt(formData.loksabha_id) || formData.loksabha_id,
-        vidhansabha_id: parseInt(formData.vidhansabha_id) || formData.vidhansabha_id,
-        block_id: parseInt(formData.block_id) || formData.block_id,
-        panchayat_id: parseInt(formData.panchayat_id) || formData.panchayat_id,
-        village_choosing_id: parseInt(formData.village_choosing) || formData.village_choosing,
-        village_choosing: selectedChoosing ? selectedChoosing.name : formData.village_choosing,
-        village_name: formData.village_name.trim(),
-        village_status: formData.village_status,
-        created_at: isEditing ? formData.created_at : now,
-        updated_at: now
-      };
+     const submitData = {
+       loksabha_id: parseInt(formData.loksabha_id) || formData.loksabha_id,
+       vidhansabha_id: parseInt(formData.vidhansabha_id) || formData.vidhansabha_id,
+       block_id: parseInt(formData.block_id) || formData.block_id,
+       panchayat_id: parseInt(formData.panchayat_id) || formData.panchayat_id,
+       village_choosing_id: parseInt(formData.village_choosing) || formData.village_choosing,
+       village_choosing: selectedChoosing ? selectedChoosing.name : formData.village_choosing,
+       village_name: formData.village_name.trim(),
+       village_status: formData.village_status,
+       created_at: isEditing ? formData.created_at : now,
+       updated_at: now
+     };
 
-      try {
-        if (isEditing) {
-          await dispatch(updateVillage({ id: editingId, villageData: submitData })).unwrap();
-          setSuccess('Village updated successfully!');
-        } else {
-          await dispatch(createVillage(submitData)).unwrap();
-          setSuccess('Village created successfully!');
-        }
-        
-        setShowModal(false);
-        resetForm();
-      } catch (error) {
-        console.error('Error submitting form:', error);
+    try {
+      if (isEditing) {
+        await dispatch(updateVillage({ id: editingId, villageData: submitData })).unwrap();
+        setSuccess('Village updated successfully!');
+      } else {
+        await dispatch(createVillage(submitData)).unwrap();
+        setSuccess('Village created successfully!');
+      }
+      
+      setShowModal(false);
+      resetForm();
+    } catch (error) {
+      console.error('Error submitting form:', error);
       }
     }
   };
@@ -652,9 +652,9 @@ const AddVillage = () => {
 
             <div className="click-hint">
               💡 Click on any Village name to add Booth constituencies for that Village
-            </div>
+      </div>
 
-            {/* Pagination */}
+      {/* Pagination */}
       {pagination.last_page > 1 && (
         <div className="pagination">
           <button
@@ -688,7 +688,7 @@ const AddVillage = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-header-content">
-                <h2>{isEditing ? 'Edit Village' : 'Add New Village'}</h2>
+              <h2>{isEditing ? 'Edit Village' : 'Add New Village'}</h2>
                 {/* {navigationParams && navigationParams.selectedPanchayatName && (
                   <div className="selected-panchayat-indicator">
                     <span className="indicator-label">Selected Panchayat:</span>

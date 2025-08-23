@@ -412,7 +412,7 @@ const AddBooth = () => {
     const selectedPanchayatChoosing = Array.isArray(panchayatChoosings) 
       ? panchayatChoosings.find(option => option.id == formData.panchayat_choosing)
       : null;
-
+    
     try {
       if (multipleNames) {
         // Handle multiple booth names
@@ -441,29 +441,29 @@ const AddBooth = () => {
         setSuccess(`${names.length} Booths created successfully!`);
       } else {
         // Handle single booth creation
-        const submitData = {
-          loksabha_id: parseInt(formData.loksabha_id) || formData.loksabha_id,
-          vidhansabha_id: parseInt(formData.vidhansabha_id) || formData.vidhansabha_id,
-          block_id: parseInt(formData.block_id) || formData.block_id,
-          panchayat_id: parseInt(formData.panchayat_id) || formData.panchayat_id,
-          panchayat_choosing_id: parseInt(formData.panchayat_choosing) || formData.panchayat_choosing,
-          panchayat_choosing: selectedPanchayatChoosing ? selectedPanchayatChoosing.name : formData.panchayat_choosing,
-          village_id: parseInt(formData.village_id) || formData.village_id,
-          village_choosing_id: parseInt(formData.village_choosing) || formData.village_choosing,
-          village_choosing: selectedChoosing ? selectedChoosing.name : formData.village_choosing,
-          booth_name: formData.booth_name.trim(),
-          booth_status: formData.booth_status,
-          created_at: isEditing ? formData.created_at : now,
-          updated_at: now
-        };
+    const submitData = {
+      loksabha_id: parseInt(formData.loksabha_id) || formData.loksabha_id,
+      vidhansabha_id: parseInt(formData.vidhansabha_id) || formData.vidhansabha_id,
+      block_id: parseInt(formData.block_id) || formData.block_id,
+      panchayat_id: parseInt(formData.panchayat_id) || formData.panchayat_id,
+      panchayat_choosing_id: parseInt(formData.panchayat_choosing) || formData.panchayat_choosing,
+      panchayat_choosing: selectedPanchayatChoosing ? selectedPanchayatChoosing.name : formData.panchayat_choosing,
+      village_id: parseInt(formData.village_id) || formData.village_id,
+      village_choosing_id: parseInt(formData.village_choosing) || formData.village_choosing,
+      village_choosing: selectedChoosing ? selectedChoosing.name : formData.village_choosing,
+      booth_name: formData.booth_name.trim(),
+      booth_status: formData.booth_status,
+      created_at: isEditing ? formData.created_at : now,
+      updated_at: now
+    };
 
-        if (isEditing) {
-          await dispatch(updateBooth({ id: editingId, boothData: submitData }));
-        } else {
-          await dispatch(createBooth(submitData));
-        }
-        
-        setSuccess(isEditing ? 'Booth updated successfully!' : 'Booth created successfully!');
+      if (isEditing) {
+        await dispatch(updateBooth({ id: editingId, boothData: submitData }));
+      } else {
+        await dispatch(createBooth(submitData));
+      }
+      
+      setSuccess(isEditing ? 'Booth updated successfully!' : 'Booth created successfully!');
       }
       
       setShowModal(false);
@@ -792,7 +792,7 @@ const AddBooth = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-header-content">
-                <h2>{isEditing ? 'Edit Booth' : 'Add New Booth'}</h2>
+              <h2>{isEditing ? 'Edit Booth' : 'Add New Booth'}</h2>
                 {/* {navigationParams && navigationParams.selectedVillageName && (
                   <div className="selected-village-indicator">
                     <span className="indicator-label">Selected Village:</span>
@@ -958,72 +958,72 @@ const AddBooth = () => {
                 </div>
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="village_id">Village *</label>
-                  <select
-                    id="village_id"
-                    name="village_id"
-                    value={formData.village_id}
-                    onChange={handleVillageChange}
-                    required
-                    disabled={loading || !formData.panchayat_id}
-                  >
-                    <option value="">
-                      {!formData.panchayat_id ? 'Select Panchayat first' : 
-                       loading ? 'Loading Villages...' : 
-                       filteredVillages.length === 0 ? 'No Villages found' : 
-                       'Select Village'}
-                    </option>
-                    {Array.isArray(filteredVillages) && filteredVillages.map((village) => (
-                      <option key={village.id} value={village.id}>
-                        {village.village_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="village_choosing">Type *</label>
-                  <select
-                    id="village_choosing"
-                    name="village_choosing"
-                    value={formData.village_choosing}
-                    onChange={handleInputChange}
-                    required
-                    disabled={loading}
-                  >
-                    <option value="">Select Village Type</option>
-                    {Array.isArray(villageChoosings) && villageChoosings.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.name}
-                      </option>
-                    ))}
-                  </select>
-                  {(!Array.isArray(villageChoosings) || villageChoosings.length === 0) && (
-                    <small style={{color: 'orange'}}>
-                      Loading village types from database...
-                    </small>
-                  )}
-                </div>
-              </div>
+                             <div className="form-row">
+                 <div className="form-group">
+                   <label htmlFor="village_id">Village *</label>
+                   <select
+                     id="village_id"
+                     name="village_id"
+                     value={formData.village_id}
+                     onChange={handleVillageChange}
+                     required
+                     disabled={loading || !formData.panchayat_id}
+                   >
+                     <option value="">
+                       {!formData.panchayat_id ? 'Select Panchayat first' : 
+                        loading ? 'Loading Villages...' : 
+                        filteredVillages.length === 0 ? 'No Villages found' : 
+                        'Select Village'}
+                     </option>
+                     {Array.isArray(filteredVillages) && filteredVillages.map((village) => (
+                       <option key={village.id} value={village.id}>
+                         {village.village_name}
+                       </option>
+                     ))}
+                   </select>
+                 </div>
+                 <div className="form-group">
+                   <label htmlFor="village_choosing">Type *</label>
+                   <select
+                     id="village_choosing"
+                     name="village_choosing"
+                     value={formData.village_choosing}
+                     onChange={handleInputChange}
+                     required
+                     disabled={loading}
+                   >
+                     <option value="">Select Village Type</option>
+                     {Array.isArray(villageChoosings) && villageChoosings.map((option) => (
+                       <option key={option.id} value={option.id}>
+                         {option.name}
+                       </option>
+                     ))}
+                   </select>
+                   {(!Array.isArray(villageChoosings) || villageChoosings.length === 0) && (
+                     <small style={{color: 'orange'}}>
+                       Loading village types from database...
+                     </small>
+                   )}
+                 </div>
+               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="booth_name">Booth Name *</label>
-                  <input
-                    type="text"
-                    id="booth_name"
-                    name="booth_name"
-                    value={formData.booth_name}
-                    onChange={handleInputChange}
+               <div className="form-row">
+                 <div className="form-group">
+                   <label htmlFor="booth_name">Booth Name *</label>
+                   <input
+                     type="text"
+                     id="booth_name"
+                     name="booth_name"
+                     value={formData.booth_name}
+                     onChange={handleInputChange}
                     placeholder="Enter booth name (use comma to add multiple)"
-                    required
-                    disabled={loading}
-                    autoFocus
-                  />
+                     required
+                     disabled={loading}
+                     autoFocus
+                   />
                   <div className="form-hint">
                     💡 Tip: You can add multiple booths by separating names with commas (e.g., "Booth1, Booth2, Booth3")
-                  </div>
+                 </div>
                   {multipleNames && (
                     <div className="names-preview">
                       <div className="preview-label">Booths that will be created:</div>
@@ -1039,45 +1039,45 @@ const AddBooth = () => {
                   )}
                 </div>
                 {/* <div className="form-group">
-                  <label htmlFor="booth_status">Status</label>
-                  <select
-                    id="booth_status"
-                    name="booth_status"
-                    value={formData.booth_status}
-                    onChange={handleInputChange}
-                    disabled={loading}
-                  >
-                    <option value="1">Active</option>
-                    <option value="0">Inactive</option>
-                  </select>
+                   <label htmlFor="booth_status">Status</label>
+                   <select
+                     id="booth_status"
+                     name="booth_status"
+                     value={formData.booth_status}
+                     onChange={handleInputChange}
+                     disabled={loading}
+                   >
+                     <option value="1">Active</option>
+                     <option value="0">Inactive</option>
+                   </select>
                 </div> */}
-              </div>
+               </div>
 
               {/* <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="created_at">Created At</label>
-                  <input
-                    type="text"
-                    id="created_at"
-                    name="created_at"
-                    value={formData.created_at ? new Date(formData.created_at).toLocaleString() : ''}
-                    onChange={handleInputChange}
-                    disabled
-                    placeholder="Auto-generated on creation"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="updated_at">Updated At</label>
-                  <input
-                    type="text"
-                    id="updated_at"
-                    name="updated_at"
-                    value={formData.updated_at ? new Date(formData.updated_at).toLocaleString() : ''}
-                    onChange={handleInputChange}
-                    disabled
-                    placeholder="Auto-updated on save"
-                  />
-                </div>
+                  <div className="form-group">
+                    <label htmlFor="created_at">Created At</label>
+                    <input
+                      type="text"
+                      id="created_at"
+                      name="created_at"
+                      value={formData.created_at ? new Date(formData.created_at).toLocaleString() : ''}
+                      onChange={handleInputChange}
+                      disabled
+                      placeholder="Auto-generated on creation"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="updated_at">Updated At</label>
+                    <input
+                      type="text"
+                      id="updated_at"
+                      name="updated_at"
+                      value={formData.updated_at ? new Date(formData.updated_at).toLocaleString() : ''}
+                      onChange={handleInputChange}
+                      disabled
+                      placeholder="Auto-updated on save"
+                    />
+                  </div>
               </div> */}
 
               <div className="modal-actions">

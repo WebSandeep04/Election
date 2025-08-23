@@ -7,6 +7,7 @@ import {
   setCurrentForm,
 } from "../../store/slices/formSlice";
 import { setActiveScreen } from "../../store/slices/uiSlice";
+import "./css/FormList.css";
 
 const FormList = () => {
   const dispatch = useDispatch();
