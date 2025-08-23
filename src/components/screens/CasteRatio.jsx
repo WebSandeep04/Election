@@ -139,6 +139,11 @@ const CasteRatio = () => {
     caste_ratio: ''
   });
 
+  // Multiple caste ratios state
+  const [casteRatios, setCasteRatios] = useState([]);
+  const [selectedCaste, setSelectedCaste] = useState('');
+  const [casteRatio, setCasteRatio] = useState('');
+
   // Helper function to get panchayat type display text
   const getPanchayatTypeText = (type) => {
     if (Array.isArray(panchayatChoosings)) {
@@ -424,11 +429,54 @@ const CasteRatio = () => {
     }));
   };
 
+  // Handle adding caste ratio to the list
+  const handleAddCasteRatio = () => {
+    if (!selectedCaste || !casteRatio) {
+      alert('Please select a caste and enter a ratio');
+      return;
+    }
+
+    const ratio = parseInt(casteRatio);
+    if (isNaN(ratio) || ratio < 0) {
+      alert('Please enter a valid positive number for the ratio');
+      return;
+    }
+
+    // Check if caste is already added
+    const existingCaste = casteRatios.find(cr => cr.caste_id === selectedCaste);
+    if (existingCaste) {
+      alert('This caste is already added. Please remove it first or update the ratio.');
+      return;
+    }
+
+    const selectedCasteData = Array.isArray(castes) 
+      ? castes.find(c => c.id == selectedCaste)
+      : null;
+
+    const newCasteRatio = {
+      caste_id: selectedCaste,
+      caste_name: selectedCasteData?.caste || 'Unknown',
+      caste_ratio: ratio
+    };
+
+    setCasteRatios(prev => [...prev, newCasteRatio]);
+    setSelectedCaste('');
+    setCasteRatio('');
+  };
+
+  // Handle removing caste ratio from the list
+  const handleRemoveCasteRatio = (casteId) => {
+    setCasteRatios(prev => prev.filter(cr => cr.caste_id !== casteId));
+  };
+
+  // Calculate total ratio
+  const totalRatio = casteRatios.reduce((sum, cr) => sum + cr.caste_ratio, 0);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.caste_id || !formData.caste_ratio) {
-      alert('Caste and Caste Ratio are required fields');
+    if (casteRatios.length === 0) {
+      alert('Please add at least one caste ratio');
       return;
     }
 
@@ -441,27 +489,34 @@ const CasteRatio = () => {
       ? villageChoosings.find(option => option.id == formData.village_choosing_id)
       : null;
 
-    const submitData = {
-      ...formData,
-      panchayat_choosing_id: parseInt(formData.panchayat_choosing_id) || formData.panchayat_choosing_id,
-      panchayat_choosing: selectedPanchayatChoosing ? selectedPanchayatChoosing.name : formData.panchayat_choosing_id,
-      village_choosing_id: parseInt(formData.village_choosing_id) || formData.village_choosing_id,
-      village_choosing: selectedVillageChoosing ? selectedVillageChoosing.name : formData.village_choosing_id,
-      caste_ratio: parseInt(formData.caste_ratio)
-    };
-
     try {
-      if (isEditing) {
-        await dispatch(updateCasteRatio({ id: editingId, casteRatioData: submitData }));
-      } else {
-        await dispatch(createCasteRatio(submitData));
-      }
+      // Create multiple caste ratios
+      const promises = casteRatios.map(casteRatioData => {
+        const submitData = {
+          ...formData,
+          panchayat_choosing_id: parseInt(formData.panchayat_choosing_id) || formData.panchayat_choosing_id,
+          panchayat_choosing: selectedPanchayatChoosing ? selectedPanchayatChoosing.name : formData.panchayat_choosing_id,
+          village_choosing_id: parseInt(formData.village_choosing_id) || formData.village_choosing_id,
+          village_choosing: selectedVillageChoosing ? selectedVillageChoosing.name : formData.village_choosing_id,
+          caste_id: casteRatioData.caste_id,
+          caste_ratio: casteRatioData.caste_ratio
+        };
+
+        return dispatch(createCasteRatio(submitData));
+      });
+
+      await Promise.all(promises);
+      
+      // Show success message
+      const successMessage = `Successfully created ${casteRatios.length} caste ratio${casteRatios.length > 1 ? 's' : ''}!`;
+      alert(successMessage);
       
       setShowModal(false);
       resetForm();
+      setCasteRatios([]);
       dispatch(fetchCasteRatios({ page: pagination.current_page, search, ...filters }));
     } catch (error) {
-      console.error('Error saving caste ratio:', error);
+      console.error('Error saving caste ratios:', error);
     }
   };
 
@@ -570,6 +625,9 @@ const CasteRatio = () => {
     });
     setIsEditing(false);
     setEditingId(null);
+    setCasteRatios([]);
+    setSelectedCaste('');
+    setCasteRatio('');
     setFilteredVidhanSabhas([]);
     setFilteredBlocks([]);
     setFilteredPanchayats([]);
@@ -678,7 +736,7 @@ const CasteRatio = () => {
       <div className="caste-ratio-header">
         <div className="header-content">
           <h1>Caste Ratio Management</h1>
-          <p>Manage caste distribution ratios across different administrative levels</p>
+          <p>Manage multiple caste distribution ratios across different administrative levels</p>
         </div>
         {canManageCastRatios && (
           <button 
@@ -690,7 +748,7 @@ const CasteRatio = () => {
             disabled={loading}
           >
             <PlusIcon />
-            Add New Caste Ratio
+            Add Multiple Caste Ratios
           </button>
         )}
       </div>
@@ -714,7 +772,7 @@ const CasteRatio = () => {
           <SearchIcon />
           <input
             type="text"
-            placeholder="Search by caste name..."
+            placeholder="Search by caste name or location..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             disabled={loading}
@@ -887,9 +945,9 @@ const CasteRatio = () => {
       <div className="caste-ratio-list-section">
         <div className="list-header">
           <div className="list-header-left">
-            <h2>Caste Ratios List</h2>
+            <h2>Multiple Caste Ratios List</h2>
             <div className="pagination-info">
-              Showing {((pagination.current_page - 1) * pagination.per_page) + 1} to {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of {pagination.total} caste ratios
+              Showing {((pagination.current_page - 1) * pagination.per_page) + 1} to {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of {pagination.total} caste ratio entries
             </div>
           </div>
           <div className="list-header-right">
@@ -921,20 +979,20 @@ const CasteRatio = () => {
         {loading && castRatios.length === 0 ? (
           <div className="loading-state">
             <div className="spinner"></div>
-            <p>Loading caste ratios...</p>
+            <p>Loading caste ratio entries...</p>
           </div>
         ) : castRatios.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">📊</div>
             <h3>No caste ratios found</h3>
-            <p>Add your first caste ratio to get started.</p>
+            <p>Add your first set of caste ratios to get started.</p>
             {canManageCastRatios && (
               <button className="btn btn-primary" onClick={() => {
                 resetForm();
                 setShowModal(true);
               }}>
                 <PlusIcon />
-                Add First Caste Ratio
+                Add First Caste Ratios
               </button>
             )}
           </div>
@@ -945,7 +1003,7 @@ const CasteRatio = () => {
                 <tr>
                   <th>ID</th>
                   <th>Caste</th>
-                  <th>Ratio (%)</th>
+                  <th>Ratio</th>
                   <th>Location</th>
                   <th>Panchayat Type</th>
                   <th>Village Type</th>
@@ -964,7 +1022,7 @@ const CasteRatio = () => {
                       </div>
                     </td>
                     <td className="ratio-cell">
-                      <span className="ratio-badge">{casteRatio.caste_ratio}%</span>
+                      <span className="ratio-badge">{casteRatio.caste_ratio}</span>
                     </td>
                     <td className="location-cell">{getLocationDisplay(casteRatio)}</td>
                     <td className="panchayat-type-cell">
@@ -1047,7 +1105,7 @@ const CasteRatio = () => {
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">
-              <h2>{isEditing ? 'Edit Caste Ratio' : 'Add New Caste Ratio'}</h2>
+              <h2>{isEditing ? 'Edit Caste Ratio' : 'Add Multiple Caste Ratios'}</h2>
               <button
                 onClick={() => {
                   setShowModal(false);
@@ -1060,41 +1118,112 @@ const CasteRatio = () => {
             </div>
             
             <form onSubmit={handleSubmit} className="modal-form">
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="caste_id">Caste *</label>
-                  <select
-                    id="caste_id"
-                    name="caste_id"
-                    value={formData.caste_id}
-                    onChange={handleInputChange}
-                    required
-                    disabled={loading}
-                  >
-                    <option value="">Select Caste</option>
-                    {Array.isArray(castes) && castes.map((caste) => (
-                      <option key={caste.id} value={caste.id}>
-                        {caste.caste}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              {/* Instructions Section */}
+              <div className="instructions-section">
+                <h3>How to Add Multiple Caste Ratios</h3>
+                <ol className="instructions-list">
+                  <li>Select a caste from the dropdown</li>
+                  <li>Enter the ratio value (any positive number)</li>
+                  <li>Click "Add" to add it to the list</li>
+                  <li>Repeat for all castes you want to add</li>
+                  <li>Optionally select parliamentary hierarchy levels</li>
+                  <li>Click "Create Caste Ratios" to submit</li>
+                </ol>
+              </div>
+
+              {/* Multiple Caste Ratios Section */}
+              <div className="caste-ratios-section">
+                <h3>Add Caste Ratios</h3>
+                <p className="section-description">
+                  Select castes and enter their ratios. You can add multiple castes one by one.
+                </p>
                 
-                <div className="form-group">
-                  <label htmlFor="caste_ratio">Caste Ratio (%) *</label>
-                  <input
-                    type="number"
-                    id="caste_ratio"
-                    name="caste_ratio"
-                    value={formData.caste_ratio}
-                    onChange={handleInputChange}
-                    min="0"
-                    max="100"
-                    required
-                    disabled={loading}
-                    placeholder="Enter percentage (0-100)"
-                  />
+                <div className="caste-ratio-input-row">
+                  <div className="form-group">
+                    <label htmlFor="selected_caste">Select Caste</label>
+                    <select
+                      id="selected_caste"
+                      value={selectedCaste}
+                      onChange={(e) => setSelectedCaste(e.target.value)}
+                      disabled={loading}
+                    >
+                      <option value="">Choose a caste</option>
+                      {Array.isArray(castes) && castes.map((caste) => (
+                        <option key={caste.id} value={caste.id}>
+                          {caste.caste}
+                        </option>
+                      ))}
+                    </select>
+                    {(!Array.isArray(castes) || castes.length === 0) && (
+                      <small className="input-hint" style={{color: 'orange'}}>
+                        Loading castes from database...
+                      </small>
+                    )}
+                  </div>
+                  
+                  <div className="form-group">
+                    <label htmlFor="caste_ratio_input">Ratio</label>
+                    <input
+                      type="number"
+                      id="caste_ratio_input"
+                      value={casteRatio}
+                      onChange={(e) => setCasteRatio(e.target.value)}
+                      min="0"
+                      disabled={loading}
+                      placeholder="Enter ratio value"
+                    />
+                    <small className="input-hint">Enter ratio value (any positive number)</small>
+                  </div>
+                  
+                  <button
+                    type="button"
+                    onClick={handleAddCasteRatio}
+                    className="btn btn-primary add-caste-btn"
+                    disabled={loading || !selectedCaste || !casteRatio}
+                  >
+                    <PlusIcon />
+                    Add
+                  </button>
                 </div>
+
+                {/* Caste Ratios List */}
+                {casteRatios.length > 0 && (
+                  <div className="caste-ratios-list">
+                    <h4>Added Caste Ratios</h4>
+                    <div className="caste-ratios-grid">
+                      {casteRatios.map((cr) => (
+                        <div key={cr.caste_id} className="caste-ratio-item">
+                          <span className="caste-name">{cr.caste_name}</span>
+                          <span className="ratio-value">{cr.caste_ratio}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCasteRatio(cr.caste_id)}
+                            className="btn btn-icon btn-remove"
+                            title="Remove"
+                          >
+                            <DeleteIcon />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="total-ratio">
+                      <strong>Total: {totalRatio}</strong>
+                    </div>
+                    
+                  </div>
+                )}
+              </div>
+
+              <div className="hierarchy-note">
+                <p><strong>Note:</strong> Select the parliamentary hierarchy below to specify where these caste ratios apply. All fields are optional - you can select any combination of levels.</p>
+              </div>
+
+              <div className="hierarchy-section">
+                <h3>Parliamentary Hierarchy (Optional)</h3>
+                <p className="section-description">
+                  Select the administrative levels where these caste ratios will apply.
+                </p>
               </div>
 
               <div className="form-row">
@@ -1301,9 +1430,9 @@ const CasteRatio = () => {
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={loading}
+                  disabled={loading || casteRatios.length === 0}
                 >
-                  {loading ? 'Saving...' : (isEditing ? 'Update' : 'Create')}
+                  {loading ? 'Saving...' : (isEditing ? 'Update' : 'Create Caste Ratios')}
                 </button>
               </div>
             </form>
