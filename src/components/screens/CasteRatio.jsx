@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  fetchCasteRatios,
-  createCasteRatio,
-  updateCasteRatio,
-  deleteCasteRatio,
-  fetchCasteRatioById,
+  fetchCastRatios,
+  createCastRatio,
+  updateCastRatio,
+  deleteCastRatio,
+  fetchCastRatioById,
   clearError,
   clearSuccess,
-  setCurrentCasteRatio,
-  clearCurrentCasteRatio,
+  setCurrentCastRatio,
+  clearCurrentCastRatio,
   setCurrentPage,
 } from '../../store/slices/casteRatioSlice';
 import { fetchCastes } from '../../store/slices/casteSlice';
+import { fetchCasteCategories } from '../../store/slices/casteCategorySlice';
 import { fetchLokSabhas } from '../../store/slices/lokSabhaSlice';
 import { fetchVidhanSabhas, fetchVidhanSabhasByLokSabha } from '../../store/slices/vidhanSabhaSlice';
 import { fetchBlocks, fetchBlocksByVidhanSabha } from '../../store/slices/blockSlice';
@@ -92,6 +93,7 @@ const CasteRatio = () => {
   const dispatch = useDispatch();
   const { castRatios, currentCasteRatio, loading, error, success, pagination } = useSelector((state) => state.casteRatio);
   const { castes } = useSelector((state) => state.caste);
+  const { categories: casteCategories, loading: categoriesLoading } = useSelector((state) => state.casteCategories);
   const { lokSabhas } = useSelector((state) => state.lokSabha);
   const { vidhanSabhas } = useSelector((state) => state.vidhanSabha);
   const { blocks } = useSelector((state) => state.block);
@@ -102,8 +104,6 @@ const CasteRatio = () => {
   const { villageChoosings } = useSelector((state) => state.villageChoosing);
   const { user } = useSelector((state) => state.auth);
   const { token } = useSelector((state) => state.auth);
-
-
 
   // Filtered data for hierarchical dropdowns
   const [filteredVidhanSabhas, setFilteredVidhanSabhas] = useState([]);
@@ -130,6 +130,8 @@ const CasteRatio = () => {
   const [casteRatios, setCasteRatios] = useState([]);
   const [selectedCaste, setSelectedCaste] = useState('');
   const [casteRatio, setCasteRatio] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [filteredCastes, setFilteredCastes] = useState([]);
 
   // Helper function to get panchayat type display text
   const getPanchayatTypeText = (type) => {
@@ -165,6 +167,7 @@ const CasteRatio = () => {
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState({
     caste_id: '',
+    category_id: '',
     loksabha_id: '',
     vidhansabha_id: '',
     block_id: '',
@@ -175,14 +178,28 @@ const CasteRatio = () => {
     sort_order: 'desc'
   });
 
+  // Build query string for API from search and filters
+  const buildQueryParams = () => {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params.set(key, value);
+      }
+    });
+    return params.toString();
+  };
+
   // Check permissions
   const canManageCastRatios = user && hasPermission(user, 'manage_cast_ratios');
 
   // Fetch data on component mount
   useEffect(() => {
     if (token) {
-      dispatch(fetchCasteRatios({ page: pagination.current_page, search, ...filters }));
+      const queryParams = buildQueryParams();
+      dispatch(fetchCastRatios({ page: pagination.current_page, queryParams }));
       dispatch(fetchCastes(1));
+      dispatch(fetchCasteCategories());
       dispatch(fetchLokSabhas(1));
       dispatch(fetchVidhanSabhas(1));
       dispatch(fetchBlocks(1));
@@ -198,11 +215,22 @@ const CasteRatio = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (token) {
-        dispatch(fetchCasteRatios({ page: 1, search, ...filters }));
+        const queryParams = buildQueryParams();
+        dispatch(fetchCastRatios({ page: 1, queryParams }));
       }
     }, 500);
     return () => clearTimeout(timer);
   }, [search, filters, token, dispatch]);
+
+  // Filter castes by selected category
+  useEffect(() => {
+    if (selectedCategory && Array.isArray(castes)) {
+      const filtered = castes.filter(caste => caste.category_id == selectedCategory);
+      setFilteredCastes(filtered);
+    } else {
+      setFilteredCastes([]);
+    }
+  }, [selectedCategory, castes]);
 
   // Clear success/error messages
   useEffect(() => {
@@ -405,8 +433,20 @@ const CasteRatio = () => {
     }));
   };
 
+  // Handle category selection
+  const handleCategoryChange = (e) => {
+    const categoryId = e.target.value;
+    setSelectedCategory(categoryId);
+    setSelectedCaste(''); // Clear caste selection when category changes
+  };
+
   // Handle adding caste ratio to the list
   const handleAddCasteRatio = () => {
+    if (!selectedCategory) {
+      alert('Please select a category first');
+      return;
+    }
+    
     if (!selectedCaste || !casteRatio) {
       alert('Please select a caste and enter a ratio');
       return;
@@ -425,8 +465,8 @@ const CasteRatio = () => {
       return;
     }
 
-    const selectedCasteData = Array.isArray(castes) 
-      ? castes.find(c => c.id == selectedCaste)
+    const selectedCasteData = Array.isArray(filteredCastes) 
+      ? filteredCastes.find(c => c.id == selectedCaste)
       : null;
 
     const newCasteRatio = {
@@ -474,11 +514,12 @@ const CasteRatio = () => {
           panchayat_choosing: selectedPanchayatChoosing ? selectedPanchayatChoosing.name : formData.panchayat_choosing_id,
           village_choosing_id: parseInt(formData.village_choosing_id) || formData.village_choosing_id,
           village_choosing: selectedVillageChoosing ? selectedVillageChoosing.name : formData.village_choosing_id,
+          category_id: parseInt(selectedCategory) || selectedCategory,
           caste_id: casteRatioData.caste_id,
           caste_ratio: casteRatioData.caste_ratio
         };
 
-        return dispatch(createCasteRatio(submitData));
+        return dispatch(createCastRatio(submitData));
       });
 
       await Promise.all(promises);
@@ -490,7 +531,7 @@ const CasteRatio = () => {
       setShowModal(false);
       resetForm();
       setCasteRatios([]);
-      dispatch(fetchCasteRatios({ page: pagination.current_page, search, ...filters }));
+      dispatch(fetchCastRatios({ page: pagination.current_page, search, ...filters }));
     } catch (error) {
       console.error('Error saving caste ratios:', error);
     }
@@ -578,8 +619,9 @@ const CasteRatio = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this caste ratio?')) {
       try {
-        await dispatch(deleteCasteRatio(id));
-        dispatch(fetchCasteRatios({ page: pagination.current_page, search, ...filters }));
+        await dispatch(deleteCastRatio(id));
+        const queryParams = buildQueryParams();
+        dispatch(fetchCastRatios({ page: pagination.current_page, queryParams }));
       } catch (error) {
         console.error('Error deleting caste ratio:', error);
       }
@@ -604,6 +646,8 @@ const CasteRatio = () => {
     setCasteRatios([]);
     setSelectedCaste('');
     setCasteRatio('');
+    setSelectedCategory('');
+    setFilteredCastes([]);
     setFilteredVidhanSabhas([]);
     setFilteredBlocks([]);
     setFilteredPanchayats([]);
@@ -613,7 +657,8 @@ const CasteRatio = () => {
 
   const handlePageChange = (newPage) => {
     dispatch(setCurrentPage(newPage));
-    dispatch(fetchCasteRatios({ page: newPage, search, ...filters }));
+    const queryParams = buildQueryParams();
+    dispatch(fetchCastRatios({ page: newPage, queryParams }));
   };
 
   const handleFilterChange = (name, value) => {
@@ -626,6 +671,7 @@ const CasteRatio = () => {
   const clearAllFilters = () => {
     setFilters({
       caste_id: '',
+      category_id: '',
       loksabha_id: '',
       vidhansabha_id: '',
       block_id: '',
@@ -639,7 +685,8 @@ const CasteRatio = () => {
   };
 
   const handleRefresh = () => {
-    dispatch(fetchCasteRatios({ page: pagination.current_page, search, ...filters }));
+    const queryParams = buildQueryParams();
+    dispatch(fetchCastRatios({ page: pagination.current_page, queryParams }));
   };
 
   const formatDate = (dateString) => {
@@ -697,7 +744,7 @@ const CasteRatio = () => {
           <p>{error}</p>
           <button 
             className="btn btn-primary"
-            onClick={() => dispatch(fetchCasteRatios({ page: 1 }))}
+            onClick={() => dispatch(fetchCastRatios({ page: 1 }))}
           >
             Retry
           </button>
@@ -769,6 +816,22 @@ const CasteRatio = () => {
       {showFilters && (
         <div className="advanced-filters">
           <div className="filter-row">
+            <div className="filter-group">
+              <label>Category</label>
+              <select
+                value={filters.category_id}
+                onChange={(e) => handleFilterChange('category_id', e.target.value)}
+                disabled={loading || categoriesLoading}
+              >
+                <option value="">All Categories</option>
+                {Array.isArray(casteCategories) && casteCategories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="filter-group">
               <label>Caste</label>
               <select
@@ -927,20 +990,6 @@ const CasteRatio = () => {
             </div>
           </div>
           <div className="list-header-right">
-            {/* {canManageCastRatios && (
-              <button 
-                className="btn btn-primary add-btn"
-                onClick={() => {
-                  resetForm();
-                  setShowModal(true);
-                }}
-                disabled={loading}
-                title="Create a new caste ratio"
-              >
-                <PlusIcon />
-                Add New
-              </button>
-            )} */}
             <button 
               className="btn btn-secondary refresh-btn" 
               onClick={handleRefresh} 
@@ -979,6 +1028,7 @@ const CasteRatio = () => {
                 <tr>
                   <th>ID</th>
                   <th>Caste</th>
+                  <th>Category</th>
                   <th>Ratio</th>
                   <th>Location</th>
                   <th>Panchayat Type</th>
@@ -995,6 +1045,13 @@ const CasteRatio = () => {
                     <td className="caste-cell">
                       <div className="caste-name">
                         <strong>{casteRatio.caste?.caste_name || 'N/A'}</strong>
+                      </div>
+                    </td>
+                    <td className="category-cell">
+                      <div className="category-name">
+                        <span className="category-badge">
+                          {casteRatio.category_data?.name || 'Unassigned'}
+                        </span>
                       </div>
                     </td>
                     <td className="ratio-cell">
@@ -1299,28 +1356,54 @@ const CasteRatio = () => {
               <div className="caste-ratios-section">
                 <h3>Add Caste Ratios</h3>
                 <p className="section-description">
-                  Select castes and enter their ratios. You can add multiple castes one by one.
+                  First select a category, then choose castes from that category and enter their ratios. You can add multiple castes one by one.
                 </p>
                 
                 <div className="caste-ratio-input-row">
                   <div className="form-group">
-                    <label htmlFor="selected_caste">Select Caste</label>
+                    <label htmlFor="selected_category">Select Category *</label>
+                    <select
+                      id="selected_category"
+                      value={selectedCategory}
+                      onChange={handleCategoryChange}
+                      disabled={loading || categoriesLoading}
+                    >
+                      <option value="">Choose a category first</option>
+                      {Array.isArray(casteCategories) && casteCategories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                    {categoriesLoading && (
+                      <small className="input-hint" style={{color: 'orange'}}>
+                        Loading categories from database...
+                      </small>
+                    )}
+                  </div>
+                  
+                  <div className="form-group">
+                    <label htmlFor="selected_caste">Select Caste *</label>
                     <select
                       id="selected_caste"
                       value={selectedCaste}
                       onChange={(e) => setSelectedCaste(e.target.value)}
-                      disabled={loading}
+                      disabled={loading || !selectedCategory}
                     >
-                      <option value="">Choose a caste</option>
-                      {Array.isArray(castes) && castes.map((caste) => (
+                      <option value="">
+                        {!selectedCategory ? 'Select a category first' : 
+                         filteredCastes.length === 0 ? 'No castes found in this category' : 
+                         'Choose a caste'}
+                      </option>
+                      {Array.isArray(filteredCastes) && filteredCastes.map((caste) => (
                         <option key={caste.id} value={caste.id}>
                           {caste.caste}
                         </option>
                       ))}
                     </select>
-                    {(!Array.isArray(castes) || castes.length === 0) && (
-                      <small className="input-hint" style={{color: 'orange'}}>
-                        Loading castes from database...
+                    {!selectedCategory && (
+                      <small className="input-hint" style={{color: 'blue'}}>
+                        Please select a category first to see available castes
                       </small>
                     )}
                   </div>
@@ -1343,7 +1426,7 @@ const CasteRatio = () => {
                     type="button"
                     onClick={handleAddCasteRatio}
                     className="btn btn-primary add-caste-btn"
-                    disabled={loading || !selectedCaste || !casteRatio}
+                    disabled={loading || !selectedCategory || !selectedCaste || !casteRatio}
                   >
                     <PlusIcon />
                     Add

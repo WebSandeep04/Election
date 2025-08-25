@@ -23,6 +23,7 @@ import expenseCategoryReducer from './slices/expenseCategorySlice'; // Added for
 import villageDescriptionReducer from './slices/villageDescriptionSlice'; // Added for Village Descriptions
 import casteCategoryReducer from './slices/casteCategorySlice'; // Added for Caste Categories
 
+
 export const store = configureStore({
   reducer: {
     ui: uiReducer,
