@@ -4,10 +4,11 @@ import { getApiUrl, getAuthHeaders } from '../../config/api';
 // Async thunks for CRUD operations
 export const fetchCastes = createAsyncThunk(
   'caste/fetchCastes',
-  async (page = 1, { getState, rejectWithValue }) => {
+  async ({ page = 1, queryParams = '' } = {}, { getState, rejectWithValue }) => {
     try {
       const { auth } = getState();
-      const response = await fetch(getApiUrl(`/api/castes?page=${page}&limit=10`), {
+      const url = getApiUrl(`/api/castes?page=${page}&limit=10${queryParams ? `&${queryParams}` : ''}`);
+      const response = await fetch(url, {
         method: 'GET',
         headers: getAuthHeaders(auth.token),
       });

@@ -184,16 +184,34 @@ const FormBuilder = () => {
     // Prepare form data for database
     const formData = {
       name: trimmedName,
-      questions: questions.map(q => ({
-        question: q.questionText.trim(),
-        type: q.type === "single" ? "single_choice" : q.type === "multiple" ? "multiple_choice" : "long_text",
-        required: q.required,
-        options: q.type === "long" ? [] : q.options.map(o => o.trim()).filter(Boolean)
-      }))
+      questions: questions.map(q => {
+        const filteredOptions = q.type === "long" ? [] : q.options.map(o => (o || "").trim()).filter(Boolean);
+        
+        return {
+          question: q.questionText.trim(),
+          type: q.type === "single" ? "single_choice" : q.type === "multiple" ? "multiple_choice" : "long_text",
+          required: q.required,
+          options: filteredOptions
+        };
+      })
     };
 
     // Debug: Log the data being sent
     console.log('Sending form data to backend:', formData);
+    
+    // Additional check: Make sure all choice questions have at least 2 options
+    const finalErrors = [];
+    formData.questions.forEach((q, index) => {
+      if ((q.type === "single_choice" || q.type === "multiple_choice") && q.options.length < 2) {
+        console.error(`Backend validation will fail: Question ${index + 1} (${q.type}) has only ${q.options.length} options:`, q.options);
+        finalErrors.push(`Question ${index + 1}: Must have at least 2 non-empty options (currently has ${q.options.length})`);
+      }
+    });
+    
+    if (finalErrors.length > 0) {
+      alert("Form validation failed:\n" + finalErrors.join("\n"));
+      return;
+    }
 
     // Save to database
     if (currentForm) {
@@ -329,58 +347,7 @@ const FormBuilder = () => {
             className="question-input"
           />
 
-          {/* Live Preview */}
-          {question.questionText && (
-            <div className="question-preview-live">
-              <h4>Live Preview:</h4>
-              <div className="preview-content">
-                <label className="question-label">
-                  {question.questionText}
-                  {question.required && <span className="required-mark">*</span>}
-                </label>
 
-                {question.type === "long" && (
-                  <textarea
-                    placeholder="Enter your answer..."
-                    className="preview-textarea"
-                    rows="4"
-                    disabled
-                  />
-                )}
-
-                {question.type === "single" && (
-                  <div className="radio-group">
-                    {question.options.map((option, index) => (
-                      <label key={index} className="radio-option">
-                        <input
-                          type="radio"
-                          name={`preview_${question.id}`}
-                          value={option}
-                          disabled
-                        />
-                        {option || `Option ${index + 1}`}
-                      </label>
-                    ))}
-                  </div>
-                )}
-
-                {question.type === "multiple" && (
-                  <div className="checkbox-group">
-                    {question.options.map((option, index) => (
-                      <label key={index} className="checkbox-option">
-                        <input
-                          type="checkbox"
-                          value={option}
-                          disabled
-                        />
-                        {option || `Option ${index + 1}`}
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
 
           <div className="question-settings">
             <label className="required-checkbox">

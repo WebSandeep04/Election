@@ -12,6 +12,7 @@ import {
   clearCurrentCaste,
   setCurrentPage,
 } from '../../store/slices/casteSlice';
+import { fetchCasteCategories } from '../../store/slices/casteCategorySlice';
 import './css/CasteManagement.css';
 
 // Icons (using simple SVG icons)
@@ -68,6 +69,7 @@ const ChevronRightIcon = () => (
 const CasteManagement = () => {
   const dispatch = useDispatch();
   const { castes: rawCastes, currentCaste, loading, error, success, pagination } = useSelector((state) => state.caste);
+  const { categories: casteCategories, loading: categoriesLoading } = useSelector((state) => state.casteCategories);
   
   // Ensure castes is always an array
   const castes = Array.isArray(rawCastes) ? rawCastes : [];
@@ -75,14 +77,21 @@ const CasteManagement = () => {
 
   const [formData, setFormData] = useState({
     caste: '',
+    category_id: '',
   });
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [filters, setFilters] = useState({
+    category_id: '',
+    caste: '',
+  });
 
   useEffect(() => {
     if (token) {
-      dispatch(fetchCastes(1)); // Start with page 1
+      dispatch(fetchCastes({ page: 1 })); // Start with page 1
+      dispatch(fetchCasteCategories()); // Fetch caste categories
     }
   }, [dispatch, token]);
 
@@ -113,26 +122,36 @@ const CasteManagement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.caste.trim()) {
+    if (!formData.caste.trim() || !formData.category_id) {
+      alert('Please fill in both caste name and category');
       return;
     }
 
-    if (isEditing) {
-      await dispatch(updateCaste({ id: editingId, casteData: formData }));
-    } else {
-      await dispatch(createCaste(formData));
-    }
+    setIsSubmitting(true);
+    try {
+      if (isEditing) {
+        await dispatch(updateCaste({ id: editingId, casteData: formData })).unwrap();
+      } else {
+        await dispatch(createCaste(formData)).unwrap();
+      }
 
-    if (!error) {
       resetForm();
       setShowModal(false);
       // Refresh current page after create/update
-      dispatch(fetchCastes(pagination.current_page));
+      dispatch(fetchCastes({ page: pagination.current_page }));
+    } catch (error) {
+      console.error('Error submitting caste:', error);
+      // Error will be handled by the Redux slice and displayed in the UI
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleEdit = (caste) => {
-    setFormData({ caste: caste.caste });
+    setFormData({ 
+      caste: caste.caste,
+      category_id: caste.category_id || ''
+    });
     setIsEditing(true);
     setEditingId(caste.id);
     setShowModal(true);
@@ -143,7 +162,7 @@ const CasteManagement = () => {
     if (window.confirm('Are you sure you want to delete this caste?')) {
       await dispatch(deleteCaste(id));
       // Refresh current page after delete
-      dispatch(fetchCastes(pagination.current_page));
+      dispatch(fetchCastes({ page: pagination.current_page }));
     }
   };
 
@@ -153,7 +172,7 @@ const CasteManagement = () => {
   };
 
   const resetForm = () => {
-    setFormData({ caste: '' });
+    setFormData({ caste: '', category_id: '' });
     setIsEditing(false);
     setEditingId(null);
     dispatch(clearCurrentCaste());
@@ -165,13 +184,33 @@ const CasteManagement = () => {
   };
 
   const handleRefresh = () => {
-    dispatch(fetchCastes(pagination.current_page));
+    dispatch(fetchCastes({ page: pagination.current_page }));
+  };
+
+  const handleFilterChange = (name, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const applyFilters = () => {
+    const queryParams = new URLSearchParams();
+    if (filters.category_id) queryParams.append('category_id', filters.category_id);
+    if (filters.caste) queryParams.append('caste', filters.caste);
+    
+    dispatch(fetchCastes({ page: 1, queryParams: queryParams.toString() }));
+  };
+
+  const clearFilters = () => {
+    setFilters({ category_id: '', caste: '' });
+    dispatch(fetchCastes({ page: 1 }));
   };
 
   // Pagination handlers
   const handlePageChange = (page) => {
     dispatch(setCurrentPage(page));
-    dispatch(fetchCastes(page));
+    dispatch(fetchCastes({ page }));
   };
 
   const handlePreviousPage = () => {
@@ -219,10 +258,10 @@ const CasteManagement = () => {
         <div className="error-state">
           <h2>Error Loading Castes</h2>
           <p>{error}</p>
-          <button 
-            className="btn btn-primary"
-            onClick={() => dispatch(fetchCastes(1))}
-          >
+                     <button 
+             className="btn btn-primary"
+             onClick={() => dispatch(fetchCastes({ page: 1 }))}
+           >
             Retry
           </button>
         </div>
@@ -259,6 +298,58 @@ const CasteManagement = () => {
           {error}
         </div>
       )}
+
+      {/* Filters Section */}
+      <div className="caste-list-section">
+        <div className="list-header">
+          <h2>Filters</h2>
+        </div>
+        <div className="filters-container">
+          <div className="filter-group">
+            <label htmlFor="filter-caste">Caste Name</label>
+            <input
+              type="text"
+              id="filter-caste"
+              value={filters.caste}
+              onChange={(e) => handleFilterChange('caste', e.target.value)}
+              placeholder="Search by caste name..."
+              className="form-control"
+            />
+          </div>
+          <div className="filter-group">
+            <label htmlFor="filter-category">Category</label>
+            <select
+              id="filter-category"
+              value={filters.category_id}
+              onChange={(e) => handleFilterChange('category_id', e.target.value)}
+              className="form-control"
+            >
+              <option value="">All Categories</option>
+              {casteCategories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="filter-actions">
+            <button 
+              className="btn btn-primary"
+              onClick={applyFilters}
+              disabled={loading}
+            >
+              Apply Filters
+            </button>
+            <button 
+              className="btn btn-secondary"
+              onClick={clearFilters}
+              disabled={loading}
+            >
+              Clear Filters
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Caste List Section */}
       <div className="caste-list-section">
@@ -305,6 +396,7 @@ const CasteManagement = () => {
                   <tr>
                     <th>ID</th>
                     <th>Caste Name</th>
+                    <th>Category</th>
                     <th>Created At</th>
                     <th>Updated At</th>
                     <th>Actions</th>
@@ -315,6 +407,9 @@ const CasteManagement = () => {
                     <tr key={caste.id}>
                       <td className="id-cell">#{caste.id}</td>
                       <td className="name-cell">{caste.caste}</td>
+                      <td className="category-cell">
+                        {caste.category_data ? caste.category_data.name : 'No Category'}
+                      </td>
                       <td className="date-cell">{new Date(caste.created_at).toLocaleDateString()}</td>
                       <td className="date-cell">{new Date(caste.updated_at).toLocaleDateString()}</td>
                       <td className="actions-cell">
@@ -413,9 +508,30 @@ const CasteManagement = () => {
                   onChange={handleInputChange}
                   placeholder="Enter caste name"
                   required
-                  disabled={loading}
+                  disabled={loading || isSubmitting}
                   autoFocus
                 />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="category_id">Caste Category</label>
+                <select
+                  id="category_id"
+                  name="category_id"
+                  value={formData.category_id}
+                  onChange={handleInputChange}
+                  required
+                  disabled={loading || categoriesLoading || isSubmitting}
+                  className="form-select"
+                >
+                  <option value="">Select a category</option>
+                  {casteCategories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+                {categoriesLoading && <small>Loading categories...</small>}
               </div>
               
               <div className="modal-actions">
@@ -423,16 +539,16 @@ const CasteManagement = () => {
                   type="button" 
                   className="btn btn-secondary"
                   onClick={handleCancel}
-                  disabled={loading}
+                  disabled={loading || isSubmitting}
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit" 
                   className="btn btn-primary"
-                  disabled={loading || !formData.caste.trim()}
+                  disabled={loading || isSubmitting || !formData.caste.trim() || !formData.category_id}
                 >
-                  {loading ? 'Processing...' : (isEditing ? 'Update Caste' : 'Create Caste')}
+                  {isSubmitting ? 'Processing...' : (isEditing ? 'Update Caste' : 'Create Caste')}
                 </button>
               </div>
             </form>
