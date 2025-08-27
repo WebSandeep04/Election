@@ -12,6 +12,7 @@ import {
   clearCurrentForm
 } from "../../store/slices/formSlice";
 import "./css/FormBuilder.css";
+import FormList from "./FormList";
 
 const FormBuilder = () => {
   const dispatch = useDispatch();
@@ -185,14 +186,18 @@ const FormBuilder = () => {
     const formData = {
       name: trimmedName,
       questions: questions.map(q => {
-        const filteredOptions = q.type === "long" ? [] : q.options.map(o => (o || "").trim()).filter(Boolean);
-        
-        return {
-          question: q.questionText.trim(),
-          type: q.type === "single" ? "single_choice" : q.type === "multiple" ? "multiple_choice" : "long_text",
-          required: q.required,
-          options: filteredOptions
+        const mappedType = q.type === "single" ? "single_choice" : q.type === "multiple" ? "multiple_choice" : "long_text";
+        const base = {
+          question: (q.questionText || "").trim(),
+          type: mappedType,
+          required: !!q.required,
         };
+        if (mappedType !== "long_text") {
+          const filteredOptions = (q.options || []).map(o => (o || "").trim()).filter(Boolean);
+          // Only include options for non-long questions
+          base.options = filteredOptions;
+        }
+        return base;
       })
     };
 
@@ -202,7 +207,7 @@ const FormBuilder = () => {
     // Additional check: Make sure all choice questions have at least 2 options
     const finalErrors = [];
     formData.questions.forEach((q, index) => {
-      if ((q.type === "single_choice" || q.type === "multiple_choice") && q.options.length < 2) {
+      if ((q.type === "single_choice" || q.type === "multiple_choice") && (!Array.isArray(q.options) || q.options.length < 2)) {
         console.error(`Backend validation will fail: Question ${index + 1} (${q.type}) has only ${q.options.length} options:`, q.options);
         finalErrors.push(`Question ${index + 1}: Must have at least 2 non-empty options (currently has ${q.options.length})`);
       }
@@ -458,21 +463,24 @@ const FormBuilder = () => {
     return (
       <div className="form-builder-container">
         <div className="form-builder-header">
-          <h1>Dynamic Form Builder</h1>
-          <p>Create forms with different question types - Single Choice, Multiple Choice, and Long Text</p>
-        </div>
-        
-        <div className="create-form-screen">
-          <div className="create-form-content">
-            <h2>Welcome to Form Builder</h2>
-            <p>Start building your dynamic form by clicking the button below</p>
-            <button 
+          <div>
+            <h1>Dynamic Form Builder</h1>
+            <p>Create forms with different question types - Single Choice, Multiple Choice, and Long Text</p>
+          </div>
+          <div>
+            <button
               onClick={handleCreateForm}
               className="create-form-btn"
             >
-              + Create New Form
+              <span style={{ fontSize: 18, lineHeight: 1 }}>＋</span>
+              Add New Form
             </button>
           </div>
+        </div>
+
+        {/* List of forms with edit/delete */}
+        <div style={{ marginTop: 16 }}>
+          <FormList />
         </div>
       </div>
     );

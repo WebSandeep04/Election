@@ -54,23 +54,36 @@ const FormList = () => {
   return (
     <div className="component-container">
       <div className="component-header">
-        <h1>Form List</h1>
+        <h1>Forms</h1>
         <p>View and manage all created forms</p>
+      </div>
+
+      {/* Search input */}
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <input
+            type="text"
+            placeholder="Search forms by name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ padding: "10px 14px", border: "1px solid #e5e7eb", borderRadius: 8, minWidth: 320, width: "100%", maxWidth: 480 }}
+          />
+        </div>
       </div>
 
       <div className="component-content">
         <div className="content-card">
-          <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 16 }}>
-            <input
-              type="text"
-              placeholder="Search forms by name..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ padding: "10px 14px", border: "1px solid #ddd", borderRadius: 6, minWidth: 260 }}
-            />
-            <button onClick={handleRefresh} className="save-btn" disabled={loading}>
-              {loading ? "Loading..." : "Refresh"}
-            </button>
+          {/* List header with count and refresh on right */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div>
+              <h2 style={{ margin: 0 }}>Form List</h2>
+              <div style={{ color: '#6b7280', fontSize: 14 }}>Showing {formsList.length} form{formsList.length !== 1 ? 's' : ''}</div>
+            </div>
+            <div>
+              <button onClick={handleRefresh} className="save-btn" disabled={loading}>
+                {loading ? "Loading..." : "Refresh"}
+              </button>
+            </div>
           </div>
 
           {error && (

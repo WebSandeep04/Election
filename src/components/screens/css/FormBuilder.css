@@ -8,8 +8,14 @@
 
 /* Header */
 .form-builder-header {
-  text-align: center;
-  margin-bottom: 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  background: white;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
 }
 
 .form-builder-header h1 {
@@ -58,22 +64,24 @@
 }
 
 .create-form-btn {
-  background: #3b82f6;
+  background: linear-gradient(90deg, #5b7cfa 0%, #7b3cef 100%);
   color: white;
   border: none;
-  padding: 16px 32px;
+  padding: 12px 20px;
   border-radius: 12px;
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  box-shadow: 0 8px 24px rgba(91, 124, 250, 0.25);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .create-form-btn:hover {
-  background: #2563eb;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 30px rgba(91,124,250,0.35);
 }
 
 /* Question Type Selector */
